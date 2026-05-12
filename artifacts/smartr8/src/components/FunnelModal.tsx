@@ -104,7 +104,7 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-xl p-0 flex flex-col gap-0 border-0 bg-white overflow-hidden">
+      <DialogContent hideClose className="sm:max-w-md w-full h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-xl p-0 flex flex-col gap-0 border-0 bg-white overflow-hidden">
         <DialogTitle className="sr-only">See your mortgage options</DialogTitle>
         <DialogDescription className="sr-only">Answer a few questions to see your mortgage options from 99+ lenders</DialogDescription>
 

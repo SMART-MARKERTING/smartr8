@@ -1,0 +1,145 @@
+Multi-part update. Fix bugs, polish design, and add Cal.com embed.
+
+============================================
+1. FIX DUPLICATE X BUTTONS IN FUNNEL MODAL
+============================================
+Audit FunnelModal.tsx — there are currently TWO close (X) buttons 
+visible on Step 6 of the funnel modal. Only ONE close X should be 
+visible at the top right of the modal across all 6 steps.
+
+- Remove any duplicate close button
+- Keep ONE clean X in the top-right corner of the modal header
+- Make sure it's consistent across all 6 steps
+- The X should close the entire modal and reset the form state
+- The back arrow (←) in the top-left should ONLY appear on Steps 
+  2-6, NOT on Step 1
+- On Step 1, the top-left should be empty (no back button)
+
+============================================
+2. UNIFY DARK TEAL COLOR SCHEME ACROSS SITE
+============================================
+The Adaxa logo background and header bar are dark teal (#1A3A47). 
+Currently the rest of the site is on a white/light background, 
+which creates a visual disconnect.
+
+Update the site so the dark teal becomes part of the brand 
+identity, while keeping the body readable:
+
+A. PRIMARY BRAND COLOR — replace any existing "primary" color 
+   variable across the entire site with: #1A3A47 (dark teal)
+   This includes:
+   - Step number circles in "How it works" section
+   - Heading text colors (currently dark/black — make them #1A3A47)
+   - Hover states for path cards
+   - Phone link colors in About section
+   - The "Got it. Let's talk." check mark circle on /thank-you
+   - Section heading colors
+   - Footer NMLS text accent color
+
+B. ACCENT / CTA COLOR — keep the existing button accent color 
+   (red/coral) for "See My Options" CTA buttons. The teal is for 
+   structure and typography, the accent is for action.
+
+C. FOOTER — make the footer background match the header (#1A3A47) 
+   with white text. This bookends the page in brand color and 
+   makes the body section pop in the middle.
+
+D. /thank-you PAGE — also update:
+   - Header (already dark teal, confirm)
+   - Footer (make dark teal to match new design)
+   - "Got it. Let's talk." text color: #1A3A47
+   - Check mark circle: light teal background, dark teal check
+
+The result: dark teal header → white body with teal accents → dark 
+teal footer. Bookended brand experience.
+
+============================================
+3. CAL.COM EMBED ON /thank-you
+============================================
+The /thank-you page currently shows a placeholder where Cal.com 
+should go. Replace it with the actual Cal.com inline embed.
+
+Use the embed code structure:
+
+<script type="text/javascript">
+  (function (C, A, L) { let p = function (a, ar) { a.q.push(ar); }; let d = C.document; C.Cal = C.Cal || function () { let cal = C.Cal; let ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { const api = function () { p(api, arguments); }; const namespace = ar[1]; api.q = api.q || []; if(typeof namespace === "string"){cal.ns[namespace] = cal.ns[namespace] || api;p(cal.ns[namespace], ar);p(cal, ["initNamespace", namespace]);} else p(cal, ar); return;} p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "Cal");
+  Cal("init", "consult", {origin:"https://app.cal.com"});
+  Cal.ns.consult("inline", {
+    elementOrSelector:"#my-cal-inline",
+    config: {"layout":"month_view"},
+    calLink: "PLACEHOLDER-USERNAME/consult",
+  });
+  Cal.ns.consult("ui", {"hideEventTypeDetails":false,"layout":"month_view"});
+</script>
+
+Replace "PLACEHOLDER-USERNAME" with the actual Cal.com username 
+(I'll send it once I confirm the URL — for now use 
+"mykoal-deshazo" as the placeholder).
+
+Embed the calendar in a clean bordered container (border, rounded 
+corners, white background). Min height: 600px on desktop, 500px 
+on mobile.
+
+Above the embed, change the headline from:
+"Cal.com scheduling will appear here — add your Cal.com embed URL 
+to enable booking"
+
+To:
+"Book a 15-minute call"
+
+Sub-text below the headline:
+"Pick a time that works for you. I'll call you at the number you 
+provided."
+
+============================================
+4. HERO IMAGE — USE THE HEADSHOT
+============================================
+The hero on the home page currently shows a "MD" placeholder 
+monogram circle. The real headshot is at /public/mykoal-headshot.jpg
+
+Replace the placeholder with the actual headshot:
+- Circular crop
+- Same dimensions as current placeholder
+- White border, soft shadow
+- Object-fit: cover so the photo isn't distorted
+
+Also add a smaller version of the headshot in the "About Mykoal" 
+section — centered above the heading, 100px circular, white border.
+
+============================================
+5. METADATA CLEANUP
+============================================
+The current meta description still says "built on Replit. Update 
+this description to reflect the app." This will show as the Google 
+search result preview. Fix it:
+
+- Site title: "Mykoal DeShazo | VP & Senior Loan Officer at 
+  Adaxa Home"
+- Meta description: "Real mortgage options from a Senior Loan 
+  Officer at Adaxa Home in Scottsdale. Cash out, refi, HELOC, 
+  and more from 99+ lenders. No credit pull, no pressure. 
+  NMLS #1912347. Equal Housing Opportunity."
+- OG title and OG description: match above
+- Remove all "built on Replit" references from metadata
+- Twitter card: summary_large_image with matching title/description
+- /thank-you: add noindex, nofollow meta tag
+- Add favicon using the new Adaxa logo "A" mark (square crop), 
+  generate favicon.ico, 16x16, 32x32, and 180x180 apple-touch-icon
+
+============================================
+6. MOBILE HEADER FIX
+============================================
+On mobile, "Mykoal DeShazo" and "Vice President | Senior Loan 
+Officer at Adaxa Home" text is hidden (hidden sm:flex). Make it 
+visible on mobile too. Either:
+- Stack the text below the logo on mobile
+- OR show smaller text next to the logo
+
+Critical for compliance — every visitor must clearly see who 
+they're dealing with, including mobile.
+
+============================================
+DELIVERABLES
+============================================
+Run npm run build, confirm clean, send updated preview link.
+List any items you couldn't complete with the reason.

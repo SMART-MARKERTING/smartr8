@@ -1,58 +1,58 @@
 export function Footer() {
   return (
-    <footer className="bg-white border-t border-border py-12 mt-auto">
+    <footer className="mt-auto py-12" style={{ backgroundColor: "#1A3A47" }}>
       <div className="container mx-auto px-4 max-w-5xl text-center">
-        <p className="text-primary font-medium mb-1">Mykoal DeShazo | Vice President | Senior Loan Officer | NMLS #1912347</p>
-        <p className="text-muted-foreground text-sm mb-1">Adaxa Home, LLC | NMLS #2380533</p>
-        <p className="text-muted-foreground text-sm mb-4">16767 N Perimeter Dr., Ste 150, Scottsdale, AZ 85260</p>
+        <p className="font-medium mb-1 text-white">Mykoal DeShazo | Vice President | Senior Loan Officer | NMLS #1912347</p>
+        <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.7)" }}>Adaxa Home, LLC | NMLS #2380533</p>
+        <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>16767 N Perimeter Dr., Ste 150, Scottsdale, AZ 85260</p>
 
         <div className="flex items-center justify-center gap-2 mb-4">
-          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-4 w-auto object-contain" />
-          <span className="text-muted-foreground text-sm font-medium">Equal Housing Opportunity</span>
+          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-4 w-auto object-contain brightness-0 invert" />
+          <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>Equal Housing Opportunity</span>
         </div>
 
-        <p className="text-muted-foreground text-xs mb-2">
+        <p className="text-xs mb-2" style={{ color: "rgba(255,255,255,0.6)" }}>
           Licensed in multiple states. See{" "}
-          <a href="https://adaxahome.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+          <a href="https://adaxahome.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white" style={{ color: "rgba(255,255,255,0.6)" }}>
             adaxahome.com
           </a>{" "}
           for full state licensing details.
         </p>
 
-        <p className="text-muted-foreground text-xs mb-3">
-          <a href="https://adaxahome.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+        <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <a href="https://adaxahome.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white" style={{ color: "rgba(255,255,255,0.6)" }}>
             Full licensing and disclosures at adaxahome.com
           </a>
         </p>
 
-        <p className="text-muted-foreground text-xs max-w-3xl mx-auto opacity-80 mb-4">
+        <p className="text-xs max-w-3xl mx-auto mb-5" style={{ color: "rgba(255,255,255,0.5)" }}>
           This is not a commitment to lend. All loans subject to credit approval, income verification, and property appraisal. Rates and terms subject to change.
         </p>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
           <a
             href="https://adaxahome.com/privacy/"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-primary"
+            className="underline hover:text-white"
           >
             Privacy Policy
           </a>
-          <span>·</span>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
             href="https://adaxahome.com/terms-of-use/"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-primary"
+            className="underline hover:text-white"
           >
             Terms of Use
           </a>
-          <span>·</span>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
             href="https://adaxahome.com/texas-compliance-notice/"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-primary"
+            className="underline hover:text-white"
           >
             Texas Compliance Notice
           </a>
