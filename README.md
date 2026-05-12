@@ -66,6 +66,10 @@ bash scripts/push-github.sh
 | Build output directory | `artifacts/smartr8/dist/public` |
 | Root directory | `/` (repo root) |
 
+No environment variables need to be added in the Cloudflare Pages dashboard — `BASE_PATH` defaults to `/` automatically during the build.
+
+> **SPA routing:** A `public/_redirects` file (`/* /index.html 200`) is already included so that direct links to `/thank-you` and any other route resolve correctly on Cloudflare's CDN.
+
 Click **Save and Deploy**.
 
 ### 4. Add custom domain smartr8.com
