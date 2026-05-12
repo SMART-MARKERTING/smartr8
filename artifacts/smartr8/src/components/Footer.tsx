@@ -6,8 +6,8 @@ export function Footer() {
         <p className="text-muted-foreground text-sm mb-1">Adaxa Home, LLC | NMLS #2380533</p>
         <p className="text-muted-foreground text-sm mb-4">16767 N Perimeter Dr., Ste 150, Scottsdale, AZ 85260</p>
 
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-10 w-10 object-contain" />
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-4 w-auto object-contain" />
           <span className="text-muted-foreground text-sm font-medium">Equal Housing Opportunity</span>
         </div>
 

@@ -319,7 +319,7 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
                       data-testid="funnel-consent-checkbox"
                     />
                     <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                      I agree to be contacted by Mykoal DeShazo at Adaxa Home by phone, text, or email about mortgage options. I can opt out anytime. Standard message rates may apply.
+                      I agree to be contacted by Mykoal DeShazo at Adaxa Home by phone, text, or email about mortgage options. Consent is not a condition of any service. I can opt out anytime. Standard message and data rates may apply.
                     </label>
                   </div>
 
@@ -357,7 +357,7 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
 
         {/* EHO footer */}
         <div className="shrink-0 border-t px-6 py-3 flex items-center justify-center gap-2 bg-secondary/20">
-          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-6 w-6 object-contain opacity-70" />
+          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-4 w-auto object-contain opacity-70" />
           <span className="text-[10px] text-muted-foreground">Equal Housing Opportunity · NMLS #1912347 · Adaxa Home, LLC NMLS #2380533</span>
         </div>
       </DialogContent>
