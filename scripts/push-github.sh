@@ -22,10 +22,14 @@ else
   git remote add origin "$AUTHED_URL"
 fi
 
+# Always restore the unauthenticated URL on exit — success or failure —
+# so the PAT is never left stored in .git/config.
+cleanup() {
+  git remote set-url origin "$REPO_URL" 2>/dev/null || true
+}
+trap cleanup EXIT
+
 echo "Pushing main → GitHub..."
 git push -u origin main
-
-# Reset remote URL to unauthenticated form so the PAT isn't stored in .git/config
-git remote set-url origin "$REPO_URL"
 
 echo "Done. https://github.com/mdeshazo/smartr8"

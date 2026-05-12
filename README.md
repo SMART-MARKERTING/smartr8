@@ -31,7 +31,9 @@ bash scripts/push-github.sh
 This script:
 1. Reads `GITHUB_PAT` from the Replit Secrets tab
 2. Authenticates and pushes `main` to GitHub
-3. Strips the token from the remote URL so it's never stored in `.git/config`
+3. Always strips the token from the remote URL on exit (success or failure) so it is never left stored in `.git/config`
+
+> Note: this is a manual one-command sync from Replit to GitHub. It is not automatic on every file save — run it after committing changes you want to push.
 
 **First-time setup:** Make sure `GITHUB_PAT` is set in Replit → Secrets tab. It must be a classic GitHub Personal Access Token with `repo` scope.
 
