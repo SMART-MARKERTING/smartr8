@@ -1,0 +1,61 @@
+Two issues to fix:
+
+============================================
+1. HEADER COLOR MISMATCH
+============================================
+The new Adaxa logo (/public/adaxa-logo.jpg) has a dark teal 
+background baked into the image. The current header background 
+is set to #1A3A47 but the logo's actual background is a different 
+shade of teal — there's a visible rectangle outline around the 
+logo where the two colors don't match.
+
+Fix:
+- Sample the exact color from the logo's background pixels
+- Update the header background to match EXACTLY
+- The logo should blend seamlessly into the header bar with no 
+  visible outline or color seam
+- If you can't sample the exact color, try these dark teal options 
+  and pick the closest match:
+  #1B3E4A
+  #1F4250
+  #1A3A47
+  #143845
+  #18404D
+
+Test it and make sure when viewing the page, the logo appears to 
+sit FLUSH with the header background, no visible edge or 
+rectangle around it.
+
+============================================
+2. METADATA STILL NOT UPDATED
+============================================
+The meta description, OG title, and Twitter card metadata still 
+shows the placeholder text "built on Replit. Update this 
+description to reflect the app."
+
+This needs to be updated to:
+
+- Site title (across all pages): "Mykoal DeShazo | VP & Senior 
+  Loan Officer at Adaxa Home"
+- Meta description: "Real mortgage options from a Senior Loan 
+  Officer at Adaxa Home in Scottsdale. Cash out, refi, HELOC, 
+  and more from 99+ lenders. No credit pull, no pressure. 
+  NMLS #1912347. Equal Housing Opportunity."
+- OG title: "Mykoal DeShazo | VP & Senior Loan Officer at Adaxa Home"
+- OG description: match meta description above
+- Twitter card: summary_large_image with matching title and description
+- Remove all "built on Replit" references from any metadata files
+- /thank-you page: add noindex, nofollow meta tag (don't index)
+
+Also verify these from the earlier mega prompt actually completed:
+- Hero now shows the real headshot (not the "MD" placeholder)?
+- About section has the headshot above the heading?
+- Duplicate X buttons removed from funnel modal?
+- TCPA consent text updated with "Consent is not a condition of 
+  any service"?
+- Footer background changed to dark teal #1A3A47?
+- All headings and primary brand color updated to dark teal?
+- Mobile header now shows Mykoal's name/title (not hidden)?
+
+Send a status report on each of these items, then run npm run 
+build and send the updated preview link.

@@ -3,7 +3,7 @@ import { Phone } from "lucide-react";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#122d38] shadow-sm" style={{ backgroundColor: "#1A3A47" }}>
+    <header className="sticky top-0 z-50 w-full border-b border-[#0f3d4d] shadow-sm" style={{ backgroundColor: "#13485A" }}>
       <div className="container mx-auto px-4 h-auto min-h-16 flex items-center justify-between max-w-5xl py-2 gap-3">
         <Link href="/" className="flex items-center gap-3 min-w-0">
           <img src="/adaxa-logo.jpg" alt="Adaxa Home" className="h-10 w-auto object-contain shrink-0" />
