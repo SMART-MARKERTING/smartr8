@@ -20,7 +20,7 @@ export function Footer() {
         </p>
 
         <p className="text-xs mb-3" style={{ color: "rgba(255,255,255,0.6)" }}>
-          <a href="https://adaxahome.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-white" style={{ color: "rgba(255,255,255,0.6)" }}>
+          <a href="https://www.nmlsconsumeraccess.org/TuringTestPage.aspx?ReturnUrl=/EntityDetails.aspx/COMPANY/2380533" target="_blank" rel="noopener noreferrer" className="underline hover:text-white" style={{ color: "rgba(255,255,255,0.6)" }}>
             Full licensing and disclosures at adaxahome.com
           </a>
         </p>
