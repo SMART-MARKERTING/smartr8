@@ -80,7 +80,7 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
       formData.append("_subject", `New SMARTR8 lead — ${answers.goal || "General"}`);
       formData.append("_next", "https://smartr8.com/thank-you");
 
-      const response = await fetch("https://formspree.io/f/maqvlqrg", {
+      const response = await fetch("https://formspree.io/f/meennekb", {
         method: "POST",
         body: formData,
         headers: { Accept: "application/json" },

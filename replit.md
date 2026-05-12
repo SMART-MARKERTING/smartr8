@@ -15,7 +15,7 @@ A static lead capture funnel for Mykoal DeShazo, VP & Senior Loan Officer at Ada
 - Routing: wouter
 - Styling: Tailwind CSS v4 + shadcn/ui
 - Forms: react-hook-form + zod
-- Lead submission: Formspree (https://formspree.io/f/maqvlqrg)
+- Lead submission: Formspree (https://formspree.io/f/meennekb)
 - No backend, no database
 
 ## Where things live
@@ -47,7 +47,7 @@ A trust-first mortgage lead funnel. Homeowners land, choose their goal (cash-out
 - NMLS #1912347 (personal), NMLS #2380533 (company)
 - Phone: (949) 418-5486, Email: mykoal@adaxahome.com
 - Brand: clean black + white + light gray, Inter font, professional + trust-focused
-- Formspree endpoint: https://formspree.io/f/maqvlqrg
+- Formspree endpoint: https://formspree.io/f/meennekb
 - Cal.com booking embed on /thank-you — URL TBD, placeholder in ThankYou.tsx
 
 ## Gotchas
