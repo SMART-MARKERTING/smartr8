@@ -29,9 +29,9 @@ export function Footer() {
           This is not a commitment to lend. All loans subject to credit approval, income verification, and property appraisal. Rates and terms subject to change.
         </p>
 
-        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground">
           <a
-            href="https://adaxahome.com"
+            href="https://adaxahome.com/privacy/"
             target="_blank"
             rel="noopener noreferrer"
             className="underline hover:text-primary"
@@ -46,6 +46,15 @@ export function Footer() {
             className="underline hover:text-primary"
           >
             Terms of Use
+          </a>
+          <span>·</span>
+          <a
+            href="https://adaxahome.com/texas-compliance-notice/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-primary"
+          >
+            Texas Compliance Notice
           </a>
         </div>
       </div>
