@@ -85,8 +85,7 @@ export default function HelocNextSteps() {
                   </p>
                 </div>
                 <div className="mt-auto">
-                  {/* TODO: Replace CALENDAR_BOOKING_URL with your Cal.com scheduling link */}
-                  <a href="mailto:mykoal@adaxahome.com?subject=HELOC%20Appointment%20Request" target="_blank" rel="noopener noreferrer">
+                  <a href="https://cal.com/mykoal-deshazo/consult" target="_blank" rel="noopener noreferrer">
                     <Button variant="outline" className="w-full h-11">
                       Book a Time
                       <ArrowRight className="ml-2 h-4 w-4" />
