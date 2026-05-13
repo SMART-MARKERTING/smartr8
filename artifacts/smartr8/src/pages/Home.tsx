@@ -22,16 +22,16 @@ export default function Home() {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="pt-16 pb-12 md:pt-24 md:pb-20 px-4 container mx-auto max-w-5xl">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
-                Real mortgage options from a loan officer who actually picks up the phone.
+        <section className="pt-8 pb-10 md:pt-16 md:pb-16 px-4 container mx-auto max-w-5xl">
+          <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h1 className="text-[2.25rem] md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
+                Real mortgage options from a loan officer who picks up the phone.
               </h1>
-              <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
+              <p className="text-base md:text-lg text-muted-foreground leading-snug">
                 I'm Mykoal at Adaxa Home in Scottsdale. Whether you want to pull cash from your home, lower your monthly payment, or just see what's possible, I'll show you real options from 99+ lenders. No credit pull required to see your options. We only pull credit when you give the OK.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
                   className="bg-accent hover:bg-accent/90 text-white shadow-lg text-lg h-14"
