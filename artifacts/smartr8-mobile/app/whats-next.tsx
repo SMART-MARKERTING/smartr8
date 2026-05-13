@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/useColors";
+import { getRateEstimate } from "@/lib/rateEstimate";
 
 const FUNNEL_LABELS: Record<string, string> = {
   heloc: "HELOC",
@@ -28,8 +29,9 @@ export default function WhatsNextScreen() {
   const isWeb = Platform.OS === "web";
   const topPad = isWeb ? 67 : insets.top;
   const bottomPad = isWeb ? 34 : insets.bottom;
-  const { funnel, name } = useLocalSearchParams<{ funnel: string; name: string }>();
+  const { funnel, name, creditScore } = useLocalSearchParams<{ funnel: string; name: string; creditScore: string }>();
   const funnelLabel = FUNNEL_LABELS[funnel] ?? "Loan";
+  const rateEst = getRateEstimate(creditScore ?? "", funnel ?? "");
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -74,6 +76,23 @@ export default function WhatsNextScreen() {
         <Text style={[styles.subheading, { color: colors.mutedForeground }]}>
           Your {funnelLabel} inquiry has been received. Mykoal will review your information and reach out personally — typically within a few hours.
         </Text>
+
+        {rateEst && (
+          <View style={[styles.rateCard, { backgroundColor: colors.primary }]} testID="rate-estimate-card">
+            <View style={styles.rateCardHeader}>
+              <Ionicons name="trending-down-outline" size={18} color={colors.primaryForeground} />
+              <Text style={[styles.rateCardLabel, { color: colors.primaryForeground }]}>Your estimated rate</Text>
+            </View>
+            <Text style={[styles.rateRange, { color: colors.primaryForeground }]}>
+              {rateEst.low}% – {rateEst.high}%
+            </Text>
+            <Text style={[styles.rateType, { color: colors.primaryForeground }]}>{rateEst.label}</Text>
+            <View style={[styles.rateDivider, { backgroundColor: "rgba(255,255,255,0.25)" }]} />
+            <Text style={[styles.rateDisclaimer, { color: "rgba(255,255,255,0.75)" }]}>
+              Estimate based on your credit profile. Final rate depends on full underwriting, LTV, and current market conditions.
+            </Text>
+          </View>
+        )}
 
         <View style={[styles.card, { backgroundColor: colors.secondary, borderColor: colors.border }]}>
           <View style={styles.cardHeader}>
@@ -175,6 +194,13 @@ const styles = StyleSheet.create({
   stepRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 },
   stepIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   stepText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, paddingTop: 8 },
+  rateCard: { borderRadius: 16, padding: 20, marginBottom: 24 },
+  rateCardHeader: { flexDirection: "row", gap: 8, alignItems: "center", marginBottom: 8 },
+  rateCardLabel: { fontSize: 13, fontFamily: "Inter_500Medium", opacity: 0.9 },
+  rateRange: { fontSize: 36, fontFamily: "Inter_700Bold", letterSpacing: -0.5, marginBottom: 2 },
+  rateType: { fontSize: 13, fontFamily: "Inter_400Regular", opacity: 0.85, marginBottom: 16 },
+  rateDivider: { height: 1, marginBottom: 12 },
+  rateDisclaimer: { fontSize: 11, fontFamily: "Inter_400Regular", lineHeight: 16 },
   bookBtn: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderRadius: 12, paddingVertical: 16, marginBottom: 24 },
   bookBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   nmls: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 20 },

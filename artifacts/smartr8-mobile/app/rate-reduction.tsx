@@ -45,7 +45,7 @@ export default function RateReductionFunnel() {
     setIsSubmitting(true); setSubmitError("");
     try {
       await submitLead({ funnel:"rate-reduction", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob, additionalFields:{ currentRate:st.currentRate, primaryGoal:st.primaryGoal } });
-      router.replace({ pathname:"/whats-next", params:{ funnel:"rate-reduction", name:st.firstName } });
+      router.replace({ pathname:"/whats-next", params:{ funnel:"rate-reduction", name:st.firstName, creditScore:st.creditScore } });
     } catch { setSubmitError("Something went wrong. Please try again."); setIsSubmitting(false); }
   };
 

@@ -47,7 +47,7 @@ export default function CashOutFunnel() {
     setIsSubmitting(true); setSubmitError("");
     try {
       await submitLead({ funnel:"cashout", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob, additionalFields:{ cashNeeded:st.cashNeeded, cashPurposes:st.cashPurposes } });
-      router.replace({ pathname:"/whats-next", params:{ funnel:"cashout", name:st.firstName } });
+      router.replace({ pathname:"/whats-next", params:{ funnel:"cashout", name:st.firstName, creditScore:st.creditScore } });
     } catch { setSubmitError("Something went wrong. Please try again."); setIsSubmitting(false); }
   };
 
