@@ -1,0 +1,25 @@
+URGENT: Remove the rate estimate display from all funnel pages and whats-next pages immediately.
+
+Current state: A "EST. RATE 7.75% - 8.75% variable APR" estimate is showing on funnel steps 8, 9, and on the /whats-next confirmation pages. This was added as a "rate teaser" but it creates a federal compliance issue:
+
+1. The rates displayed are not pulled from a live pricing source — they're static values that don't reflect real-time lender pricing
+2. The APR disclosure is incomplete (no APR percentage actually shown, just the word "variable APR")
+3. There are no required qualifying disclosures (factors affecting rate, that this is not a commitment to lend, subject to change language)
+
+Mortgage rate advertising is regulated under TILA/Regulation Z, UDAAP, the MAP Rule (12 CFR 1014), and state mortgage law. Displaying inaccurate or under-disclosed rates is a real compliance violation.
+
+ACTIONS:
+
+1. Remove the RateEstimateCard component from ALL funnel pages and /whats-next pages
+2. Remove the rate teaser from steps 8 and 9 of all 4 funnels (HELOC, Cash-Out, Rate Reduction, Purchase)
+3. Keep the RateEstimateCard.tsx file in the codebase for now (don't delete) so it can be properly rebuilt later with a live pricing feed and full disclosures
+4. After removal, the user flow should be: complete the funnel → submit → land on /whats-next → see the three action options (no rate teaser anywhere)
+
+ALSO INVESTIGATE: The form submission on smartr8.com/heloc is currently throwing the user-facing error "Something went wrong with your submission. Please text or call Myke directly at (949) 418-5486." This means the Worker at /api/submit-lead is failing on production. Diagnose why — check:
+- Is the latest Worker code actually deployed to production main?
+- Are the CF_KV_NAMESPACE and FALLBACK_NOTIFICATION_EMAIL bindings set on the PRODUCTION environment (not just preview)?
+- Is the Worker reaching LeadMailbox successfully? Check the Worker logs in Cloudflare dashboard.
+
+Fix the submission failure FIRST, then remove the rate displays. Submissions failing is more urgent than the rate compliance issue, but both need to be done before any traffic is sent to the site.
+
+Report back when both are done. Do not start any other tasks.

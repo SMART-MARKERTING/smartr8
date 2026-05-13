@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, CalendarDays, FileText, Zap } from "lucide-react";
 import { useGA4 } from "@/hooks/useGA4";
-import { RateEstimateCard } from "@/components/RateEstimateCard";
-
 const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
 const LENDINGPAD_URL = "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd28-9b5f-46b8-9029-aa478433a995";
 
@@ -31,10 +29,6 @@ export default function PurchaseWhatsnext() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               While I review your information, here's how I can help you move forward right now.
             </p>
-          </div>
-
-          <div className="mb-10">
-            <RateEstimateCard />
           </div>
 
           <div className="grid md:grid-cols-3 gap-5">

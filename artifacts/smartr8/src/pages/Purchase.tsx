@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { submitLead } from "@/lib/submitLead";
-import { saveRateContext, getRateEstimate } from "@/lib/rateEstimate";
+import { saveRateContext } from "@/lib/rateEstimate";
 import { useGA4 } from "@/hooks/useGA4";
 
 const SESSION_KEY = "funnel_purchase";
@@ -65,8 +65,6 @@ export default function PurchaseFunnel() {
       else { setSubmitError(result.error || SUBMIT_ERR); setIsSubmitting(false); }
     } catch { setSubmitError(SUBMIT_ERR); setIsSubmitting(false); }
   };
-
-  const rateEstimate = getRateEstimate(st.creditScore, "purchase");
 
   return (
     <FunnelLayout step={st.step} totalSteps={TOTAL} onBack={st.step > 1 ? back : undefined}>
@@ -162,13 +160,6 @@ export default function PurchaseFunnel() {
           <p className="text-muted-foreground mb-8">Required for loan program eligibility.</p>
           <div className="flex flex-col gap-4">
             <div className="space-y-1.5"><Label htmlFor="dob">Date of Birth</Label><Input id="dob" type="date" value={st.dob} onChange={(e) => p({ dob:e.target.value })} className="text-base py-5" max={new Date().toISOString().split("T")[0]} /></div>
-            {rateEstimate && (
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(19,72,90,0.06)", border: "1px solid rgba(19,72,90,0.18)" }}>
-                <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#13485A" }}>Est. rate</span>
-                <span className="text-xl font-bold tabular-nums" style={{ color: "#13485A" }}>{rateEstimate.low}% – {rateEstimate.high}%</span>
-                <span className="text-xs opacity-60" style={{ color: "#13485A" }}>{rateEstimate.label}</span>
-              </div>
-            )}
             <Button type="button" className="w-full h-14 mt-2 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={!st.dob} onClick={advance}>Continue</Button>
           </div>
         </div>
@@ -187,13 +178,6 @@ export default function PurchaseFunnel() {
               <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">By submitting, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.</label>
             </div>
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
-            {rateEstimate && (
-              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 px-4 py-3 rounded-xl" style={{ backgroundColor: "rgba(19,72,90,0.06)", border: "1px solid rgba(19,72,90,0.18)" }}>
-                <span className="text-xs font-bold tracking-widest uppercase" style={{ color: "#13485A" }}>Est. rate</span>
-                <span className="text-xl font-bold tabular-nums" style={{ color: "#13485A" }}>{rateEstimate.low}% – {rateEstimate.high}%</span>
-                <span className="text-xs opacity-60" style={{ color: "#13485A" }}>{rateEstimate.label}</span>
-              </div>
-            )}
             <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !st.phone || !st.consent}>
               {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My Pre-Approval Options"}
             </Button>

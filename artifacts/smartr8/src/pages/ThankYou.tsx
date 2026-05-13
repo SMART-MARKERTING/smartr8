@@ -1,8 +1,6 @@
 import { useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { RateEstimateCard } from "@/components/RateEstimateCard";
-
 export default function ThankYou() {
   useEffect(() => {
     const prevTitle = document.title;
@@ -106,11 +104,6 @@ export default function ThankYou() {
             </a>
             . Text me anytime.
           </p>
-
-          {/* Rate estimate card */}
-          <div className="mb-10 text-left">
-            <RateEstimateCard />
-          </div>
 
           {/* Cal.com booking section */}
           <div className="w-full mb-8">
