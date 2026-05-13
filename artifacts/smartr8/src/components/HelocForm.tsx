@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { submitLead } from "@/lib/submitLead";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -174,6 +175,9 @@ export function HelocForm() {
     setStep((s) => s - 1);
   };
 
+  const pageLoadTimeRef = useRef(Date.now());
+  const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (949) 418-5486 and he will get back to you within minutes.";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -186,36 +190,26 @@ export function HelocForm() {
     if (!form.consent) { setError("Please check the consent box to continue."); return; }
 
     setIsSubmitting(true);
-
     try {
-      const data = new FormData();
-      data.append("_subject", `New HELOC lead — ${form.first_name} ${form.last_name}, ${form.state}`);
-      data.append("home_value", form.home_value);
-      data.append("mortgage_balance", form.mortgage_balance);
-      data.append("heloc_purposes", form.heloc_purposes.join(", "));
-      data.append("timeline", form.timeline);
-      data.append("first_name", form.first_name);
-      data.append("last_name", form.last_name);
-      data.append("email", form.email);
-      data.append("phone", form.phone);
-      data.append("property_state", form.state);
-      data.append("page", "heloc");
-
-      const res = await fetch("https://formspree.io/f/meennekb", {
-        method: "POST",
-        body: data,
-        headers: { Accept: "application/json" },
+      const result = await submitLead({
+        funnel: "heloc",
+        firstName: form.first_name,
+        lastName: form.last_name,
+        email: form.email,
+        phone: form.phone,
+        state: form.state,
+        homeValue: form.home_value,
+        mortgageBalance: form.mortgage_balance,
+        pageLoadTime: pageLoadTimeRef.current,
+        additionalFields: { helocPurposes: form.heloc_purposes, timeline: form.timeline },
       });
-
-      if (res.ok) {
-        /* ANALYTICS: fire "generate_lead" conversion event here */
-        setLocation(`/heloc/next-steps?name=${encodeURIComponent(form.first_name)}`);
+      if (result.success) {
+        setLocation(`/heloc/whats-next?name=${encodeURIComponent(form.first_name)}`);
       } else {
-        const json = await res.json();
-        setError(json.error || "There was a problem submitting your form. Please try again.");
+        setError(result.error || SUBMIT_ERR);
       }
     } catch {
-      setError("Network error. Please check your connection and try again.");
+      setError(SUBMIT_ERR);
     } finally {
       setIsSubmitting(false);
     }

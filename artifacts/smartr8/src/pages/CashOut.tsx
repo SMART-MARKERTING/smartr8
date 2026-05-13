@@ -10,14 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { submitLead } from "@/lib/submitLead";
 import { useGA4 } from "@/hooks/useGA4";
 
-const SESSION_KEY = "funnel_heloc";
+const SESSION_KEY = "funnel_cashout";
 const TOTAL = 9;
-const STEP_NAMES = ["name","address","home_value","mortgage_balance","heloc_purpose","timeline","credit_score","dob","contact"];
+const STEP_NAMES = ["name","address","home_value","mortgage_balance","cash_needed","cash_purpose","credit_score","dob","contact"];
 
 const HOME_VALUE_RANGES = ["Under $300,000","$300,000 - $500,000","$500,000 - $750,000","$750,000 - $1,000,000","$1,000,000 - $1,500,000","Over $1,500,000","Other"];
 const MORTGAGE_RANGES = ["Under $200,000","$200,000 - $400,000","$400,000 - $600,000","$600,000 - $800,000","$800,000 - $1,000,000","Over $1,000,000","No mortgage","Other"];
-const HELOC_PURPOSES = ["Home renovation or addition","Debt consolidation","Investment property purchase","Business or self-employment capital","Emergency reserve / access to funds","Something else"];
-const TIMELINE_OPTIONS = ["As soon as possible","Within 1 to 3 months","Just exploring options"];
+const CASH_RANGES = ["Under $50,000","$50,000 - $100,000","$100,000 - $250,000","$250,000 - $500,000","Over $500,000","Other"];
+const CASH_PURPOSES = ["Home renovation or addition","Debt consolidation","Investment property purchase","Major purchase","Emergency reserve","Other"];
 const CREDIT_RANGES = ["580 - 619","620 - 659","660 - 699","700 - 739","740 - 779","780+","Not sure"];
 
 type FS = {
@@ -25,15 +25,16 @@ type FS = {
   address: string; city: string; stateCode: string; zip: string;
   homeValue: string; homeValueDraft: string;
   mortgageBalance: string; mortgageBalanceDraft: string;
-  helocPurposes: string[]; timeline: string; creditScore: string;
+  cashNeeded: string; cashNeededDraft: string;
+  cashPurposes: string[]; creditScore: string;
   dob: string; email: string; phone: string; consent: boolean;
   honeypot: string; pageLoadTime: number;
 };
-const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",helocPurposes:[],timeline:"",creditScore:"",dob:"",email:"",phone:"",consent:false,honeypot:"",pageLoadTime:0 };
+const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",cashNeeded:"",cashNeededDraft:"",cashPurposes:[],creditScore:"",dob:"",email:"",phone:"",consent:false,honeypot:"",pageLoadTime:0 };
 
-export default function HelocFunnel() {
+export default function CashOutFunnel() {
   const [, setLocation] = useLocation();
-  const ga4 = useGA4("heloc");
+  const ga4 = useGA4("cashout");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [st, setSt] = useState<FS>(() => {
@@ -52,7 +53,7 @@ export default function HelocFunnel() {
     setTimeout(() => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, step: prev.step+1 }; }), 380);
   };
   const advanceWithPatch = (patch: Partial<FS>) => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, ...patch, step: prev.step+1 }; });
-  const togglePurpose = (val: string) => p({ helocPurposes: st.helocPurposes.includes(val) ? st.helocPurposes.filter((x) => x !== val) : [...st.helocPurposes, val] });
+  const togglePurpose = (val: string) => p({ cashPurposes: st.cashPurposes.includes(val) ? st.cashPurposes.filter((x) => x !== val) : [...st.cashPurposes, val] });
 
   const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (949) 418-5486 and he will get back to you within minutes.";
   const handleSubmit = async (e: React.FormEvent) => {
@@ -60,8 +61,8 @@ export default function HelocFunnel() {
     if (!st.email || !st.phone || !st.consent) { setSubmitError("Please fill out all fields and accept the consent."); return; }
     setIsSubmitting(true); setSubmitError("");
     try {
-      const result = await submitLead({ funnel:"heloc", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline } });
-      if (result.success) { ga4.trackLead(); sessionStorage.removeItem(SESSION_KEY); setLocation(`/heloc/whats-next?name=${encodeURIComponent(st.firstName)}`); }
+      const result = await submitLead({ funnel:"cashout", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, additionalFields:{ cashNeeded:st.cashNeeded, cashPurposes:st.cashPurposes } });
+      if (result.success) { ga4.trackLead(); sessionStorage.removeItem(SESSION_KEY); setLocation(`/apply/cash-out/whats-next?name=${encodeURIComponent(st.firstName)}`); }
       else { setSubmitError(result.error || SUBMIT_ERR); setIsSubmitting(false); }
     } catch { setSubmitError(SUBMIT_ERR); setIsSubmitting(false); }
   };
@@ -74,8 +75,8 @@ export default function HelocFunnel() {
           <h2 className="text-3xl font-bold text-primary mb-2">What's your name?</h2>
           <p className="text-muted-foreground mb-8">We'll use this to personalize your options.</p>
           <div className="flex flex-col gap-4">
-            <div className="space-y-1.5"><Label htmlFor="fn">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName: e.target.value })} className="text-base py-5" autoFocus /></div>
-            <div className="space-y-1.5"><Label htmlFor="ln">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName: e.target.value })} className="text-base py-5" /></div>
+            <div className="space-y-1.5"><Label htmlFor="fn">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName:e.target.value })} className="text-base py-5" autoFocus /></div>
+            <div className="space-y-1.5"><Label htmlFor="ln">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName:e.target.value })} className="text-base py-5" /></div>
             <Button type="button" className="w-full h-14 mt-4 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={!st.firstName.trim() || !st.lastName.trim()} onClick={advance}>Continue</Button>
           </div>
         </div>
@@ -132,18 +133,29 @@ export default function HelocFunnel() {
 
       {st.step === 5 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">What will you use the HELOC for?</h2>
-          <p className="text-muted-foreground mb-8">Select all that apply.</p>
-          <div className="flex flex-col gap-2.5">{HELOC_PURPOSES.map((opt) => <MultiChoiceCard key={opt} label={opt} selected={st.helocPurposes.includes(opt)} onClick={() => togglePurpose(opt)} />)}</div>
-          <Button type="button" className="w-full h-14 mt-6 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={st.helocPurposes.length === 0} onClick={advance}>Continue</Button>
+          <h2 className="text-3xl font-bold text-primary mb-2">How much cash are you looking to pull out?</h2>
+          <p className="text-muted-foreground mb-8">An estimate is fine.</p>
+          <div className="flex flex-col gap-2.5">
+            {CASH_RANGES.map((opt) => (
+              <ChoiceCard key={opt} label={opt} selected={st.cashNeeded === opt}
+                onClick={() => opt === "Other" ? p({ cashNeeded:"Other", cashNeededDraft:"" }) : autoAdvance({ cashNeeded:opt })} />
+            ))}
+            {st.cashNeeded === "Other" && (
+              <div className="mt-2 flex flex-col gap-3">
+                <Input placeholder="e.g. $75,000" value={st.cashNeededDraft} onChange={(e) => p({ cashNeededDraft:e.target.value })} className="text-base py-5" autoFocus />
+                <Button type="button" className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold" disabled={!st.cashNeededDraft.trim()} onClick={() => advanceWithPatch({ cashNeeded:st.cashNeededDraft })}>Continue</Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {st.step === 6 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">When are you looking to access the funds?</h2>
-          <p className="text-muted-foreground mb-8">This helps me prioritize the right programs.</p>
-          <div className="flex flex-col gap-2.5">{TIMELINE_OPTIONS.map((opt) => <ChoiceCard key={opt} label={opt} selected={st.timeline === opt} onClick={() => autoAdvance({ timeline:opt })} />)}</div>
+          <h2 className="text-3xl font-bold text-primary mb-2">What will you use the cash for?</h2>
+          <p className="text-muted-foreground mb-8">Select all that apply.</p>
+          <div className="flex flex-col gap-2.5">{CASH_PURPOSES.map((opt) => <MultiChoiceCard key={opt} label={opt} selected={st.cashPurposes.includes(opt)} onClick={() => togglePurpose(opt)} />)}</div>
+          <Button type="button" className="w-full h-14 mt-6 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={st.cashPurposes.length === 0} onClick={advance}>Continue</Button>
         </div>
       )}
 
@@ -180,7 +192,7 @@ export default function HelocFunnel() {
             </div>
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
             <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !st.phone || !st.consent}>
-              {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My HELOC Options"}
+              {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My Cash-Out Options"}
             </Button>
           </form>
         </div>
