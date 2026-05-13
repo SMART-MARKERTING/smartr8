@@ -48,7 +48,7 @@ A trust-first mortgage lead funnel. Homeowners land, choose their goal (cash-out
 - Phone: (949) 418-5486, Email: mykoal@adaxahome.com
 - Brand: clean black + white + light gray, Inter font, professional + trust-focused
 - Formspree endpoint: https://formspree.io/f/meennekb
-- Cal.com booking embed on /thank-you — URL TBD, placeholder in ThankYou.tsx
+- Cal.com booking URL: https://cal.com/mykoal-deshazo/consult (used in HelocNextSteps.tsx; embed still pending on /thank-you)
 
 ## Gotchas
 

@@ -85,7 +85,12 @@ export default function HelocNextSteps() {
                   </p>
                 </div>
                 <div className="mt-auto">
-                  <a href="https://cal.com/mykoal-deshazo/consult" target="_blank" rel="noopener noreferrer">
+                  <a
+                    href="https://cal.com/mykoal-deshazo/consult"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Book a time with Mykoal on Cal.com (opens in new tab)"
+                  >
                     <Button variant="outline" className="w-full h-11">
                       Book a Time
                       <ArrowRight className="ml-2 h-4 w-4" />
