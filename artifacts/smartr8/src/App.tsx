@@ -4,6 +4,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "@/pages/Home";
 import ThankYou from "@/pages/ThankYou";
+import Heloc from "@/pages/Heloc";
+import HelocNextSteps from "@/pages/HelocNextSteps";
+import HelocInstantOptions from "@/pages/HelocInstantOptions";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -13,6 +16,9 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/thank-you" component={ThankYou} />
+      <Route path="/heloc" component={Heloc} />
+      <Route path="/heloc/next-steps" component={HelocNextSteps} />
+      <Route path="/heloc/instant-options" component={HelocInstantOptions} />
       <Route component={NotFound} />
     </Switch>
   );

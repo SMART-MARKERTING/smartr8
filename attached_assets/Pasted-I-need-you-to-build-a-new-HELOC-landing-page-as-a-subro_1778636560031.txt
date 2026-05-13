@@ -1,0 +1,289 @@
+I need you to build a new HELOC landing page as a subroute on my existing smartr8.com website. This is an addition to my current repo, not a new project. Match the existing stack, styling, and infrastructure exactly.
+
+═══════════════════════════════════════════════════════
+PART 1: STACK DISCOVERY (DO THIS FIRST)
+═══════════════════════════════════════════════════════
+
+Before writing any code, inspect the current repo and confirm:
+
+1. Framework in use (Next.js, Astro, Vite + React, plain HTML, etc.)
+2. Styling approach (Tailwind, CSS modules, styled-components, plain CSS)
+3. Routing convention (file-based, react-router, etc.)
+4. Existing component library / design tokens (colors, fonts, spacing)
+5. How forms are currently handled (API route, Cloudflare Worker, Formspree, third-party endpoint, webhook)
+6. Deployment pipeline (GitHub → Cloudflare Pages, Cloudflare Workers, or other)
+7. Any existing analytics or tag setup (GA4, Meta Pixel, etc.)
+
+Report back what you find before writing code. I want the new page to match the existing site's visual language exactly, not introduce a new style.
+
+═══════════════════════════════════════════════════════
+PART 2: NEW ROUTE TO BUILD
+═══════════════════════════════════════════════════════
+
+Create a new page at: /heloc
+
+URL: https://smartr8.com/heloc
+
+It should use the existing site's header, footer, layout wrapper, fonts, colors, and component patterns. Do not create new design tokens. Do not introduce a new CSS framework if one already exists.
+
+═══════════════════════════════════════════════════════
+PART 3: PAGE CONTENT (BUILD EXACTLY THIS)
+═══════════════════════════════════════════════════════
+
+────────── HERO SECTION ──────────
+H1: Tap Your Home's Equity. Keep Your Low First Mortgage Rate.
+
+Subhead: A HELOC lets you access your equity without refinancing the great rate you already have. Pre-qualify in minutes with a soft credit check that won't impact your score.
+
+Primary CTA Button: "See What You Qualify For" (smooth scrolls to the form section)
+
+Trust strip below CTA (single line, small text):
+99+ wholesale lenders · NMLS #1912347 · Licensed mortgage professional · No cost to apply
+
+────────── SECTION: WHY REFINANCE WHEN YOU DON'T HAVE TO ──────────
+Section Header: Why Refinance When You Don't Have To?
+
+Paragraph 1: If you bought or refinanced between 2020 and 2022, you're probably sitting on a first mortgage rate in the 2s, 3s, or low 4s. Trading that in for today's rates to pull cash out doesn't make sense for most homeowners.
+
+Paragraph 2: A HELOC keeps your first mortgage exactly where it is. You only borrow against your equity, only pay interest on what you actually use, and you can draw from it like a credit line whenever you need it.
+
+────────── SECTION: THREE VALUE BULLETS ──────────
+Section Header: Built for Homeowners Who Want Flexibility
+
+Card 1 — "Keep Your Rate Locked In": Your first mortgage stays untouched. The HELOC sits behind it as a second position credit line you control.
+
+Card 2 — "Only Pay for What You Use": Get approved for a line up to your available equity. Draw what you need, when you need it. Interest only accrues on the balance you actually pull.
+
+Card 3 — "Use It However You Want": Home renovation, debt consolidation, investment property down payment, college tuition, business capital, emergency reserve. Your equity, your call.
+
+────────── SECTION: SOCIAL PROOF ──────────
+Section Header: Why Homeowners Choose Adaxa Home
+
+Stat row (3 columns, large numbers):
+- 99+ Wholesale Lenders & Investors
+- 7+ Years in the Mortgage Industry
+- [PLACEHOLDER_CLOSED_VOLUME] in Closed Loans
+
+Lender logo strip (grayscale, horizontal row):
+Rocket Mortgage · loanDepot · Carrington Mortgage · CAKE
+Use placeholder image slots with alt text. I'll provide actual logo assets later.
+
+Testimonial cards (3 cards, side by side on desktop, stacked on mobile):
+Use placeholder quotes with this structure:
+- "[Testimonial quote here]" — [First Name] [Last Initial]., [City], [State]
+Mark these clearly as TESTIMONIAL_PLACEHOLDER_1, _2, _3.
+
+Review aggregate line:
+★★★★★ 4.9/5 across Google — [PLACEHOLDER_REVIEW_COUNT] verified reviews
+
+────────── SECTION: HOW IT WORKS ──────────
+Section Header: The Process, Simplified
+
+Step 1 — "Pre-Qualify in Minutes": Answer a few quick questions about your home and goals. Soft credit check only. No impact to your score.
+
+Step 2 — "See Your Options": I'll walk you through your numbers, terms, and which of my 99+ lender partners has the right program for your situation.
+
+Step 3 — "Close and Fund": Most HELOCs close in 2 to 4 weeks. Funds available as soon as the line is open.
+
+────────── SECTION: THE FORM (THE KEY CONVERSION POINT) ──────────
+Section anchor id: "qualify"
+Section Header: Let's See What You Qualify For
+Subhead: Takes about 60 seconds. Soft credit check only.
+
+Build this as a MULTI-STEP form (4 steps). Each step shows a progress bar (Step X of 4). Single-page React component or equivalent — do NOT make this 4 separate pages.
+
+STEP 1 OF 4 — "Your Home"
+  Field 1: "What's your estimated home value?" (dropdown)
+    Options: Under $300K | $300K - $500K | $500K - $750K | $750K - $1M | $1M+
+  Field 2: "What do you owe on your current mortgage?" (dropdown, same ranges as above)
+
+STEP 2 OF 4 — "Your Goal"
+  Field: "What are you looking to use the HELOC for?" (multi-select checkboxes)
+    Options:
+    - Home renovation or addition
+    - Debt consolidation
+    - Investment property purchase
+    - Business or self-employment capital
+    - Emergency reserve / access to funds
+    - Something else
+
+STEP 3 OF 4 — "Your Timeline"
+  Field: "When are you looking to access the funds?" (radio buttons)
+    Options:
+    - As soon as possible
+    - Within 1 to 3 months
+    - Just exploring options
+
+STEP 4 OF 4 — "Your Info"
+  First Name (required)
+  Last Name (required)
+  Email (required, validate format)
+  Mobile Phone (required, format as (XXX) XXX-XXXX)
+  Property State (dropdown of all 50 US states, required)
+
+Final button: "Get My HELOC Options"
+
+Microcopy below the final button (small text):
+By submitting, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Standard rates may apply. You can opt out at any time.
+
+Form behavior:
+- Forward/back navigation between steps
+- Validation per step before allowing advance
+- Mobile-friendly: large tap targets, dropdowns native to mobile OS
+- On final submit: show a thank-you state on the same page (do not redirect), with message: "Thanks, [First Name]. I'll reach out within one business day. For urgent questions, text or call (949) 418-5486."
+
+────────── FORM SUBMISSION HANDLING ──────────
+Match the existing form submission pattern in the repo exactly. Check how the current site handles forms first.
+
+If the current site uses a Cloudflare Worker for form handling:
+- Create a new endpoint at /api/heloc-submit (or extend the existing Worker)
+- The Worker should:
+  1. Validate all required fields are present
+  2. Send the data to my email at mykoal@adaxahome.com (use the same email-sending method already configured — Resend, SendGrid, MailChannels, etc.)
+  3. Return a 200 response on success
+  4. Log the submission to wherever existing submissions are logged
+
+If a webhook URL is being used (Zapier, Make, GHL inbound webhook):
+- Use the same pattern and ask me which webhook URL to point this form to. Leave a clearly marked placeholder: HELOC_FORM_WEBHOOK_URL_HERE
+
+If there's no existing pattern (this is the first form on the site):
+- Use Cloudflare Workers with MailChannels (free, works natively with Cloudflare Pages)
+- Set up a /api/heloc-submit Worker that POSTs the form data to a webhook URL I'll provide AND sends a notification email to mykoal@adaxahome.com
+
+Do NOT use Formspree, Netlify Forms, or any other paid third-party form service unless the existing site already uses one.
+
+────────── SECTION: FAQ ──────────
+Section Header: Common Questions
+
+Build as accordion (click to expand). All collapsed by default.
+
+Q1: Will this affect my credit score?
+A: The initial pre-qualification uses a soft credit check, which does not impact your score. A hard pull only happens if you decide to move forward with a formal application.
+
+Q2: How much can I borrow?
+A: Most lenders allow you to borrow up to 80 to 90% of your home's value, minus what you owe on your first mortgage. Your exact line amount depends on your equity, credit profile, and the lender's specific program.
+
+Q3: How is a HELOC different from a cash-out refinance?
+A: A cash-out refinance replaces your existing first mortgage with a new, larger loan at today's rates. A HELOC leaves your first mortgage alone and adds a separate credit line in second position. If you have a low first mortgage rate, a HELOC usually makes more financial sense.
+
+Q4: What are the rates?
+A: HELOC rates are variable and tied to the prime rate, so they shift with the market. I'll walk you through current rates and APR options when we connect based on your specific scenario.
+
+Q5: How long does it take to close?
+A: Most HELOCs close within 2 to 4 weeks from application. Some lenders in my network offer expedited 7 to 10 day closings for qualified borrowers.
+
+Q6: Are there closing costs?
+A: This varies by lender and program. Some HELOCs have minimal or no closing costs. I'll show you the full picture upfront so there are no surprises.
+
+────────── SECTION: FINAL CTA BAND ──────────
+Full-width contrast band.
+Headline (large): Stop Wondering What You Qualify For
+Subhead: 60-second pre-qual. Soft credit check only. No obligation.
+Button: "See My HELOC Options" (smooth scrolls to the form section)
+
+────────── FOOTER / COMPLIANCE BLOCK ──────────
+Place this directly above the existing site footer, OR integrate it into the existing footer if there's space. Do NOT duplicate or replace the site footer.
+
+Mykoal DeShazo | Vice President, Senior Loan Officer
+NMLS #1912347
+
+Adaxa Home
+NMLS #2380533
+Scottsdale, AZ
+
+Office: (949) 418-5486
+Email: mykoal@adaxahome.com
+
+Equal Housing Opportunity. All loans subject to credit approval and underwriting guidelines. Not all applicants will qualify. Rates and terms are subject to change without notice and based on creditworthiness, loan-to-value, occupancy, property type, and other factors. APR may vary. This is not a commitment to lend. Adaxa Home is licensed in [PLACEHOLDER_LICENSED_STATES]. For licensing information, visit NMLS Consumer Access at www.nmlsconsumeraccess.org.
+
+Include the Equal Housing Opportunity logo (small, near the disclosure text). Use a placeholder if the asset isn't in the repo yet: /assets/eho-logo.svg
+
+═══════════════════════════════════════════════════════
+PART 4: TECHNICAL REQUIREMENTS
+═══════════════════════════════════════════════════════
+
+MOBILE FIRST
+70%+ of mortgage funnel traffic is mobile. Build mobile first, then enhance for desktop. Test at 375px width minimum.
+
+STICKY MOBILE CTA
+On mobile only (under 768px): add a sticky button at the bottom of the viewport that says "Pre-Qualify Now" and scrolls to the form section. Hide on desktop. Hide when the form section is already in view.
+
+PERFORMANCE
+- Lazy load all images below the fold
+- Use modern image formats (WebP, AVIF) where the existing site already does
+- Inline critical CSS if the existing site does
+- Total page weight target: under 500KB
+- Lighthouse target: 90+ on mobile
+
+SEO
+- Title tag: HELOC in Arizona | Tap Home Equity Without Refinancing | Adaxa Home
+- Meta description: Access your home's equity with a HELOC and keep your low first mortgage rate. Pre-qualify in minutes with a soft credit check. Licensed loan officer Mykoal DeShazo, NMLS #1912347.
+- Canonical URL: https://smartr8.com/heloc
+- Open Graph tags for Facebook sharing (use existing site's OG image pattern, or create a placeholder /assets/heloc-og.jpg)
+- Schema.org JSON-LD: FinancialService schema with name, NMLS, address, telephone
+
+ANALYTICS
+If the existing site has GA4 or Meta Pixel installed:
+- Fire a page_view event on load
+- Fire a "form_start" event when user advances past Step 1
+- Fire a "form_step_completed" event with the step number on each advance
+- Fire a "lead" / "generate_lead" conversion event on final submission
+
+If no analytics exists yet, leave a clearly commented placeholder where the events would go. Do not install new analytics.
+
+ACCESSIBILITY
+- All form fields have associated labels
+- All images have alt text
+- Color contrast meets WCAG AA
+- Keyboard navigable through the entire form
+- Focus states visible on all interactive elements
+
+═══════════════════════════════════════════════════════
+PART 5: DEPLOYMENT
+═══════════════════════════════════════════════════════
+
+GitHub:
+- Create a new branch named: feature/heloc-landing-page
+- Commit messages should be clear and conventional (feat:, fix:, etc.)
+- Open a pull request to main when complete, with a description summarizing what was built
+- Do NOT merge to main automatically — I want to review the PR first
+
+Cloudflare:
+- The existing site is deployed via Cloudflare Pages (confirm this during stack discovery)
+- The PR should automatically create a Cloudflare Pages preview deployment
+- Share the preview URL with me when the PR is opened
+- If a new Cloudflare Worker is needed for form handling, include the wrangler.toml config and clear deployment instructions
+- Do not modify any existing Workers or DNS settings without flagging it first
+
+DNS / Routing:
+- The route /heloc should work automatically once merged to main (Cloudflare Pages handles this)
+- No DNS changes needed
+- No new subdomain
+- Confirm the existing _redirects or _headers files (if any) don't interfere
+
+═══════════════════════════════════════════════════════
+PART 6: WHAT TO ASK ME BEFORE FINISHING
+═══════════════════════════════════════════════════════
+
+Before opening the PR, confirm with me:
+1. Closed loan volume number to display (currently a placeholder)
+2. List of states Adaxa Home is licensed in (currently a placeholder)
+3. Whether to point form submissions to a webhook URL (and which one) or just email
+4. The 3 testimonial quotes I want to use (currently placeholders)
+5. Whether the EHO logo SVG already exists in the repo or I need to provide it
+
+═══════════════════════════════════════════════════════
+PART 7: WHAT NOT TO DO
+═══════════════════════════════════════════════════════
+
+- Do NOT modify any existing pages, routes, or components beyond what's needed to add this one page
+- Do NOT change the site's existing color palette, fonts, or design system
+- Do NOT install new dependencies unless absolutely necessary (justify any new package in the PR description)
+- Do NOT use placeholder Lorem Ipsum anywhere — every piece of copy in this prompt is the final copy
+- Do NOT quote any specific rate or APR number anywhere on the page
+- Do NOT use the words "guaranteed," "approved," "everyone qualifies," "no credit check," or "lowest rate" anywhere
+- Do NOT add a chat widget, popup, exit-intent modal, or any other interrupter to this page
+- Do NOT use em dashes anywhere in the copy (use commas, periods, or "to" instead)
+- Do NOT add emoji to any copy
+
+Start with Part 1 stack discovery. Report back what you find and confirm before writing any code.

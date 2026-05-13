@@ -1,0 +1,255 @@
+Yes — here’s a clean, Replit-ready flow for the two pages, with safer mortgage-compliant wording and your two partner links built in. I also tightened the copy so it converts without making overbroad claims that could create compliance problems under mortgage advertising rules and Arizona licensing rules.
+
+Page 1: Next Step Selector
+Use this as the post-submit thank-you page, before calendar booking. It gives the visitor three clear paths and keeps the primary action focused on instant HELOC options, while still offering a call and appointment path.
+
+xml
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What Would You Like to Do Next?</title>
+  <style>
+    :root{
+      --bg:#f7f8fb; --card:#ffffff; --text:#172033; --muted:#5f6b85;
+      --brand:#2346d8; --brand2:#16329a; --line:#e5e8f0; --success:#0f8b58;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,Arial,sans-serif; background:var(--bg); color:var(--text);
+      min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .wrap{width:100%; max-width:980px}
+    .hero{
+      background:linear-gradient(135deg,#ffffff 0%,#f4f7ff 100%);
+      border:1px solid var(--line); border-radius:24px; padding:32px; box-shadow:0 10px 35px rgba(24,39,75,.08);
+    }
+    h1{margin:0 0 12px; font-size:clamp(30px,5vw,48px); line-height:1.05}
+    p{margin:0; color:var(--muted); font-size:18px; line-height:1.6}
+    .grid{
+      display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-top:28px;
+    }
+    .card{
+      background:var(--card); border:1px solid var(--line); border-radius:20px; padding:22px;
+      display:flex; flex-direction:column; gap:14px; min-height:260px;
+    }
+    .badge{
+      display:inline-flex; align-items:center; width:max-content; padding:6px 10px; border-radius:999px;
+      background:#eef2ff; color:var(--brand2); font-size:12px; font-weight:700; letter-spacing:.02em;
+    }
+    .title{font-size:22px; font-weight:800; margin:0}
+    .desc{font-size:15px; color:var(--muted); line-height:1.55; margin:0}
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; text-decoration:none; cursor:pointer;
+      padding:15px 18px; border-radius:14px; font-weight:800; border:1px solid transparent;
+      transition:.2s ease; text-align:center;
+    }
+    .primary{background:var(--brand); color:#fff}
+    .primary:hover{background:var(--brand2)}
+    .secondary{background:#fff; color:var(--text); border-color:var(--line)}
+    .secondary:hover{border-color:#c9d2ea}
+    .call{background:#effaf5; color:var(--success); border-color:#d9f0e4}
+    .call:hover{background:#e7f7ef}
+    .foot{
+      margin-top:18px; color:var(--muted); font-size:13px; line-height:1.5;
+    }
+    .stack{display:flex; flex-direction:column; gap:10px; margin-top:auto}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .hero{padding:24px} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="badge">NEXT STEP</div>
+      <h1>Thanks, {{first_name}}. What would you like to do next?</h1>
+      <p>Choose the fastest path for your situation. You can compare instant HELOC options, schedule a quick conversation, or reach out right away.</p>
+
+      <div class="grid">
+        <article class="card">
+          <div class="badge">RECOMMENDED</div>
+          <h2 class="title">Generate My HELOC Options</h2>
+          <p class="desc">See two digital HELOC programs that may provide fast qualification and rate review, depending on your profile and property.</p>
+          <p class="desc"><strong>Good to know:</strong> program terms, approval timing, documentation, and rates vary by lender and borrower eligibility.</p>
+          <a class="btn primary" href="/heloc/instant-options">See My Instant Options</a>
+        </article>
+
+        <article class="card">
+          <div class="badge">TALK IT THROUGH</div>
+          <h2 class="title">Schedule an Appointment</h2>
+          <p class="desc">Want help comparing options before moving forward? Book a time to talk through your goals and next steps.</p>
+          <a class="btn secondary" href="YOUR_CALENDAR_LINK_HERE">Book a Time</a>
+        </article>
+
+        <article class="card">
+          <div class="badge">IMMEDIATE</div>
+          <h2 class="title">Call or Text Now</h2>
+          <p class="desc">Prefer a direct conversation? Reach out and we’ll help you decide what to do next.</p>
+          <div class="stack">
+            <a class="btn call" href="tel:9494185486">Call (949) 418-5486</a>
+            <a class="btn secondary" href="sms:9494185486">Text Me</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="foot">
+        Equal Housing Opportunity. NMLS #YOUR_NMLS. This page is for general information only and is not a commitment to lend.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+Page 2: Instant HELOC Options
+This page should present the two links as separate cards, with neutral, accurate language that avoids promising guaranteed approval, no appraisal, or no income verification unless the specific lender disclosure clearly supports it. That matters because mortgage advertising has to be clear, not misleading, and specific claims need to be supportable.
+
+xml
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instant HELOC Options</title>
+  <style>
+    :root{
+      --bg:#f7f8fb; --card:#ffffff; --text:#172033; --muted:#5f6b85;
+      --brand:#2346d8; --brand2:#16329a; --line:#e5e8f0; --accent:#0f8b58;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,Arial,sans-serif; background:var(--bg); color:var(--text);
+      padding:24px;
+    }
+    .wrap{max-width:1100px; margin:0 auto}
+    .top{
+      background:linear-gradient(135deg,#ffffff 0%,#f4f7ff 100%);
+      border:1px solid var(--line); border-radius:24px; padding:32px; margin-bottom:18px;
+    }
+    h1{margin:0 0 10px; font-size:clamp(30px,5vw,46px); line-height:1.05}
+    p{margin:0; color:var(--muted); font-size:17px; line-height:1.65}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:18px}
+    .card{
+      background:#fff; border:1px solid var(--line); border-radius:22px; padding:24px;
+      box-shadow:0 10px 35px rgba(24,39,75,.06);
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .name{font-size:24px; font-weight:900; margin:0}
+    .tag{display:inline-flex; width:max-content; padding:6px 10px; border-radius:999px; background:#eef2ff; color:var(--brand2); font-size:12px; font-weight:800}
+    ul{margin:0; padding-left:18px; color:var(--text); line-height:1.6}
+    li{margin:6px 0}
+    .cta{
+      margin-top:auto; display:flex; flex-direction:column; gap:10px;
+    }
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center; text-decoration:none;
+      padding:15px 18px; border-radius:14px; font-weight:800; border:1px solid transparent;
+    }
+    .primary{background:var(--brand); color:#fff}
+    .primary:hover{background:var(--brand2)}
+    .secondary{background:#fff; color:var(--text); border-color:var(--line)}
+    .secondary:hover{border-color:#c9d2ea}
+    .note{
+      margin-top:18px; background:#fff; border:1px solid var(--line); border-radius:18px; padding:18px;
+      color:var(--muted); font-size:14px; line-height:1.6;
+    }
+    .footer{margin-top:14px; color:var(--muted); font-size:13px; line-height:1.5}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .top{padding:24px} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="top">
+      <div class="tag">INSTANT OPTIONS</div>
+      <h1>Review two fast HELOC paths</h1>
+      <p>These options may help you get a quick rate review or pre-qualification experience, depending on lender rules and your eligibility. Review both and choose the one that best fits your needs.</p>
+
+      <div class="grid">
+        <article class="card">
+          <div class="tag">OPTION 1</div>
+          <h2 class="name">Deep Haven Mortgage</h2>
+          <p>Useful for borrowers who want a streamlined online start and are comfortable reviewing lender-specific qualification details.</p>
+          <ul>
+            <li>Fast online prequalification experience.</li>
+            <li>Documentation and approval timing vary by borrower profile.</li>
+            <li>Review lender disclosures carefully before proceeding.</li>
+            <li>Some borrowers may qualify without an appraisal or with alternative documentation, depending on the program.</li>
+          </ul>
+          <div class="cta">
+            <a class="btn primary" href="https://heloc.deephavenmortgage.com/prequal/consent?lo=mykoal-deshazo" target="_blank" rel="noopener noreferrer">Apply with Deep Haven</a>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="tag">OPTION 2</div>
+          <h2 class="name">Figure</h2>
+          <p>Useful for borrowers who want a digital process and a quick way to review available HELOC terms and next steps.</p>
+          <ul>
+            <li>Digital application and review process.</li>
+            <li>Speed, rate, and funding timing vary by property and borrower profile.</li>
+            <li>Proceed only after reviewing the lender’s terms and disclosures.</li>
+            <li>Alternative documentation or appraisal requirements may apply based on eligibility.</li>
+          </ul>
+          <div class="cta">
+            <a class="btn primary" href="https://heloc.adaxahome.com/account/heloc/register?referrer=07b7dc41-da1d-4044-8cfc-694ebbc1d3b7" target="_blank" rel="noopener noreferrer">Apply with Figure</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="note">
+        Important: I’ve kept this wording intentionally conservative. If you want to advertise “no hard credit check,” “no income verification,” “no appraisal,” “closing in as little as 7 days,” or “no cost out of pocket,” those claims should only appear if the exact lender disclosures and program terms support them, and they should be placed with equal prominence and nearby qualification language. [web:1][web:4][web:10]
+      </div>
+
+      <div class="footer">
+        Equal Housing Opportunity. NMLS #YOUR_NMLS. This is not a commitment to lend and all terms are subject to lender approval.
+      </div>
+    </section>
+  </main>
+</body>
+</html>
+Better button text
+These button labels tend to convert better and stay cleaner:
+
+Generate My HELOC Options.
+
+See My Instant Options.
+
+Schedule a Quick Call.
+
+Call or Text Me Now.
+
+Compare My Two HELOC Paths.
+
+I would avoid “Generate My Interest Rate” as the main label, because it sounds a little too absolute. “See My Instant Options” is clearer and safer.
+
+Workflow setup
+For LoanOfficer.ai, the cleanest structure is: form submit → thank-you / selection page → click tag or event for the choice → route to the matching destination. LoanOfficer.ai appears built to support prebuilt funnels, follow-up automation, and performance monitoring, which fits this kind of branching flow.
+
+A practical workflow is:
+
+Form submitted.
+
+Redirect to the 3-option page.
+
+If “Instant Options” is clicked, tag the contact as heloc_instant_options.
+
+Send them to the instant options page.
+
+If they click Deep Haven or Figure, tag the source separately for tracking.
+
+Send a short follow-up SMS/email 5–10 minutes later confirming their choice and offering help.
+
+Compliance edits
+I would not publish blanket claims like “no appraisal required,” “no income verification required,” or “no hard credit check” unless you have lender-approved language for each one. Mortgage ads must avoid misleading statements, and specific product claims should match the actual offer. Arizona also restricts mortgage solicitation and licensing-related conduct, so keep the assistant in a support-only role, not outbound solicitation.
+
+The safest version of your supporting copy is:
+
+“Fast digital HELOC options.”
+
+“Qualification and timing vary by lender and borrower profile.”
+
+“Review lender disclosures for full terms.”
+
+“Some borrowers may qualify with alternative documentation.”
+
+“Not all applicants will qualify.”
+
+I can also turn this into a single copy-paste Replit page with both screens in one file and the exact routing logic wired in.
