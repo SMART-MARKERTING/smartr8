@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router, useLocalSearchParams } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import React, { useEffect } from "react";
 import {
   Linking,
@@ -40,6 +41,10 @@ export default function WhatsNextScreen() {
 
   const emailMykoal = () => {
     Linking.openURL("mailto:mykoal@adaxahome.com?subject=Inquiry%20from%20SMARTR8%20App");
+  };
+
+  const bookCall = () => {
+    WebBrowser.openBrowserAsync("https://cal.com/mykoal-deshazo/consult");
   };
 
   const startOver = () => {
@@ -102,6 +107,15 @@ export default function WhatsNextScreen() {
           </View>
         </View>
 
+        <Pressable
+          onPress={bookCall}
+          testID="btn-book-call"
+          style={({ pressed }) => [styles.bookBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
+        >
+          <Ionicons name="calendar-outline" size={18} color={colors.primaryForeground} />
+          <Text style={[styles.bookBtnText, { color: colors.primaryForeground }]}>Book a Free Call</Text>
+        </Pressable>
+
         <View style={styles.steps}>
           <Text style={[styles.stepsTitle, { color: colors.foreground }]}>What happens next?</Text>
           {[
@@ -161,6 +175,8 @@ const styles = StyleSheet.create({
   stepRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", marginBottom: 14 },
   stepIcon: { width: 36, height: 36, borderRadius: 10, alignItems: "center", justifyContent: "center", flexShrink: 0 },
   stepText: { flex: 1, fontSize: 14, fontFamily: "Inter_400Regular", lineHeight: 20, paddingTop: 8 },
+  bookBtn: { flexDirection: "row", gap: 10, alignItems: "center", justifyContent: "center", borderRadius: 12, paddingVertical: 16, marginBottom: 24 },
+  bookBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold" },
   nmls: { fontSize: 11, fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 20 },
   startOver: { alignItems: "center", paddingVertical: 8 },
   startOverText: { fontSize: 14, fontFamily: "Inter_500Medium", textDecorationLine: "underline" },
