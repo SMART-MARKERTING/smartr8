@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "SMARTR8 – Adaxa Home",
+    "slug": "smartr8-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "smartr8-mobile",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#13485A"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.adaxahome.smartr8"
+    },
+    "android": {
+      "package": "com.adaxahome.smartr8"
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png"
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "origin": "https://replit.com/"
+        }
+      ],
+      "expo-font",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

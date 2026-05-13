@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "pXXNAzvbAQ8qdhKmzj2gt"
+uri = "file://artifacts/smartr8-mobile/assets/images/icon.png"
+type = "image"
+title = "generated_image"
