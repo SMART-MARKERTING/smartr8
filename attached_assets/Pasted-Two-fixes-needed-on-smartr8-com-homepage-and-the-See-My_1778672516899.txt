@@ -1,0 +1,107 @@
+Two fixes needed on smartr8.com homepage and the "See My Options" modal form.
+
+═══════════════════════════════════════════════════════
+FIX 1: REDESIGN "READY TO APPLY?" SECTION FOR BETTER VISUAL DENSITY
+═══════════════════════════════════════════════════════
+
+The current "Ready to Apply?" section has 4 cards stacked vertically on mobile and they're each too tall. The section visually overpowers the rest of the homepage. We need to tighten this up significantly.
+
+CHANGES:
+
+1. LAYOUT
+- Desktop: 4 cards in single row (unchanged)
+- Tablet: 2x2 grid
+- Mobile: 2x2 grid (NOT stacked single column)
+- Each card should be roughly 50% smaller in height on mobile than current
+
+2. CARD CONTENT — TIGHTEN UP
+Current cards have too much: large icon + large headline + long supporting copy + large CTA button.
+
+Reduce each card to:
+- Small/medium icon (top-left or centered, not oversized)
+- Concise headline (1-2 words bolder than supporting line)
+- One SHORT supporting line (max 6-8 words)
+- Subtle arrow indicator (no full-width CTA button needed — whole card is tappable)
+
+Example for HELOC card:
+[Icon]
+HELOC
+Tap your equity →
+
+Example for Cash-Out:
+[Icon]
+Cash-Out Refi
+Pull equity, one loan →
+
+Example for Rate Reduction:
+[Icon]
+Lower My Rate
+Reduce your payment →
+
+Example for Purchase:
+[Icon]
+Buy a Home
+Get pre-approved fast →
+
+3. STYLING
+- Match the visual weight of the "How can I help you today?" cards directly above
+- Use consistent padding (around 16-20px on mobile, 24-32px on desktop)
+- Border-radius matching existing cards
+- Subtle hover/tap state (slight elevation lift, arrow shifts right)
+- Icon size: roughly 24-28px on mobile (not the giant icons currently shown)
+- Use the site's primary text color for headline, muted for supporting line
+
+4. SECTION HEADER
+Current subhead is too long: "Choose the path that fits your situation. Each takes about 3 minutes and requires no credit pull."
+
+Replace with:
+- Header: Ready to Apply? (unchanged)
+- Subhead: Short and direct — "Pick your path. About 3 minutes, no credit pull."
+
+5. SECTION SPACING
+- Reduce padding above and below the section by roughly 30-40%
+- The section should feel like a continuation of the page flow, not a standalone block
+
+6. GOAL
+After these changes, the "Ready to Apply?" section should occupy roughly 1 screen of vertical space on mobile (instead of 3-4), and feel visually balanced with the "How can I help you today?" section above it.
+
+═══════════════════════════════════════════════════════
+FIX 2: "SEE MY OPTIONS" MODAL FORM NEEDS UPDATING
+═══════════════════════════════════════════════════════
+
+The "See My Options" button in the hero section opens a modal form. That form is still using the OLD question pattern without the "Other (custom amount)" fallback option.
+
+UPDATE: Make this modal form use the EXACT SAME pattern as the new funnel pages we just built (one-question-per-page with multiple-choice ranges plus "Other" fallback).
+
+Specifically, every dollar/numeric question in the modal needs:
+1. The standardized multiple-choice tappable ranges (same ranges defined in the previous prompt — home value ranges, mortgage balance ranges, etc.)
+2. An "Other" option at the bottom that reveals a custom input when tapped
+3. Auto-advance on selection (300-500ms delay)
+
+The modal should mirror the structure of the HELOC funnel at /heloc, but inside a modal/overlay instead of a full page. Same questions, same ranges, same multi-step flow, same auto-advance behavior.
+
+If the modal currently has a different question order or different ranges from the /heloc funnel, RECONCILE — use the /heloc funnel as the source of truth. Both should ask the same questions in the same order with the same options.
+
+═══════════════════════════════════════════════════════
+WHAT NOT TO DO
+═══════════════════════════════════════════════════════
+
+- Do NOT change anything else on the homepage (hero, "How can I help you today?" cards, "How it works", "About Mykoal", final CTA band, footer)
+- Do NOT change the funnel pages we just built at /heloc, /apply/cash-out, /apply/rate-reduction, /apply/purchase
+- Do NOT change the /heloc/instant-options page
+- Do NOT introduce new dependencies
+- Do NOT change site-wide colors, fonts, or design tokens
+
+═══════════════════════════════════════════════════════
+TESTING
+═══════════════════════════════════════════════════════
+
+Before opening the PR:
+1. Test the homepage at 375px width (mobile) — confirm 2x2 grid renders correctly and section is roughly 1 screen tall
+2. Test at 768px (tablet) — 2x2 grid still works
+3. Test at 1280px (desktop) — 4 cards in single row
+4. Open the "See My Options" modal and click through all steps — verify each dollar question shows the multiple-choice ranges + Other option
+5. Verify the modal form still submits to Formspree with the correct subject line
+
+Branch: feature/homepage-polish-and-modal-fix
+Open PR to main when complete. Do NOT auto-merge.
