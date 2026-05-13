@@ -1,0 +1,40 @@
+import type { FunnelId } from "@/lib/submitLead";
+
+type WhatsnextOption =
+  | "see_heloc_options"
+  | "schedule_call"
+  | "continue_application"
+  | "compare_heloc"
+  | "get_preapproved";
+
+declare global {
+  interface Window {
+    dataLayer?: unknown[];
+    gtag?: (...a: unknown[]) => void;
+  }
+}
+
+function trackEvent(eventName: string, params: Record<string, unknown>) {
+  if (typeof window === "undefined") return;
+
+  if (Array.isArray(window.dataLayer)) {
+    window.dataLayer.push({ event: eventName, ...params });
+  } else if (typeof window.gtag === "function") {
+    window.gtag("event", eventName, params);
+  } else {
+    console.log("GA event:", eventName, params);
+  }
+}
+
+export function useGA4(funnel: FunnelId) {
+  return {
+    trackFunnelStart: () =>
+      trackEvent("funnel_start", { funnel }),
+    trackStepCompleted: (step_number: number, step_name: string) =>
+      trackEvent("funnel_step_completed", { funnel, step_number, step_name }),
+    trackLead: () =>
+      trackEvent("generate_lead", { funnel, currency: "USD", value: 0 }),
+    trackWhatsnextClick: (option: WhatsnextOption) =>
+      trackEvent("whats_next_clicked", { funnel, option }),
+  };
+}

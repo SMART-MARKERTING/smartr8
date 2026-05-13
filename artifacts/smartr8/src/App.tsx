@@ -6,7 +6,14 @@ import Home from "@/pages/Home";
 import ThankYou from "@/pages/ThankYou";
 import Heloc from "@/pages/Heloc";
 import HelocNextSteps from "@/pages/HelocNextSteps";
+import HelocWhatsnext from "@/pages/HelocWhatsnext";
 import HelocInstantOptions from "@/pages/HelocInstantOptions";
+import CashOut from "@/pages/CashOut";
+import CashOutWhatsnext from "@/pages/CashOutWhatsnext";
+import RateReduction from "@/pages/RateReduction";
+import RateReductionWhatsnext from "@/pages/RateReductionWhatsnext";
+import Purchase from "@/pages/Purchase";
+import PurchaseWhatsnext from "@/pages/PurchaseWhatsnext";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -18,7 +25,14 @@ function Router() {
       <Route path="/thank-you" component={ThankYou} />
       <Route path="/heloc" component={Heloc} />
       <Route path="/heloc/next-steps" component={HelocNextSteps} />
+      <Route path="/heloc/whats-next" component={HelocWhatsnext} />
       <Route path="/heloc/instant-options" component={HelocInstantOptions} />
+      <Route path="/apply/cash-out" component={CashOut} />
+      <Route path="/apply/cash-out/whats-next" component={CashOutWhatsnext} />
+      <Route path="/apply/rate-reduction" component={RateReduction} />
+      <Route path="/apply/rate-reduction/whats-next" component={RateReductionWhatsnext} />
+      <Route path="/apply/purchase" component={Purchase} />
+      <Route path="/apply/purchase/whats-next" component={PurchaseWhatsnext} />
       <Route component={NotFound} />
     </Switch>
   );
