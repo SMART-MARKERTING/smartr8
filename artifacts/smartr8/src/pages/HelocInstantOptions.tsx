@@ -80,7 +80,7 @@ export default function HelocInstantOptions() {
                       href="https://heloc.deephavenmortgage.com/prequal/consent?lo=mykoal-deshazo"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full h-13 py-3.5 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                      className="flex items-center justify-center gap-2 w-full h-14 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
                       style={{ backgroundColor: "#13485A" }}
                     >
                       Continue
@@ -144,7 +144,7 @@ export default function HelocInstantOptions() {
                       href="https://heloc.adaxahome.com/account/heloc/register?referrer=07b7dc41-da1d-4044-8cfc-694ebbc1d3b7"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 w-full h-13 py-3.5 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
+                      className="flex items-center justify-center gap-2 w-full h-14 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
                       style={{ backgroundColor: "#CC1818" }}
                     >
                       Continue
