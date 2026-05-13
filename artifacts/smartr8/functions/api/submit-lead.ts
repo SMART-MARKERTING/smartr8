@@ -90,30 +90,35 @@ function buildLeadMailboxPayload(body, isDuplicate) {
 }
 
 async function sendFallbackEmail(env, body, errMsg) {
-  const to = env.FALLBACK_NOTIFICATION_EMAIL ?? "mykoal@smartr8.com";
-  const subject = `LEAD FALLBACK — ${body.funnelType} — ${body.firstName} ${body.lastName}`;
-  const text = [
-    `LeadMailbox submission failed: ${errMsg}`,
-    "",
-    `Name: ${body.firstName} ${body.lastName}`,
-    `Email: ${body.email}`,
-    `Phone: ${body.phone}`,
-    "",
-    buildNotes(body, false),
-  ].join("\n");
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/meennekb";
   try {
-    await fetch("https://api.mailchannels.net/tx/v1/send", {
+    const payload = {
+      _subject: `LEAD FALLBACK — ${body.funnelType} — ${body.firstName} ${body.lastName}`,
+      lm_error: errMsg,
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      phone: body.phone,
+      funnel: body.funnelType,
+      homeValue: body.homeValue ?? "",
+      mortgageBalance: body.mortgageBalance ?? "",
+      creditScore: body.creditScore ?? "",
+      zip: body.zip ?? "",
+      notes: buildNotes(body, false),
+    };
+    const res = await fetch(FORMSPREE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: "noreply@smartr8.com", name: "SMARTR8 Lead System" },
-        subject,
-        content: [{ type: "text/plain", value: text }],
-      }),
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const txt = await res.text();
+      console.error("[smartr8] Formspree fallback failed:", res.status, txt);
+    } else {
+      console.log("[smartr8] Formspree fallback sent successfully");
+    }
   } catch (e) {
-    console.error("[smartr8] MailChannels fallback error:", e);
+    console.error("[smartr8] Formspree fallback error:", e);
   }
 }
 
