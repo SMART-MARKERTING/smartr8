@@ -78,7 +78,6 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
         formData.append(key, String(value));
       });
       formData.append("_subject", `New SMARTR8 lead — ${answers.goal || "General"}`);
-      formData.append("_next", "https://smartr8.com/thank-you");
 
       const response = await fetch("https://formspree.io/f/meennekb", {
         method: "POST",
@@ -87,8 +86,9 @@ export function FunnelModal({ isOpen, onClose, initialGoal }: FunnelModalProps) 
       });
 
       if (response.ok) {
+        const firstName = answers.full_name.split(" ")[0] || "";
         onClose();
-        setLocation("/thank-you");
+        setLocation(`/apply/cash-out/whats-next?name=${encodeURIComponent(firstName)}`);
       } else {
         const data = await response.json();
         setError(data.error || "There was a problem submitting your form. Please try again.");

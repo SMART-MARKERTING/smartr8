@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { Link } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { FunnelModal } from "@/components/FunnelModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, Phone, Home as HomeIcon, Percent, HelpCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, Phone, Home as HomeIcon, Percent, HelpCircle, Droplets, TrendingDown, Key } from "lucide-react";
 
 export default function Home() {
   const [isFunnelOpen, setIsFunnelOpen] = useState(false);
@@ -69,7 +70,6 @@ export default function Home() {
                 }}
                 data-testid="hero-headshot"
               />
-              {/* Fallback shown only if image fails to load */}
               <div
                 className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-secondary/30 rounded-full items-center justify-center border-4 border-white shadow-xl hidden"
                 aria-hidden="true"
@@ -152,8 +152,79 @@ export default function Home() {
           </div>
         </section>
 
+        {/* READY TO APPLY */}
+        <section className="py-20 px-4 bg-secondary/30">
+          <div className="container mx-auto max-w-5xl">
+            <h2 className="text-3xl font-bold text-center mb-4 text-primary">Ready to Apply?</h2>
+            <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+              Choose the path that fits your situation. Each takes about 3 minutes and requires no credit pull.
+            </p>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <Link href="/heloc">
+                <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
+                  <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
+                    <div className="h-14 w-14 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <Droplets className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg leading-tight">HELOC</h3>
+                    <p className="text-muted-foreground text-sm flex-1">Tap your equity without refinancing your mortgage.</p>
+                    <div className="text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-2">
+                      Start HELOC <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/apply/cash-out">
+                <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
+                  <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
+                    <div className="h-14 w-14 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <HomeIcon className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg leading-tight">Cash-Out Refi</h3>
+                    <p className="text-muted-foreground text-sm flex-1">Pull cash and replace your existing mortgage in one loan.</p>
+                    <div className="text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-2">
+                      Start Cash-Out <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/apply/rate-reduction">
+                <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
+                  <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
+                    <div className="h-14 w-14 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <TrendingDown className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg leading-tight">Lower My Rate</h3>
+                    <p className="text-muted-foreground text-sm flex-1">Reduce your monthly payment or shorten your loan term.</p>
+                    <div className="text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-2">
+                      Start Refi <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link href="/apply/purchase">
+                <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
+                  <CardContent className="p-6 flex flex-col items-center text-center gap-3 h-full">
+                    <div className="h-14 w-14 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <Key className="h-7 w-7 text-primary" />
+                    </div>
+                    <h3 className="font-semibold text-lg leading-tight">Buy a Home</h3>
+                    <p className="text-muted-foreground text-sm flex-1">Get pre-approved and find the right loan for your purchase.</p>
+                    <div className="text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform mt-2">
+                      Start Purchase <ArrowRight className="h-4 w-4" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </div>
+          </div>
+        </section>
+
         {/* HOW IT WORKS */}
-        <section className="bg-secondary/30 py-20 px-4">
+        <section className="bg-background py-20 px-4">
           <div className="container mx-auto max-w-5xl">
             <h2 className="text-3xl font-bold text-center mb-16 text-primary">How it works</h2>
             <div className="grid md:grid-cols-3 gap-12 relative">
@@ -181,7 +252,7 @@ export default function Home() {
         </section>
 
         {/* ABOUT MYKOAL */}
-        <section className="py-20 px-4 container mx-auto max-w-4xl text-center">
+        <section className="py-20 px-4 bg-secondary/30 container mx-auto max-w-4xl text-center">
           <div className="flex flex-col items-center mb-8">
             <img
               src="/mykoal-headshot.jpg"
@@ -197,7 +268,7 @@ export default function Home() {
               I'm Vice President and Senior Loan Officer at Adaxa Home in Scottsdale, AZ, with 7+ years closing mortgages.
             </p>
             <p className="mb-8">
-              I work with 99+ wholesale lenders — Rocket, loanDepot, Carrington, CAKE, and more — which means I'm not stuck pitching one product. I look at your situation and bring you the option that actually fits.
+              I work with 99+ wholesale lenders -- Rocket, loanDepot, Carrington, CAKE, and more -- which means I'm not stuck pitching one product. I look at your situation and bring you the option that actually fits.
             </p>
             <div className="inline-block border border-border rounded-lg p-6 bg-card shadow-sm text-left">
               <div className="font-semibold text-foreground mb-1">Mykoal DeShazo</div>

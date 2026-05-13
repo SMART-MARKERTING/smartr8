@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
-import { FunnelLayout, ChoiceCard, MultiChoiceCard } from "@/components/FunnelLayout";
+import { FunnelLayout, ChoiceCard } from "@/components/FunnelLayout";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,29 +10,29 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { submitLead } from "@/lib/submitLead";
 import { useGA4 } from "@/hooks/useGA4";
 
-const SESSION_KEY = "funnel_heloc";
+const SESSION_KEY = "funnel_purchase";
 const TOTAL = 9;
-const STEP_NAMES = ["name","address","home_value","mortgage_balance","heloc_purpose","timeline","credit_score","dob","contact"];
+const STEP_NAMES = ["name","location","purchase_price","down_payment","property_type","loan_type","credit_score","dob","contact"];
 
-const HOME_VALUE_RANGES = ["Under $300,000","$300,000 - $500,000","$500,000 - $750,000","$750,000 - $1,000,000","$1,000,000 - $1,500,000","Over $1,500,000","Other"];
-const MORTGAGE_RANGES = ["Under $200,000","$200,000 - $400,000","$400,000 - $600,000","$600,000 - $800,000","$800,000 - $1,000,000","Over $1,000,000","No mortgage","Other"];
-const HELOC_PURPOSES = ["Home renovation or addition","Debt consolidation","Investment property purchase","Business or self-employment capital","Emergency reserve / access to funds","Something else"];
-const TIMELINE_OPTIONS = ["As soon as possible","Within 1 to 3 months","Just exploring options"];
+const PURCHASE_PRICE_RANGES = ["Under $300,000","$300,000 - $500,000","$500,000 - $750,000","$750,000 - $1,000,000","$1,000,000 - $1,500,000","Over $1,500,000","Other"];
+const DOWN_PAYMENT_OPTIONS = ["Less than 5%","5% - 10%","10% - 20%","20%+","Not sure yet","Other"];
+const PROPERTY_TYPES = ["Primary residence","Second home / vacation","Investment property"];
+const LOAN_TYPES = ["VA loan","FHA loan","Conventional","Jumbo","Not sure / show me options"];
 const CREDIT_RANGES = ["580 - 619","620 - 659","660 - 699","700 - 739","740 - 779","780+","Not sure"];
 
 type FS = {
   step: number; firstName: string; lastName: string;
   address: string; city: string; stateCode: string; zip: string;
-  homeValue: string; homeValueDraft: string;
-  mortgageBalance: string; mortgageBalanceDraft: string;
-  helocPurposes: string[]; timeline: string; creditScore: string;
+  purchasePrice: string; purchasePriceDraft: string;
+  downPayment: string; downPaymentDraft: string;
+  propertyType: string; loanType: string; creditScore: string;
   dob: string; email: string; phone: string; consent: boolean;
 };
-const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",helocPurposes:[],timeline:"",creditScore:"",dob:"",email:"",phone:"",consent:false };
+const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",purchasePrice:"",purchasePriceDraft:"",downPayment:"",downPaymentDraft:"",propertyType:"",loanType:"",creditScore:"",dob:"",email:"",phone:"",consent:false };
 
-export default function HelocFunnel() {
+export default function PurchaseFunnel() {
   const [, setLocation] = useLocation();
-  const ga4 = useGA4("heloc");
+  const ga4 = useGA4("purchase");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [st, setSt] = useState<FS>(() => {
@@ -51,16 +51,15 @@ export default function HelocFunnel() {
     setTimeout(() => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, step: prev.step+1 }; }), 380);
   };
   const advanceWithPatch = (patch: Partial<FS>) => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, ...patch, step: prev.step+1 }; });
-  const togglePurpose = (val: string) => p({ helocPurposes: st.helocPurposes.includes(val) ? st.helocPurposes.filter((x) => x !== val) : [...st.helocPurposes, val] });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!st.email || !st.phone || !st.consent) { setSubmitError("Please fill out all fields and accept the consent."); return; }
     setIsSubmitting(true); setSubmitError("");
     try {
-      await submitLead({ funnel:"heloc", subjectLine:"New HELOC lead from smartr8.com", loanPurpose:"HELOC", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline } });
+      await submitLead({ funnel:"purchase", subjectLine:"New PURCHASE lead from smartr8.com", loanPurpose:"Purchase", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, creditScore:st.creditScore, dob:st.dob, additionalFields:{ purchasePrice:st.purchasePrice, downPayment:st.downPayment, propertyType:st.propertyType, loanType:st.loanType } });
       ga4.trackLead(); sessionStorage.removeItem(SESSION_KEY);
-      setLocation(`/heloc/whats-next?name=${encodeURIComponent(st.firstName)}`);
+      setLocation(`/apply/purchase/whats-next?name=${encodeURIComponent(st.firstName)}`);
     } catch { setSubmitError("Something went wrong. Please try again."); setIsSubmitting(false); }
   };
 
@@ -72,8 +71,8 @@ export default function HelocFunnel() {
           <h2 className="text-3xl font-bold text-primary mb-2">What's your name?</h2>
           <p className="text-muted-foreground mb-8">We'll use this to personalize your options.</p>
           <div className="flex flex-col gap-4">
-            <div className="space-y-1.5"><Label htmlFor="fn">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName: e.target.value })} className="text-base py-5" autoFocus /></div>
-            <div className="space-y-1.5"><Label htmlFor="ln">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName: e.target.value })} className="text-base py-5" /></div>
+            <div className="space-y-1.5"><Label htmlFor="fn">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName:e.target.value })} className="text-base py-5" autoFocus /></div>
+            <div className="space-y-1.5"><Label htmlFor="ln">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName:e.target.value })} className="text-base py-5" /></div>
             <Button type="button" className="w-full h-14 mt-4 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={!st.firstName.trim() || !st.lastName.trim()} onClick={advance}>Continue</Button>
           </div>
         </div>
@@ -81,10 +80,10 @@ export default function HelocFunnel() {
 
       {st.step === 2 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">What's your property address?</h2>
-          <p className="text-muted-foreground mb-8">We use this to find local lending options.</p>
+          <h2 className="text-3xl font-bold text-primary mb-2">What's your target property's location?</h2>
+          <p className="text-muted-foreground mb-8">City and state is fine if you haven't found a property yet.</p>
           <div className="flex flex-col gap-4">
-            <AddressAutocomplete value={st.address} onChange={(r) => p({ address:r.formatted, city:r.city, stateCode:r.state, zip:r.zip })} />
+            <AddressAutocomplete value={st.address} placeholder="City, state or full address..." onChange={(r) => p({ address:r.formatted, city:r.city, stateCode:r.state, zip:r.zip })} forPurchase />
             <Button type="button" className="w-full h-14 mt-2 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={!st.address.trim()} onClick={advance}>Continue</Button>
           </div>
         </div>
@@ -92,17 +91,17 @@ export default function HelocFunnel() {
 
       {st.step === 3 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">What's your home's estimated value?</h2>
+          <h2 className="text-3xl font-bold text-primary mb-2">What's your target purchase price range?</h2>
           <p className="text-muted-foreground mb-8">A rough estimate is fine.</p>
           <div className="flex flex-col gap-2.5">
-            {HOME_VALUE_RANGES.map((opt) => (
-              <ChoiceCard key={opt} label={opt} selected={st.homeValue === opt}
-                onClick={() => opt === "Other" ? p({ homeValue:"Other", homeValueDraft:"" }) : autoAdvance({ homeValue:opt })} />
+            {PURCHASE_PRICE_RANGES.map((opt) => (
+              <ChoiceCard key={opt} label={opt} selected={st.purchasePrice === opt}
+                onClick={() => opt === "Other" ? p({ purchasePrice:"Other", purchasePriceDraft:"" }) : autoAdvance({ purchasePrice:opt })} />
             ))}
-            {st.homeValue === "Other" && (
+            {st.purchasePrice === "Other" && (
               <div className="mt-2 flex flex-col gap-3">
-                <Input placeholder="e.g. $425,000" value={st.homeValueDraft} onChange={(e) => p({ homeValueDraft:e.target.value })} className="text-base py-5" autoFocus />
-                <Button type="button" className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold" disabled={!st.homeValueDraft.trim()} onClick={() => advanceWithPatch({ homeValue:st.homeValueDraft })}>Continue</Button>
+                <Input placeholder="e.g. $625,000" value={st.purchasePriceDraft} onChange={(e) => p({ purchasePriceDraft:e.target.value })} className="text-base py-5" autoFocus />
+                <Button type="button" className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold" disabled={!st.purchasePriceDraft.trim()} onClick={() => advanceWithPatch({ purchasePrice:st.purchasePriceDraft })}>Continue</Button>
               </div>
             )}
           </div>
@@ -111,17 +110,17 @@ export default function HelocFunnel() {
 
       {st.step === 4 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">How much do you owe on your current mortgage?</h2>
-          <p className="text-muted-foreground mb-8">An estimate is fine.</p>
+          <h2 className="text-3xl font-bold text-primary mb-2">How much do you plan to put down?</h2>
+          <p className="text-muted-foreground mb-8">We'll match you to programs that fit your down payment.</p>
           <div className="flex flex-col gap-2.5">
-            {MORTGAGE_RANGES.map((opt) => (
-              <ChoiceCard key={opt} label={opt} selected={st.mortgageBalance === opt}
-                onClick={() => opt === "Other" ? p({ mortgageBalance:"Other", mortgageBalanceDraft:"" }) : autoAdvance({ mortgageBalance:opt })} />
+            {DOWN_PAYMENT_OPTIONS.map((opt) => (
+              <ChoiceCard key={opt} label={opt} selected={st.downPayment === opt}
+                onClick={() => opt === "Other" ? p({ downPayment:"Other", downPaymentDraft:"" }) : autoAdvance({ downPayment:opt })} />
             ))}
-            {st.mortgageBalance === "Other" && (
+            {st.downPayment === "Other" && (
               <div className="mt-2 flex flex-col gap-3">
-                <Input placeholder="e.g. $325,000" value={st.mortgageBalanceDraft} onChange={(e) => p({ mortgageBalanceDraft:e.target.value })} className="text-base py-5" autoFocus />
-                <Button type="button" className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold" disabled={!st.mortgageBalanceDraft.trim()} onClick={() => advanceWithPatch({ mortgageBalance:st.mortgageBalanceDraft })}>Continue</Button>
+                <Input placeholder="e.g. 15%" value={st.downPaymentDraft} onChange={(e) => p({ downPaymentDraft:e.target.value })} className="text-base py-5" autoFocus />
+                <Button type="button" className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-semibold" disabled={!st.downPaymentDraft.trim()} onClick={() => advanceWithPatch({ downPayment:st.downPaymentDraft })}>Continue</Button>
               </div>
             )}
           </div>
@@ -130,18 +129,17 @@ export default function HelocFunnel() {
 
       {st.step === 5 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">What will you use the HELOC for?</h2>
-          <p className="text-muted-foreground mb-8">Select all that apply.</p>
-          <div className="flex flex-col gap-2.5">{HELOC_PURPOSES.map((opt) => <MultiChoiceCard key={opt} label={opt} selected={st.helocPurposes.includes(opt)} onClick={() => togglePurpose(opt)} />)}</div>
-          <Button type="button" className="w-full h-14 mt-6 bg-primary hover:bg-primary/90 text-white text-base font-semibold" disabled={st.helocPurposes.length === 0} onClick={advance}>Continue</Button>
+          <h2 className="text-3xl font-bold text-primary mb-2">What type of property?</h2>
+          <p className="text-muted-foreground mb-8">This affects available loan programs.</p>
+          <div className="flex flex-col gap-2.5">{PROPERTY_TYPES.map((opt) => <ChoiceCard key={opt} label={opt} selected={st.propertyType === opt} onClick={() => autoAdvance({ propertyType:opt })} />)}</div>
         </div>
       )}
 
       {st.step === 6 && (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <h2 className="text-3xl font-bold text-primary mb-2">When are you looking to access the funds?</h2>
-          <p className="text-muted-foreground mb-8">This helps me prioritize the right programs.</p>
-          <div className="flex flex-col gap-2.5">{TIMELINE_OPTIONS.map((opt) => <ChoiceCard key={opt} label={opt} selected={st.timeline === opt} onClick={() => autoAdvance({ timeline:opt })} />)}</div>
+          <h2 className="text-3xl font-bold text-primary mb-2">What loan type interests you most?</h2>
+          <p className="text-muted-foreground mb-8">Not sure? Pick the last option and we'll figure it out together.</p>
+          <div className="flex flex-col gap-2.5">{LOAN_TYPES.map((opt) => <ChoiceCard key={opt} label={opt} selected={st.loanType === opt} onClick={() => autoAdvance({ loanType:opt })} />)}</div>
         </div>
       )}
 
@@ -177,7 +175,7 @@ export default function HelocFunnel() {
             </div>
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
             <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !st.phone || !st.consent}>
-              {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My HELOC Options"}
+              {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My Pre-Approval Options"}
             </Button>
           </form>
         </div>
