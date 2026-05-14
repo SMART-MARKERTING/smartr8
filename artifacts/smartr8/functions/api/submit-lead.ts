@@ -90,38 +90,6 @@ function buildLeadMailboxPayload(body, isDuplicate) {
   };
 }
 
-async function sendFormspreeNotification(body) {
-  const FORMSPREE_ENDPOINT = "https://formspree.io/f/meennekb";
-  try {
-    const payload = {
-      _subject: `New Lead — ${body.funnelType} — ${body.firstName} ${body.lastName}`,
-      firstName: body.firstName,
-      lastName: body.lastName,
-      email: body.email,
-      phone: body.phone,
-      funnel: body.funnelType,
-      homeValue: body.homeValue ?? "",
-      mortgageBalance: body.mortgageBalance ?? "",
-      creditScore: body.creditScore ?? "",
-      zip: body.zip ?? "",
-      notes: buildNotes(body, false),
-    };
-    const res = await fetch(FORMSPREE_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const txt = await res.text();
-      console.error("[smartr8] Formspree notification failed:", res.status, txt);
-    } else {
-      console.log("[smartr8] Formspree notification sent");
-    }
-  } catch (e) {
-    console.error("[smartr8] Formspree notification error:", e);
-  }
-}
-
 function jsonResponse(data, status, cors) {
   return new Response(JSON.stringify(data), {
     status,
@@ -216,9 +184,6 @@ export async function onRequest(context) {
       console.error("[smartr8] KV duplicate-check error (skipping):", e);
     }
   }
-
-  // Send Formspree notification (primary — always fires, browser handles LeadMailbox directly)
-  context.waitUntil(sendFormspreeNotification(body));
 
   // Return the validated LeadMailbox payload so the browser can submit it from the user's real IP
   const lmPayload = buildLeadMailboxPayload(body, isDuplicate);

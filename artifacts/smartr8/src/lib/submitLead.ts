@@ -1,6 +1,7 @@
 export type FunnelId = "heloc" | "cashout" | "rate-reduction" | "purchase";
 
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
+const FORMSPREE_ENDPOINT = "https://formspree.io/f/meennekb";
 
 export interface LeadPayload {
   funnel: FunnelId;
@@ -91,11 +92,43 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
   const result = (await res.json()) as SubmitResult & { lmPayload?: Record<string, string> };
 
   if (result.success && result.lmPayload) {
-    fetch(LM_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(result.lmPayload),
-    }).catch(() => {});
+    let lmSuccess = false;
+    try {
+      const lmRes = await fetch(LM_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(result.lmPayload),
+      });
+      if (lmRes.ok) {
+        try {
+          const lmData = await lmRes.json();
+          lmSuccess = lmData.code === 0;
+        } catch {
+          lmSuccess = true;
+        }
+      }
+    } catch {
+      lmSuccess = false;
+    }
+
+    if (!lmSuccess) {
+      fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          _subject: `New Lead — ${payload.funnel} — ${payload.firstName} ${payload.lastName}`,
+          firstName: payload.firstName,
+          lastName: payload.lastName,
+          email: payload.email,
+          phone: payload.phone,
+          funnel: payload.funnel,
+          homeValue: payload.homeValue ?? "",
+          mortgageBalance: payload.mortgageBalance ?? "",
+          creditScore: payload.creditScore ?? "",
+          zip: payload.zip ?? "",
+        }),
+      }).catch(() => {});
+    }
   }
 
   return { success: result.success, leadId: result.leadId, error: result.error };
