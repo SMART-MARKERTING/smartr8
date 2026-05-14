@@ -1,5 +1,7 @@
 export type FunnelId = "heloc" | "cashout" | "rate-reduction" | "purchase";
 
+const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
+
 export interface LeadPayload {
   funnel: FunnelId;
   firstName: string;
@@ -21,7 +23,6 @@ export interface LeadPayload {
 
 export interface SubmitResult {
   success: boolean;
-  fallback?: boolean;
   leadId?: string;
   error?: string;
 }
@@ -87,5 +88,15 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
     body: JSON.stringify(body),
   });
 
-  return res.json() as Promise<SubmitResult>;
+  const result = (await res.json()) as SubmitResult & { lmPayload?: Record<string, string> };
+
+  if (result.success && result.lmPayload) {
+    fetch(LM_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(result.lmPayload),
+    }).catch(() => {});
+  }
+
+  return { success: result.success, leadId: result.leadId, error: result.error };
 }

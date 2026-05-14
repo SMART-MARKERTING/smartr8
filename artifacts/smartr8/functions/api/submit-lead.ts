@@ -5,9 +5,10 @@
 //
 // Required bindings (set in Cloudflare Pages dashboard → Settings → Functions):
 //   CF_KV_NAMESPACE  — KV namespace for rate-limiting + duplicate detection
-//   FALLBACK_NOTIFICATION_EMAIL — email address for fallback alerts (default: mykoal@smartr8.com)
+//
+// LeadMailbox is called client-side (from the browser) to avoid Cloudflare egress IP blocks.
+// This Worker handles: bot detection, rate limiting, KV dedup, and Formspree notifications.
 
-const LEADMAILBOX_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
 function isAllowedOrigin(origin) {
@@ -89,12 +90,11 @@ function buildLeadMailboxPayload(body, isDuplicate) {
   };
 }
 
-async function sendFallbackEmail(env, body, errMsg) {
+async function sendFormspreeNotification(body) {
   const FORMSPREE_ENDPOINT = "https://formspree.io/f/meennekb";
   try {
     const payload = {
-      _subject: `LEAD FALLBACK — ${body.funnelType} — ${body.firstName} ${body.lastName}`,
-      lm_error: errMsg,
+      _subject: `New Lead — ${body.funnelType} — ${body.firstName} ${body.lastName}`,
       firstName: body.firstName,
       lastName: body.lastName,
       email: body.email,
@@ -113,12 +113,12 @@ async function sendFallbackEmail(env, body, errMsg) {
     });
     if (!res.ok) {
       const txt = await res.text();
-      console.error("[smartr8] Formspree fallback failed:", res.status, txt);
+      console.error("[smartr8] Formspree notification failed:", res.status, txt);
     } else {
-      console.log("[smartr8] Formspree fallback sent successfully");
+      console.log("[smartr8] Formspree notification sent");
     }
   } catch (e) {
-    console.error("[smartr8] Formspree fallback error:", e);
+    console.error("[smartr8] Formspree notification error:", e);
   }
 }
 
@@ -217,29 +217,12 @@ export async function onRequest(context) {
     }
   }
 
-  // Send to LeadMailbox
+  // Send Formspree notification (primary — always fires, browser handles LeadMailbox directly)
+  context.waitUntil(sendFormspreeNotification(body));
+
+  // Return the validated LeadMailbox payload so the browser can submit it from the user's real IP
   const lmPayload = buildLeadMailboxPayload(body, isDuplicate);
-  let leadId;
-  let fallback = false;
 
-  try {
-    const lmRes = await fetch(LEADMAILBOX_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(lmPayload),
-    });
-    const lmData = await lmRes.json();
-    if (lmData.code === 0) {
-      leadId = lmData.leadid;
-    } else {
-      throw new Error(`code=${lmData.code} msg=${lmData.message ?? "unknown"}`);
-    }
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[smartr8] LeadMailbox error:", msg);
-    fallback = true;
-    context.waitUntil(sendFallbackEmail(env, body, msg));
-  }
-
-  return jsonResponse({ success: true, leadId, fallback }, 200, cors);
+  console.log(`[smartr8] validated lead — ${body.funnelType} — ${body.firstName} ${body.lastName}`);
+  return jsonResponse({ success: true, lmPayload }, 200, cors);
 }
