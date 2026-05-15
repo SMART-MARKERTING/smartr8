@@ -3,6 +3,7 @@ import { WorksheetInputs, Debt, DEFAULT_ADVISOR } from "@/lib/worksheetCalc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Mail } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -23,6 +24,7 @@ interface WorksheetInputPanelProps {
   onPrint: () => void;
   onDownloadPdf: () => void;
   onEmailClient?: () => void;
+  onEmailSelf?: () => void;
   isInternal?: boolean;
   pdfLoading?: boolean;
 }
@@ -93,6 +95,7 @@ export default function WorksheetInputPanel({
   onPrint,
   onDownloadPdf,
   onEmailClient,
+  onEmailSelf,
   isInternal = false,
   pdfLoading = false,
 }: WorksheetInputPanelProps) {
@@ -374,6 +377,14 @@ export default function WorksheetInputPanel({
         >
           {pdfLoading ? "Generating PDF…" : "Download PDF"}
         </Button>
+        {!isInternal && onEmailSelf && (
+          <Button
+            className="w-full bg-accent hover:bg-accent/90 text-white"
+            onClick={() => guardApr(onEmailSelf)}
+          >
+            <Mail className="mr-2 h-4 w-4" /> Email Worksheet to Myself
+          </Button>
+        )}
         {isInternal && onEmailClient && (
           <Button
             className="w-full bg-accent hover:bg-accent/90 text-white"

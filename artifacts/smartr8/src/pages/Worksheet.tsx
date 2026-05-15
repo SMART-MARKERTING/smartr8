@@ -7,6 +7,7 @@ import { PageMeta } from "@/components/PageMeta";
 import WorksheetDocument from "@/components/worksheet/WorksheetDocument";
 import WorksheetInputPanel from "@/components/worksheet/WorksheetInputPanel";
 import LeadCaptureModal from "@/components/worksheet/LeadCaptureModal";
+import EmailSelfModal from "@/components/worksheet/EmailSelfModal";
 import { computeScenarios, money, WorksheetInputs, DEFAULT_ADVISOR, DEFAULT_DEBTS } from "@/lib/worksheetCalc";
 import { downloadWorksheetPdf } from "@/lib/generatePdf";
 
@@ -41,16 +42,17 @@ export default function Worksheet() {
   const [inputs, setInputs] = useState<WorksheetInputs>(DEFAULT_INPUTS);
   const [gateOpen, setGateOpen] = useState(true);
   const [unlocked, setUnlocked] = useState(false);
-  const [lead, setLead] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
+  const [lead, setLead] = useState<{ firstName: string } | null>(null);
+  const [emailSelfOpen, setEmailSelfOpen] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
 
   const results = useMemo(() => computeScenarios(inputs), [inputs]);
 
-  function handleLeadSuccess(leadData: { firstName: string; lastName: string; email: string }) {
+  function handleLeadSuccess(leadData: { firstName: string }) {
     setLead(leadData);
     setUnlocked(true);
     setGateOpen(false);
-    setInputs((prev) => ({ ...prev, clientName: `${leadData.firstName} ${leadData.lastName}` }));
+    setInputs((prev) => ({ ...prev, clientName: leadData.firstName }));
   }
 
   function handlePrint() {
@@ -60,8 +62,8 @@ export default function Worksheet() {
   async function handleDownloadPdf() {
     setPdfLoading(true);
     try {
-      const lastName = lead?.lastName ?? "Client";
-      await downloadWorksheetPdf(inputs, results, `Loan-Benefits-Worksheet-${lastName}.pdf`);
+      const name = lead?.firstName ?? "Client";
+      await downloadWorksheetPdf(inputs, results, `Loan-Benefits-Worksheet-${name}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
     }
@@ -130,6 +132,7 @@ export default function Worksheet() {
                     onChange={setInputs}
                     onPrint={handlePrint}
                     onDownloadPdf={handleDownloadPdf}
+                    onEmailSelf={() => setEmailSelfOpen(true)}
                     pdfLoading={pdfLoading}
                   />
                 </div>
@@ -155,6 +158,13 @@ export default function Worksheet() {
             if (!unlocked) setGateOpen(open);
           }}
           onSuccess={handleLeadSuccess}
+        />
+
+        <EmailSelfModal
+          open={emailSelfOpen}
+          onOpenChange={setEmailSelfOpen}
+          inputs={inputs}
+          results={results}
           worksheetSummary={worksheetSummary}
         />
       </div>
