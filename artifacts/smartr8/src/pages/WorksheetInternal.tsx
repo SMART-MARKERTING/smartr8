@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Lock, Loader2, Send } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -7,6 +7,7 @@ import { PageMeta } from "@/components/PageMeta";
 import WorksheetDocument from "@/components/worksheet/WorksheetDocument";
 import WorksheetInputPanel from "@/components/worksheet/WorksheetInputPanel";
 import { computeScenarios, WorksheetInputs, DEFAULT_ADVISOR, DEFAULT_DEBTS } from "@/lib/worksheetCalc";
+import { downloadWorksheetPdf, getWorksheetPdfBase64 } from "@/lib/generatePdf";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -123,37 +124,12 @@ function EmailClientModal({
   const { toast } = useToast();
   const [clientEmail, setClientEmail] = useState("");
   const [sending, setSending] = useState(false);
-  const worksheetRef = useRef<HTMLDivElement>(null);
 
   async function handleSend() {
     if (!clientEmail.trim()) return;
     setSending(true);
     try {
-      const [html2canvasModule, jsPDFModule] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const html2canvas = html2canvasModule.default;
-      const { jsPDF } = jsPDFModule;
-
-      const el = document.getElementById("ws-internal-doc");
-      if (!el) throw new Error("Worksheet element not found");
-
-      const canvas = await html2canvas(el as HTMLElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: "letter" });
-      const pdfWidth = 8.5;
-      const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, Math.min(pdfHeight, 11));
-
-      const base64 = pdf.output("datauristring").split(",")[1];
+      const base64 = await getWorksheetPdfBase64(inputs, results);
 
       const res = await fetch("/api/worksheet/submit-lead", {
         method: "POST",
@@ -246,53 +222,10 @@ export default function WorksheetInternal() {
   }
 
   async function handleDownloadPdf() {
-    const el = document.getElementById("ws-internal-doc");
-    if (!el) return;
     setPdfLoading(true);
     try {
-      const [html2canvasModule, jsPDFModule] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const html2canvas = html2canvasModule.default;
-      const { jsPDF } = jsPDFModule;
-
-      const canvas = await html2canvas(el as HTMLElement, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: "letter" });
-      const pdfWidth = 8.5;
-      const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
-
-      if (pdfHeight <= 11) {
-        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        const pageHeightPx = (11 / pdfWidth) * canvas.width;
-        let yOffset = 0;
-        let page = 0;
-        while (yOffset < canvas.height) {
-          if (page > 0) pdf.addPage();
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = Math.min(pageHeightPx, canvas.height - yOffset);
-          const ctx = sliceCanvas.getContext("2d")!;
-          ctx.drawImage(canvas, 0, -yOffset);
-          const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-          const sliceHeight = (sliceCanvas.height / canvas.width) * pdfWidth;
-          pdf.addImage(sliceData, "JPEG", 0, 0, pdfWidth, sliceHeight);
-          yOffset += pageHeightPx;
-          page++;
-        }
-      }
-
       const name = inputs.clientName.replace(/\s+/g, "-") || "Client";
-      pdf.save(`Loan-Benefits-Worksheet-${name}.pdf`);
+      await downloadWorksheetPdf(inputs, results, `Loan-Benefits-Worksheet-${name}.pdf`);
     } catch (err) {
       toast({ title: "PDF error", description: String(err), variant: "destructive" });
     }
@@ -345,7 +278,7 @@ export default function WorksheetInternal() {
             {/* Worksheet document */}
             <div className="flex-1 overflow-x-auto">
               <div className="min-w-[600px] border rounded-lg shadow-sm overflow-hidden">
-                <WorksheetDocument id="ws-internal-doc" inputs={inputs} results={results} />
+                <WorksheetDocument inputs={inputs} results={results} />
               </div>
             </div>
           </div>

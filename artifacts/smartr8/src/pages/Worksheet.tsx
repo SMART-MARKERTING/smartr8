@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
 import { Header } from "@/components/Header";
@@ -8,6 +8,7 @@ import WorksheetDocument from "@/components/worksheet/WorksheetDocument";
 import WorksheetInputPanel from "@/components/worksheet/WorksheetInputPanel";
 import LeadCaptureModal from "@/components/worksheet/LeadCaptureModal";
 import { computeScenarios, money, WorksheetInputs, DEFAULT_ADVISOR, DEFAULT_DEBTS } from "@/lib/worksheetCalc";
+import { downloadWorksheetPdf } from "@/lib/generatePdf";
 
 const DEFAULT_INPUTS: WorksheetInputs = {
   clientName: "",
@@ -40,7 +41,6 @@ export default function Worksheet() {
   const [unlocked, setUnlocked] = useState(false);
   const [lead, setLead] = useState<{ firstName: string; lastName: string; email: string } | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-  const worksheetRef = useRef<HTMLDivElement>(null);
 
   const results = useMemo(() => computeScenarios(inputs), [inputs]);
 
@@ -56,59 +56,10 @@ export default function Worksheet() {
   }
 
   async function handleDownloadPdf() {
-    if (!worksheetRef.current) return;
     setPdfLoading(true);
     try {
-      const [html2canvasModule, jsPDFModule] = await Promise.all([
-        import("html2canvas"),
-        import("jspdf"),
-      ]);
-      const html2canvas = html2canvasModule.default;
-      const { jsPDF } = jsPDFModule;
-
-      const el = worksheetRef.current;
-      const originalWidth = el.style.width;
-      el.style.width = "816px";
-
-      const canvas = await html2canvas(el, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: "#ffffff",
-      });
-
-      el.style.width = originalWidth;
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      const pdf = new jsPDF({ orientation: "portrait", unit: "in", format: "letter" });
-
-      const pdfWidth = 8.5;
-      const pdfHeight = (canvas.height / canvas.width) * pdfWidth;
-
-      if (pdfHeight <= 11) {
-        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
-      } else {
-        const pageHeightPx = (11 / pdfWidth) * canvas.width;
-        let yOffset = 0;
-        let page = 0;
-        while (yOffset < canvas.height) {
-          if (page > 0) pdf.addPage();
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width = canvas.width;
-          sliceCanvas.height = Math.min(pageHeightPx, canvas.height - yOffset);
-          const ctx = sliceCanvas.getContext("2d")!;
-          ctx.drawImage(canvas, 0, -yOffset);
-          const sliceData = sliceCanvas.toDataURL("image/jpeg", 0.92);
-          const sliceHeight = (sliceCanvas.height / canvas.width) * pdfWidth;
-          pdf.addImage(sliceData, "JPEG", 0, 0, pdfWidth, sliceHeight);
-          yOffset += pageHeightPx;
-          page++;
-        }
-      }
-
       const lastName = lead?.lastName ?? "Client";
-      pdf.save(`Loan-Benefits-Worksheet-${lastName}.pdf`);
+      await downloadWorksheetPdf(inputs, results, `Loan-Benefits-Worksheet-${lastName}.pdf`);
     } catch (err) {
       console.error("PDF generation failed:", err);
     }
@@ -146,7 +97,7 @@ export default function Worksheet() {
             /* Blurred preview gate */
             <div className="relative">
               <div className="pointer-events-none select-none filter blur-[6px] opacity-60 overflow-hidden rounded-lg border">
-                <WorksheetDocument ref={worksheetRef} inputs={inputs} results={results} />
+                <WorksheetDocument inputs={inputs} results={results} />
               </div>
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="bg-white/95 shadow-2xl rounded-xl p-8 max-w-sm text-center border">
@@ -185,7 +136,7 @@ export default function Worksheet() {
               {/* Worksheet document */}
               <div className="flex-1 overflow-x-auto">
                 <div className="min-w-[600px] border rounded-lg shadow-sm overflow-hidden">
-                  <WorksheetDocument ref={worksheetRef} inputs={inputs} results={results} />
+                  <WorksheetDocument inputs={inputs} results={results} />
                 </div>
               </div>
             </div>
