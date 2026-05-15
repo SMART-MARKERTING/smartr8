@@ -27,6 +27,14 @@ export function Footer() {
 
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
           <a
+            href="/worksheet"
+            className="underline hover:text-white"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            Loan Benefits Worksheet
+          </a>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
+          <a
             href="https://adaxahome.com/privacy/"
             target="_blank"
             rel="noopener noreferrer"

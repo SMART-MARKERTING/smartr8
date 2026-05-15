@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loan Benefits Worksheet</title>
+<style>
+  :root {
+    --navy:   #1F2A44;
+    --gold:   #C9A74D;
+    --light:  #F4F1EA;
+    --green:  #2E7D4F;
+    --gray:   #6B7280;
+    --border: #E5E5E5;
+    --row-alt:#FAFAFA;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #111;
+    background: #f0f0f0;
+  }
+
+  /* ---------- Input panel ---------- */
+  .input-panel {
+    background: var(--navy);
+    color: white;
+    padding: 20px 30px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  }
+  .input-panel h2 {
+    margin: 0 0 14px 0;
+    font-size: 16px;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+  }
+  .input-panel h3 {
+    margin: 14px 0 8px 0;
+    font-size: 12px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-top: 1px solid #3a4663;
+    padding-top: 12px;
+  }
+  .input-panel h3:first-of-type { border-top: none; padding-top: 0; }
+  .input-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 10px 16px;
+  }
+  .input-grid label {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    color: #cbd1dc;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .input-grid input, .input-grid select {
+    margin-top: 4px;
+    padding: 7px 9px;
+    border: 1px solid #3a4663;
+    border-radius: 4px;
+    background: #2a344f;
+    color: white;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .input-grid input:focus, .input-grid select:focus {
+    outline: 2px solid var(--gold);
+    outline-offset: -1px;
+  }
+  .debt-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 36px;
+    gap: 8px;
+    margin-bottom: 6px;
+    align-items: center;
+  }
+  .debt-row input {
+    padding: 6px 8px;
+    border: 1px solid #3a4663;
+    border-radius: 4px;
+    background: #2a344f;
+    color: white;
+    font-size: 13px;
+  }
+  .debt-row .remove-btn {
+    background: #d9534f;
+    border: none;
+    color: white;
+    border-radius: 4px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+  .debt-row .remove-btn:hover { background: #c9302c; }
+  .debt-header {
+    font-size: 10px;
+    color: #cbd1dc;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+  }
+  .button-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 9px 18px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .btn-add   { background: #3a4663; color: white; }
+  .btn-add:hover { background: #4a567a; }
+  .btn-print { background: var(--gold); color: var(--navy); }
+  .btn-print:hover { background: #d8b96a; }
+
+  /* ---------- Worksheet ---------- */
+  .worksheet {
+    max-width: 8.5in;
+    margin: 20px auto;
+    background: white;
+    padding: 0.45in 0.55in;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    font-size: 9.5px;
+    line-height: 1.35;
+  }
+  .header-bar {
+    margin: -0.45in -0.55in 12px -0.55in;
+    background: linear-gradient(135deg, var(--navy) 0%, #2a3760 100%);
+    color: white;
+    padding: 12px 0.55in;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 3px solid var(--gold);
+    position: relative;
+  }
+  .header-bar::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -3px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  }
+  .header-bar .company { font-weight: bold; font-size: 13px; letter-spacing: 1px; }
+  .header-bar .title   {
+    font-size: 9px; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+  }
+
+  .worksheet h1 {
+    text-align: center;
+    color: var(--navy);
+    font-size: 22px;
+    margin: 6px 0 2px 0;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .worksheet h1::after {
+    content: "";
+    display: block;
+    width: 50px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    margin: 6px auto 0 auto;
+  }
+  .subtitle {
+    text-align: center;
+    color: var(--gray);
+    font-size: 10px;
+    margin-bottom: 10px;
+  }
+  .worksheet h2 {
+    color: var(--navy);
+    font-size: 11px;
+    margin: 10px 0 5px 0;
+    padding: 0 0 3px 10px;
+    border-bottom: 1.5px solid var(--light);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    position: relative;
+  }
+  .worksheet h2::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 2px; bottom: 5px;
+    width: 3px;
+    background: var(--gold);
+  }
+
+  .top-row {
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 14px;
+    margin-bottom: 8px;
+  }
+  .bottom-row {
+    display: grid;
+    grid-template-columns: 1.3fr 1fr;
+    gap: 14px;
+    margin-top: 6px;
+  }
+
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+  }
+  table.data th {
+    background: var(--navy);
+    color: white;
+    padding: 5px 7px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 9px;
+  }
+  table.data th.num, table.data td.num { text-align: right; }
+  table.data td {
+    padding: 4px 7px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.data tr:nth-child(even) td { background: var(--row-alt); }
+  table.data tr.total-row td {
+    background: var(--light) !important;
+    font-weight: bold;
+  }
+
+  table.kv {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+    border: 1px solid var(--border);
+  }
+  table.kv td {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.kv tr:nth-child(even) td { background: var(--light); }
+  table.kv td:first-child { color: var(--navy); }
+  table.kv td:last-child {
+    font-weight: bold;
+    text-align: right;
+  }
+  table.kv.key-numbers td:last-child { color: var(--green); }
+
+  table.comparison {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9px;
+    border: 1px solid var(--border);
+  }
+  table.comparison th, table.comparison td {
+    padding: 5px 6px;
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  table.comparison th {
+    background: var(--navy);
+    color: white;
+    font-weight: 600;
+    font-size: 9px;
+  }
+  table.comparison th.highlight {
+    background: var(--gold);
+    color: var(--navy);
+  }
+  table.comparison td.label {
+    background: var(--light);
+    color: var(--navy);
+    font-weight: bold;
+    text-align: left;
+  }
+  table.comparison td.highlight-col {
+    background: #FBF7EC;
+  }
+  table.comparison tr.savings-row td,
+  table.comparison tr.effective-row td.highlight-col {
+    color: var(--green);
+    font-weight: bold;
+  }
+
+  .banner {
+    background: linear-gradient(135deg, var(--green) 0%, #266a42 100%);
+    color: white;
+    padding: 11px 16px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 10px;
+    line-height: 1.5;
+    margin: 8px 0;
+    border-radius: 3px;
+    border-left: 3px solid var(--gold);
+    box-shadow: 0 2px 6px rgba(46, 125, 79, 0.15);
+  }
+
+  .explainer p {
+    font-size: 8.5px;
+    line-height: 1.4;
+    margin: 0 0 5px 0;
+  }
+  .disclaimer {
+    font-size: 7.5px;
+    font-style: italic;
+    color: var(--gray);
+    line-height: 1.35;
+    margin-top: 10px;
+    text-align: center;
+  }
+
+  /* ---------- Signature block (luxury) ---------- */
+  .signature-block {
+    margin-top: 14px;
+    padding: 14px 18px;
+    background: linear-gradient(135deg, var(--navy) 0%, #2a3760 100%);
+    color: white;
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 16px;
+    align-items: center;
+    border-radius: 3px;
+    position: relative;
+    overflow: hidden;
+  }
+  .signature-block::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--gold) 0%, #b8933d 100%);
+  }
+  .sig-photo-wrap {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--gold);
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .sig-photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .sig-details { line-height: 1.35; }
+  .sig-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+    letter-spacing: 0.3px;
+  }
+  .sig-title {
+    font-size: 9px;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 1px;
+    font-weight: 600;
+  }
+  .sig-company {
+    font-size: 10px;
+    color: #cbd1dc;
+    margin-top: 3px;
+    font-style: italic;
+    letter-spacing: 0.3px;
+  }
+  .sig-contact {
+    font-size: 9px;
+    color: #e8ebf2;
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+  .sig-contact .dot {
+    color: var(--gold);
+    margin: 0 7px;
+    font-weight: bold;
+  }
+
+  /* ---------- Compliance footer ---------- */
+  .compliance-footer {
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: #FAFAF7;
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 2px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    align-items: start;
+  }
+  .eho-block {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 12px;
+    border-right: 1px solid var(--border);
+    color: var(--navy);
+    min-width: 0;
+  }
+  .eho-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    color: var(--navy);
+  }
+  .eho-text {
+    font-size: 7.5px;
+    line-height: 1.35;
+    color: var(--navy);
+  }
+  .eho-text strong {
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .compliance-text {
+    font-size: 7.5px;
+    line-height: 1.45;
+    color: #444;
+  }
+  .compliance-text strong { color: var(--navy); }
+
+  @media print {
+    body { background: white; }
+    .input-panel, .no-print { display: none !important; }
+    .worksheet {
+      box-shadow: none;
+      margin: 0;
+      max-width: none;
+      padding: 0.35in 0.45in;
+    }
+    .header-bar { margin: -0.35in -0.45in 10px -0.45in; padding: 8px 0.45in; }
+    @page { size: letter; margin: 0; }
+  }
+</style>
+</head>
+<body>
+
+<!-- INPUT PANEL -->
+<div class="input-panel no-print">
+  <h2>Loan Benefits Worksheet — Inputs</h2>
+
+  <h3>Client Info</h3>
+  <div class="input-grid">
+    <label>Client Name<input type="text" id="clientName" value="John &amp; Jane Sample"></label>
+  </div>
+
+  <h3>Your Info (appears on worksheet)</h3>
+  <div class="input-grid">
+    <label>Your Name<input type="text" id="preparedBy" value="Cameron Dill"></label>
+    <label>Title<input type="text" id="preparedByTitle" value="Mortgage Loan Officer"></label>
+    <label>Company<input type="text" id="companyName" value="Adaxa Home"></label>
+    <label>Phone<input type="text" id="contactPhone" value="(555) 123-4567"></label>
+    <label>Email<input type="text" id="contactEmail" value="cameron@adaxahome.com"></label>
+    <label>NMLS # (Personal)<input type="text" id="contactNMLS" value="763991"></label>
+    <label>Company NMLS #<input type="text" id="companyNMLS" value=""></label>
+    <label>State(s) Licensed In<input type="text" id="licenseStates" value="Arizona"></label>
+  </div>
+
+  <h3>Current Mortgage (Existing)</h3>
+  <div class="input-grid">
+    <label>Current Balance ($)<input type="number" id="existBalance" value="290000" step="1000"></label>
+    <label>Current Rate (%)<input type="number" id="existRate" value="7.25" step="0.001"></label>
+    <label>Current P&amp;I Payment ($)<input type="number" id="existPayment" value="1978" step="10"></label>
+    <label>Monthly Escrow ($)<input type="number" id="existEscrow" value="0" step="10"></label>
+    <label>Years Remaining<input type="number" id="existYearsRemaining" value="27" step="1"></label>
+  </div>
+
+  <h3>New Mortgage (Refinance)</h3>
+  <div class="input-grid">
+    <label>New Loan Amount ($)<input type="number" id="loanAmount" value="350000" step="1000"></label>
+    <label>New Rate (%)<input type="number" id="loanRate" value="6.5" step="0.001"></label>
+    <label>New Term (years)<input type="number" id="loanTerm" value="30" step="1"></label>
+    <label>Extra Monthly ($)<input type="number" id="extraMonthly" value="250" step="25"></label>
+    <label>Cash Back at Closing ($)<input type="number" id="cashBack" value="0" step="100"></label>
+  </div>
+
+  <h3>Debts to Consolidate (rolled into the refi)</h3>
+  <div class="debt-row debt-header">
+    <div>Debt Name</div>
+    <div>Balance ($)</div>
+    <div>Rate (%)</div>
+    <div>Min Payment ($)</div>
+    <div></div>
+  </div>
+  <div id="debtsList"></div>
+  <div class="button-row">
+    <button class="btn btn-add" onclick="addDebt()">+ Add Debt</button>
+    <button class="btn btn-print" onclick="window.print()">Print / Save as PDF</button>
+  </div>
+</div>
+
+<!-- WORKSHEET -->
+<div class="worksheet" id="worksheet">
+  <div class="header-bar">
+    <div class="company" id="h-company">Your Company</div>
+    <div class="title">Loan Benefits Worksheet</div>
+  </div>
+
+  <h1>Loan Benefits Worksheet</h1>
+  <div class="subtitle">
+    Prepared for <strong id="h-client">Client Name</strong> &nbsp;•&nbsp;
+    <span id="h-date"></span>
+  </div>
+
+  <div class="top-row">
+    <div>
+      <h2>Your Current Picture</h2>
+      <table class="kv" id="snapshotTable"></table>
+    </div>
+    <div>
+      <h2>Debts Rolled Into New Mortgage</h2>
+      <table class="data" id="debtsTable">
+        <thead>
+          <tr>
+            <th>Debt</th>
+            <th class="num">Balance</th>
+            <th class="num">Rate</th>
+            <th class="num">Min Pmt</th>
+          </tr>
+        </thead>
+        <tbody id="debtsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2>Your Three Paths Compared</h2>
+  <table class="comparison" id="compTable">
+    <thead>
+      <tr>
+        <th></th>
+        <th>Current Path<br>(Keep Existing Mortgage + Debts)</th>
+        <th>Refinance<br>(Standard Payment)</th>
+        <th class="highlight">Refinance<br>+ Savings Applied</th>
+      </tr>
+    </thead>
+    <tbody id="compTableBody"></tbody>
+  </table>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="bottom-row">
+    <div>
+      <h2>How This Strategy Works</h2>
+      <div class="explainer" id="explainer"></div>
+    </div>
+    <div>
+      <h2>Key Numbers at a Glance</h2>
+      <table class="kv key-numbers" id="keyTable"></table>
+    </div>
+  </div>
+
+  <div class="signature-block">
+    <div class="sig-photo-wrap">
+      <img src="data:image/jpeg;base64,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" alt="Advisor photo" class="sig-photo">
+    </div>
+    <div class="sig-details">
+      <div class="sig-name" id="sig-name">Cameron Dill</div>
+      <div class="sig-title" id="sig-title">Mortgage Loan Officer</div>
+      <div class="sig-company" id="sig-company">Adaxa Home</div>
+      <div class="sig-contact" id="sig-contact"></div>
+    </div>
+  </div>
+  <div class="compliance-footer">
+    <div class="eho-block">
+      <svg class="eho-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="0" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2"/>
+        <!-- House outline -->
+        <path d="M 12 34 L 32 18 L 52 34 L 52 52 L 12 52 Z"
+              fill="none" stroke="currentColor" stroke-width="2.5"
+              stroke-linejoin="round"/>
+        <!-- Equal sign inside -->
+        <line x1="22" y1="40" x2="42" y2="40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="22" y1="46" x2="42" y2="46" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <div class="eho-text">
+        <strong>Equal Housing Opportunity</strong><br>
+        We do business in accordance with federal Fair Housing law.
+      </div>
+    </div>
+    <div class="compliance-text" id="complianceText"></div>
+  </div>
+</div>
+
+<script>
+let debts = [
+  { name: "Credit Card - Visa",       balance: 8500,  rate: 22.99, payment: 255 },
+  { name: "Credit Card - Mastercard", balance: 4200,  rate: 19.49, payment: 126 },
+  { name: "Auto Loan",                balance: 18750, rate: 7.25,  payment: 465 },
+  { name: "Student Loan",             balance: 22000, rate: 6.80,  payment: 240 },
+  { name: "Personal Loan",            balance: 6000,  rate: 12.50, payment: 185 },
+];
+
+const money = v => !isFinite(v) ? "—" :
+  "$" + v.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const pct = v => v.toFixed(3) + "%";
+const yrs = v => v.toFixed(1) + " yrs";
+
+// Payment for a fresh loan at given principal / rate / term
+function monthlyPayment(principal, annualRatePct, termMonths) {
+  if (principal <= 0 || termMonths <= 0) return 0;
+  const r = (annualRatePct / 100) / 12;
+  if (r === 0) return principal / termMonths;
+  return principal * (r * Math.pow(1 + r, termMonths)) /
+                     (Math.pow(1 + r, termMonths) - 1);
+}
+
+// Amortize a balance at `rate` paying `scheduledPmt + extraMonthly` per month.
+// Returns months, totalInterest, totalPaid.
+function amortize(balance, annualRatePct, scheduledPmt, extraMonthly = 0, maxMonths = 600) {
+  let bal = balance;
+  const r = (annualRatePct / 100) / 12;
+  let totalInterest = 0, totalPaid = 0, months = 0;
+  const payment = scheduledPmt + extraMonthly;
+  while (bal > 0.01 && months < maxMonths) {
+    const interest = bal * r;
+    let principalPortion = payment - interest;
+    if (principalPortion <= 0) {
+      return { months: maxMonths, totalInterest: Infinity, totalPaid: Infinity };
+    }
+    let paymentThisMonth;
+    if (principalPortion > bal) {
+      principalPortion = bal;
+      paymentThisMonth = bal + interest;
+    } else {
+      paymentThisMonth = payment;
+    }
+    bal -= principalPortion;
+    totalInterest += interest;
+    totalPaid += paymentThisMonth;
+    months++;
+  }
+  return { months, totalInterest, totalPaid };
+}
+
+// "What stated rate on a standard full-term loan would have produced
+// this much total interest?" — the client-facing effective rate.
+function effectiveRateFromInterest(principal, totalInterest, termMonths) {
+  if (termMonths <= 0 || principal <= 0 || totalInterest <= 0) return 0;
+  let lo = 0, hi = 1;
+  for (let i = 0; i < 200; i++) {
+    const mid = (lo + hi) / 2;
+    let impliedPmt;
+    if (mid === 0) impliedPmt = principal / termMonths;
+    else impliedPmt = principal * (mid * Math.pow(1 + mid, termMonths)) /
+                                  (Math.pow(1 + mid, termMonths) - 1);
+    const impliedInterest = impliedPmt * termMonths - principal;
+    if (impliedInterest > totalInterest) hi = mid;
+    else lo = mid;
+  }
+  return ((lo + hi) / 2) * 12 * 100;
+}
+
+function computeScenarios(client) {
+  const termMonths = client.termYears * 12;
+  const newLoanPmt = monthlyPayment(client.loanAmount, client.loanRate, termMonths);
+
+  // ============================================================
+  // CURRENT PATH: keep existing mortgage + pay all debts at minimum
+  // ============================================================
+  // Existing mortgage remaining interest
+  const existingMortgage = amortize(
+    client.existBalance, client.existRate, client.existPayment
+  );
+
+  let debtInterest = 0, debtBalance = 0, debtMinPmt = 0, longestDebtMonths = 0;
+  client.debts.forEach(d => {
+    const { months, totalInterest } = amortize(d.balance, d.rate, d.payment);
+    debtInterest += totalInterest;
+    debtBalance += d.balance;
+    debtMinPmt += d.payment;
+    if (months > longestDebtMonths) longestDebtMonths = months;
+  });
+
+  // Client is debt-free when BOTH the mortgage AND the longest debt are gone.
+  const currentMonths = Math.max(existingMortgage.months, longestDebtMonths);
+
+  const current = {
+    monthlyPmt: client.existPayment + client.existEscrow + debtMinPmt,
+    years: currentMonths / 12,
+    totalInterest: existingMortgage.totalInterest + debtInterest,
+  };
+
+  // ============================================================
+  // REFINANCE STANDARD: new loan replaces old mortgage + debts,
+  // client makes only the standard new-loan payment.
+  // ============================================================
+  const refi = amortize(client.loanAmount, client.loanRate, newLoanPmt);
+  const consolidated = {
+    monthlyPmt: newLoanPmt,
+    years: refi.months / 12,
+    totalInterest: refi.totalInterest,
+  };
+
+  // ============================================================
+  // REFINANCE + SAVINGS APPLIED: the client redirects their
+  // comfortable "extra monthly" amount back to principal. That's
+  // the actual new-money contribution to the strategy. The
+  // debt-consolidation savings are what make the new payment
+  // affordable; they're not a separate bucket added on top.
+  // ============================================================
+  const extraToApplied = client.extraMonthly;
+  const acc = amortize(client.loanAmount, client.loanRate, newLoanPmt, extraToApplied);
+  const accEffRate = effectiveRateFromInterest(
+    client.loanAmount, acc.totalInterest, termMonths
+  );
+  const accelerated = {
+    monthlyPmt: newLoanPmt + extraToApplied,
+    years: acc.months / 12,
+    totalInterest: acc.totalInterest,
+    effectiveRate: accEffRate,
+  };
+
+  // "Freed up" for client cash-flow context = how much their
+  // monthly outflow drops by refinancing (before the extra).
+  // Escrow is included in the current outflow because it's part of
+  // what they pay today; it will also exist on the new loan, so the
+  // freed-up amount compares P&I-to-P&I plus the eliminated debts.
+  const currentTotalOutflow = client.existPayment + client.existEscrow + debtMinPmt;
+  const freedUp = Math.max(0, (client.existPayment + debtMinPmt) - newLoanPmt);
+
+  return {
+    current, consolidated, accelerated,
+    newLoanPmt, debtBalance, debtMinPmt, freedUp,
+    currentTotalOutflow,
+    existingMortgageInterest: existingMortgage.totalInterest,
+  };
+}
+
+function readInputs() {
+  return {
+    clientName:      document.getElementById("clientName").value || "Client",
+    preparedBy:      document.getElementById("preparedBy").value || "Advisor",
+    preparedByTitle: document.getElementById("preparedByTitle").value || "",
+    companyName:     document.getElementById("companyName").value || "Company",
+    contactPhone:    document.getElementById("contactPhone").value || "",
+    contactEmail:    document.getElementById("contactEmail").value || "",
+    contactNMLS:     document.getElementById("contactNMLS").value || "",
+    companyNMLS:     document.getElementById("companyNMLS").value || "",
+    licenseStates:   document.getElementById("licenseStates").value || "",
+    existBalance: parseFloat(document.getElementById("existBalance").value) || 0,
+    existRate:    parseFloat(document.getElementById("existRate").value)    || 0,
+    existPayment: parseFloat(document.getElementById("existPayment").value) || 0,
+    existEscrow:  parseFloat(document.getElementById("existEscrow").value)  || 0,
+    existYearsRemaining: parseFloat(document.getElementById("existYearsRemaining").value) || 0,
+    loanAmount:   parseFloat(document.getElementById("loanAmount").value)   || 0,
+    loanRate:     parseFloat(document.getElementById("loanRate").value)     || 0,
+    termYears:    parseInt(document.getElementById("loanTerm").value, 10)   || 30,
+    extraMonthly: parseFloat(document.getElementById("extraMonthly").value) || 0,
+    cashBack:     parseFloat(document.getElementById("cashBack").value)     || 0,
+    debts: debts,
+  };
+}
+
+function renderDebtInputs() {
+  const container = document.getElementById("debtsList");
+  container.innerHTML = "";
+  debts.forEach((d, i) => {
+    const row = document.createElement("div");
+    row.className = "debt-row";
+    row.innerHTML = `
+      <input type="text"   value="${d.name}"    oninput="updateDebt(${i}, 'name', this.value)">
+      <input type="number" value="${d.balance}" step="100"  oninput="updateDebt(${i}, 'balance', this.value)">
+      <input type="number" value="${d.rate}"    step="0.01" oninput="updateDebt(${i}, 'rate', this.value)">
+      <input type="number" value="${d.payment}" step="5"    oninput="updateDebt(${i}, 'payment', this.value)">
+      <button class="remove-btn" onclick="removeDebt(${i})" title="Remove">×</button>
+    `;
+    container.appendChild(row);
+  });
+}
+function updateDebt(i, field, v) {
+  debts[i][field] = field === "name" ? v : (parseFloat(v) || 0);
+  render();
+}
+function addDebt() {
+  debts.push({ name: "New Debt", balance: 0, rate: 0, payment: 0 });
+  renderDebtInputs();
+  render();
+}
+function removeDebt(i) {
+  debts.splice(i, 1);
+  renderDebtInputs();
+  render();
+}
+
+function render() {
+  const c = readInputs();
+  const r = computeScenarios(c);
+
+  document.getElementById("h-company").textContent = c.companyName;
+  document.getElementById("h-client").textContent  = c.clientName;
+  document.getElementById("h-date").textContent =
+    new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  const cashBackRow = c.cashBack > 0
+    ? `<tr><td><strong>Cash Back at Closing</strong></td><td style="color: var(--green)"><strong>${money(c.cashBack)}</strong></td></tr>`
+    : "";
+
+  document.getElementById("snapshotTable").innerHTML = `
+    <tr><td>Existing Mortgage Balance</td><td>${money(c.existBalance)} @ ${pct(c.existRate)}</td></tr>
+    <tr><td>Existing Mortgage P&amp;I</td><td>${money(c.existPayment)}</td></tr>
+    <tr><td>Monthly Escrow (taxes &amp; ins.)</td><td>${money(c.existEscrow)}</td></tr>
+    <tr><td>Total Other Debt Balance</td><td>${money(r.debtBalance)}</td></tr>
+    <tr><td>Total Debt Payments</td><td>${money(r.debtMinPmt)}</td></tr>
+    <tr><td><strong>Current Total Outflow</strong></td><td><strong>${money(r.currentTotalOutflow)}</strong></td></tr>
+    <tr><td>New Loan Amount</td><td>${money(c.loanAmount)} @ ${pct(c.loanRate)}</td></tr>
+    <tr><td>New Loan Monthly P&amp;I</td><td>${money(r.newLoanPmt)}</td></tr>
+    <tr><td>Extra Monthly Contribution</td><td>${money(c.extraMonthly)}</td></tr>
+    ${cashBackRow}
+  `;
+
+  let debtRows = c.debts.map(d => `
+    <tr>
+      <td>${d.name}</td>
+      <td class="num">${money(d.balance)}</td>
+      <td class="num">${pct(d.rate)}</td>
+      <td class="num">${money(d.payment)}</td>
+    </tr>
+  `).join("");
+  debtRows += `
+    <tr class="total-row">
+      <td>TOTALS</td>
+      <td class="num">${money(r.debtBalance)}</td>
+      <td class="num">—</td>
+      <td class="num">${money(r.debtMinPmt)}</td>
+    </tr>
+  `;
+  document.getElementById("debtsTableBody").innerHTML = debtRows;
+
+  const cur = r.current, con = r.consolidated, acc = r.accelerated;
+  document.getElementById("compTableBody").innerHTML = `
+    <tr>
+      <td class="label">Savings Created</td>
+      <td>${money(cur.monthlyPmt)}</td>
+      <td>${money(con.monthlyPmt)}</td>
+      <td class="highlight-col">${money(c.extraMonthly)}</td>
+    </tr>
+    <tr>
+      <td class="label">Time to Debt-Free</td>
+      <td>${yrs(cur.years)}</td>
+      <td>${yrs(con.years)}</td>
+      <td class="highlight-col">${yrs(acc.years)}</td>
+    </tr>
+    <tr>
+      <td class="label">Total Interest</td>
+      <td>—</td>
+      <td>${money(con.totalInterest)}</td>
+      <td class="highlight-col">${money(acc.totalInterest)}</td>
+    </tr>
+    <tr class="savings-row">
+      <td class="label">Interest Saved</td>
+      <td>—</td>
+      <td>— (baseline)</td>
+      <td class="highlight-col">${money(con.totalInterest - acc.totalInterest)}</td>
+    </tr>
+    <tr>
+      <td class="label">Time Saved</td>
+      <td>—</td>
+      <td>— (baseline)</td>
+      <td class="highlight-col">${yrs(con.years - acc.years)}</td>
+    </tr>
+    <tr class="effective-row">
+      <td class="label">Effective Rate on New Loan</td>
+      <td>—</td>
+      <td><strong>${pct(c.loanRate)}</strong></td>
+      <td class="highlight-col"><strong>${pct(acc.effectiveRate)}</strong></td>
+    </tr>
+  `;
+
+  const totalSaved = con.totalInterest - acc.totalInterest;
+  const timeSaved = con.years - acc.years;
+  document.getElementById("banner").innerHTML = `
+    By redirecting ${money(c.extraMonthly)}/month back onto your new loan's principal,
+    your ${pct(c.loanRate)} loan effectively costs you ${pct(acc.effectiveRate)} —
+    saving ${money(totalSaved)} and ${timeSaved.toFixed(1)} years vs. a standard refinance.
+  `;
+
+  document.getElementById("explainer").innerHTML = `
+    <p>Today you pay a mortgage payment <em>plus</em> every other debt —
+    ${money(r.currentTotalOutflow)} total each month. When the refi closes, the
+    existing mortgage and all other debts are replaced by a single
+    ${money(r.newLoanPmt)} payment — freeing up ${money(r.freedUp)} of monthly cash flow.</p>
+    <p>You then commit ${money(c.extraMonthly)} of that freed-up cash back to the new loan's
+    <strong>principal</strong> each month. Every dollar of principal retired early
+    <strong>never accrues interest again</strong>, which is why your stated
+    ${pct(c.loanRate)} behaves like <strong>${pct(acc.effectiveRate)}</strong> in practice.</p>
+    <p>Cash flow actually improves — you pay ${money(r.freedUp - c.extraMonthly)}
+    less per month than you do today while still paying the loan off in
+    ${acc.years.toFixed(1)} years instead of ${con.years.toFixed(0)}.</p>
+  `;
+
+  const cashBackKeyRow = c.cashBack > 0
+    ? `<tr><td>Cash back at closing</td><td>${money(c.cashBack)}</td></tr>`
+    : "";
+
+  document.getElementById("keyTable").innerHTML = `
+    <tr><td>Monthly amount applied to principal</td><td>${money(c.extraMonthly)}</td></tr>
+    <tr><td>Years shaved off</td><td>${timeSaved.toFixed(1)} years</td></tr>
+    <tr><td>Total interest eliminated</td><td>${money(totalSaved)}</td></tr>
+    <tr><td>Effective interest rate</td><td>${pct(acc.effectiveRate)}</td></tr>
+    ${cashBackKeyRow}
+  `;
+
+  // Signature block
+  document.getElementById("sig-name").textContent    = c.preparedBy;
+  document.getElementById("sig-title").textContent   = c.preparedByTitle;
+  document.getElementById("sig-company").textContent = c.companyName;
+  const contactParts = [];
+  if (c.contactPhone) contactParts.push(c.contactPhone);
+  if (c.contactEmail) contactParts.push(c.contactEmail);
+  if (c.contactNMLS)  contactParts.push("NMLS #" + c.contactNMLS);
+  document.getElementById("sig-contact").innerHTML =
+    contactParts.map(p => `<span>${p}</span>`).join(`<span class="dot">•</span>`);
+
+  // Compliance footer text
+  const licensingLine = [];
+  if (c.companyName) licensingLine.push(`<strong>${c.companyName}</strong>`);
+  if (c.companyNMLS) licensingLine.push(`Company NMLS #${c.companyNMLS}`);
+  if (c.contactNMLS) licensingLine.push(`${c.preparedBy} NMLS #${c.contactNMLS}`);
+  const licensingStr = licensingLine.join(" | ");
+
+  const stateStr = c.licenseStates
+    ? `Licensed to originate mortgage loans in ${c.licenseStates}.`
+    : "";
+
+  document.getElementById("complianceText").innerHTML = `
+    ${licensingStr}${licensingStr ? ". " : ""}${stateStr}
+    Verify licensing at <strong>www.nmlsconsumeraccess.org</strong>.
+    This document is for informational and illustrative purposes only and does
+    <strong>not</strong> constitute a commitment to lend, an offer to extend credit, a Loan
+    Estimate, or a guarantee of any specific terms or rates. All loan applications
+    are subject to credit approval, property appraisal, income and asset verification,
+    and underwriting guidelines. Rates, terms, and program availability are subject
+    to change without notice and may vary based on creditworthiness, loan-to-value,
+    occupancy, property type, and other factors. The "effective rate" calculation
+    illustrates how applying additional principal payments may reduce total interest
+    paid; it is not the loan's contractual or Annual Percentage Rate (APR) and assumes
+    consistent, voluntary additional principal payments by the borrower. Consult a
+    licensed loan originator for an official Loan Estimate disclosing actual loan
+    terms, costs, and APR. Prepared
+    ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.
+  `;
+}
+
+document.querySelectorAll(".input-panel input, .input-panel select").forEach(el => {
+  el.addEventListener("input", render);
+});
+renderDebtInputs();
+render();
+</script>
+</body>
+</html>

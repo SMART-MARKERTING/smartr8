@@ -14,6 +14,8 @@ import RateReduction from "@/pages/RateReduction";
 import RateReductionWhatsnext from "@/pages/RateReductionWhatsnext";
 import Purchase from "@/pages/Purchase";
 import PurchaseWhatsnext from "@/pages/PurchaseWhatsnext";
+import Worksheet from "@/pages/Worksheet";
+import WorksheetInternal from "@/pages/WorksheetInternal";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -33,6 +35,8 @@ function Router() {
       <Route path="/apply/rate-reduction/whats-next" component={RateReductionWhatsnext} />
       <Route path="/apply/purchase" component={Purchase} />
       <Route path="/apply/purchase/whats-next" component={PurchaseWhatsnext} />
+      <Route path="/worksheet/internal" component={WorksheetInternal} />
+      <Route path="/worksheet" component={Worksheet} />
       <Route component={NotFound} />
     </Switch>
   );

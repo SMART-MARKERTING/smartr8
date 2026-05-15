@@ -1,10 +1,10 @@
-import { useSearch } from "wouter";
+import { useSearch, Link } from "wouter";
 import { PageMeta } from "@/components/PageMeta";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, CalendarDays, FileText, Zap } from "lucide-react";
+import { ArrowRight, BarChart2, CalendarDays, FileText, Zap } from "lucide-react";
 import { useGA4 } from "@/hooks/useGA4";
 const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
 const LENDINGPAD_URL = "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd28-9b5f-46b8-9029-aa478433a995";
@@ -38,7 +38,7 @@ export default function PurchaseWhatsnext() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             <Card className="shadow-sm border-primary/20 flex flex-col">
               <CardContent className="p-6 flex flex-col gap-4 h-full">
                 <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full w-fit" style={{ backgroundColor:"rgba(19,72,90,0.08)", color:"#13485A" }}>
@@ -95,6 +95,26 @@ export default function PurchaseWhatsnext() {
                   <a href={LENDINGPAD_URL} target="_blank" rel="noopener noreferrer" onClick={() => ga4.trackWhatsnextClick("continue_application")}>
                     <Button variant="outline" className="w-full h-11">Continue Application <ArrowRight className="ml-2 h-4 w-4" /></Button>
                   </a>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm flex flex-col">
+              <CardContent className="p-6 flex flex-col gap-4 h-full">
+                <div className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-3 py-1 rounded-full w-fit" style={{ backgroundColor:"rgba(19,72,90,0.08)", color:"#13485A" }}>
+                  Run the Numbers
+                </div>
+                <div className="h-12 w-12 rounded-full bg-primary/5 flex items-center justify-center">
+                  <BarChart2 className="h-6 w-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-primary mb-2">Loan Benefits Worksheet</h2>
+                  <p className="text-sm text-muted-foreground leading-relaxed">See exactly how consolidating your debts into a new mortgage could lower your payment and save years of interest.</p>
+                </div>
+                <div className="mt-auto">
+                  <Link href="/worksheet" onClick={() => ga4.trackWhatsnextClick("loan_benefits_worksheet")}>
+                    <Button variant="outline" className="w-full h-11">Run the Numbers <ArrowRight className="ml-2 h-4 w-4" /></Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>

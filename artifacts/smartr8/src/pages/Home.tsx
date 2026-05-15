@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { FunnelModal } from "@/components/FunnelModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, CheckCircle2, Phone, Home as HomeIcon, Percent, HelpCircle, Droplets, TrendingDown, Key } from "lucide-react";
+import { ArrowRight, CheckCircle2, Phone, Home as HomeIcon, Percent, HelpCircle, Droplets, TrendingDown, Key, BarChart2 } from "lucide-react";
 
 export default function Home() {
   const [isFunnelOpen, setIsFunnelOpen] = useState(false);
@@ -258,6 +258,14 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* WORKSHEET LINK */}
+        <div className="text-center py-4 pb-8 -mt-8">
+          <Link href="/worksheet" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+            <BarChart2 className="h-3.5 w-3.5" />
+            Run the free Loan Benefits Worksheet
+          </Link>
+        </div>
 
         {/* ABOUT MYKOAL */}
         <section className="py-20 px-4 bg-secondary/30 container mx-auto max-w-4xl text-center">

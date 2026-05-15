@@ -1,0 +1,370 @@
+Build a new Loan Benefits Worksheet tool on smartr8.com. Source 
+template is the uploaded HTML file in /templates/ (or wherever 
+the user dropped loan_benefits_worksheet.html). Preserve the 
+calculation math and visual design EXACTLY. The build adds 
+lead capture, server-side PDF generation, email delivery, and 
+dual-mode operation (public + private).
+
+============================================
+ROUTES TO BUILD
+============================================
+
+1. /worksheet — PUBLIC MODE
+   - Visitors run the calculator
+   - Print and Email buttons require lead capture form first
+   - All advisor fields pre-filled with Mykoal's info (hidden 
+     by default in a collapsible "Customize" section)
+
+2. /worksheet/internal — PRIVATE MODE (for Mykoal)
+   - Same tool, no lead capture wall
+   - Print and Email buttons work immediately
+   - Advisor fields editable but pre-filled with defaults
+   - Add a "Send to Client" form that lets Mykoal enter just a 
+     client name + email and the PDF gets emailed directly
+   - Protect this route with simple Basic Auth (username + 
+     password set via env variables) so it's not crawlable
+
+3. API route /api/worksheet/generate-pdf
+   - Server-side endpoint that takes the worksheet inputs as JSON
+   - Generates PDF using @react-pdf/renderer OR Cloudflare 
+     Browser Rendering API (pick whichever works cleanest on 
+     Cloudflare Pages)
+   - Returns PDF as base64 or stream
+
+4. API route /api/worksheet/submit-lead
+   - Accepts the lead capture form data + worksheet inputs
+   - Routes lead to LeadMailbox (same pattern as existing 
+     funnels, source: "worksheet")
+   - Calls /api/worksheet/generate-pdf to make the PDF
+   - Sends the PDF via Resend to the lead's email
+   - Returns success/failure to the client
+
+============================================
+PRE-FILLED ADVISOR DEFAULTS (HARDCODED)
+============================================
+
+Pre-populate these values in the advisor section, hidden by 
+default behind a "Customize advisor info ▾" toggle that only 
+expands if clicked:
+
+- preparedBy: "Mykoal DeShazo"
+- preparedByTitle: "Vice President | Senior Loan Officer"
+- companyName: "Adaxa Home LLC"
+- contactPhone: "(949) 418-5486"
+- contactEmail: "mykoal@adaxahome.com"
+- contactNMLS: "1912347"
+- companyNMLS: "2380533"
+- licenseStates: "AZ, CO, TX, FL, OR, WA, MN, MI, PA"
+
+These show in the generated PDF and signature block. Only 
+power users should ever change them.
+
+============================================
+SENSIBLE DEFAULTS FOR FIRST LOAD
+============================================
+
+So the worksheet isn't empty when someone lands:
+
+- Existing mortgage balance: blank (placeholder "350000")
+- Existing rate: blank (placeholder "7.25")
+- Existing P&I payment: blank (placeholder "2387")
+- Existing escrow: blank (placeholder "350")
+- Existing years remaining: 28
+- New loan amount: blank (placeholder "400000")
+- New loan rate: blank (placeholder "6.5")
+- New loan term: 30 years (dropdown default)
+- Extra monthly: blank (placeholder "500")
+- Cash back: blank (placeholder "0")
+- Pre-seed 2 sample debts so users see how it works:
+  - "Credit Card" / 8500 / 22.99% / 250
+  - "Auto Loan" / 14000 / 8.5% / 320
+
+The placeholders should LOOK like real example numbers but be 
+empty values so users have to enter their own.
+
+============================================
+LEAD CAPTURE WALL (PUBLIC MODE ONLY)
+============================================
+
+When user clicks "Print" or "Email Me a PDF" on /worksheet 
+(NOT on /worksheet/internal), show a modal first:
+
+Title: "One last step — get your personalized worksheet"
+
+Form fields:
+- First Name (required)
+- Last Name (required)
+- Email (required, validated)
+- Phone (required, formatted as (XXX) XXX-XXXX)
+- State (dropdown, required, default to Arizona, options: 
+  AZ, CO, TX, FL, OR, WA, MN, MI, PA)
+- TCPA consent checkbox (required, see compliance section)
+
+Buttons:
+- "Send My Worksheet" (primary, amber gold)
+- "Cancel" (ghost, closes modal)
+
+On submit:
+- POST to /api/worksheet/submit-lead with form data + worksheet 
+  state
+- Show loading spinner: "Generating your worksheet..."
+- On success: confirmation screen "Check your email. I'll be in 
+  touch shortly. — Mykoal"
+- On failure: error message + offer to retry
+
+============================================
+TCPA CONSENT LANGUAGE (REQUIRED CHECKBOX)
+============================================
+
+Label for the required consent checkbox:
+
+"I authorize Mykoal DeShazo and Adaxa Home LLC to contact me 
+via call, text, or email regarding my loan options, including 
+through automated technology. I understand consent is not a 
+condition of any service. Message and data rates may apply."
+
+============================================
+ADD EQUAL HOUSING OPPORTUNITY COMPLIANCE
+============================================
+
+The existing tool has a strong compliance footer but is MISSING 
+two items:
+
+1. Equal Housing Opportunity LOGO in the worksheet header next 
+   to "Adaxa Home LLC". Use the standard outlined EHO logo 
+   (white version on the dark navy header bar). Size: 24px tall, 
+   sits to the right of the company name.
+
+2. Equal Housing Opportunity TEXT at the very end of the 
+   compliance footer. Append:
+   
+   "Equal Housing Opportunity. Adaxa Home LLC is an Equal 
+   Housing Lender. We do not discriminate on the basis of race, 
+   color, religion, national origin, sex, marital status, age, 
+   or any other characteristic protected by federal law."
+
+============================================
+PDF GENERATION REQUIREMENTS
+============================================
+
+The PDF must match the existing HTML worksheet visual design 
+EXACTLY:
+
+- Navy header bar with gold accent line
+- Company name + EHO logo + title "Loan Benefits Worksheet"
+- Snapshot table
+- Existing debts table with totals row
+- Three-column comparison (Current / Consolidated / Accelerated)
+- Banner with "effective rate" callout
+- Explainer text
+- Key results table
+- Signature block with Mykoal's contact info
+- Full compliance footer with EHO language
+
+Preferred libraries (pick whichever works in Cloudflare Pages 
+runtime):
+- @react-pdf/renderer (recommended, native React PDF)
+- Cloudflare Browser Rendering API (uses Puppeteer-style 
+  workflow, native to Cloudflare)
+- jsPDF + html2canvas (client-side fallback, lower fidelity)
+
+If client-side jsPDF is the easiest path, that's acceptable — 
+generate the PDF in the browser, then upload it as a base64 
+attachment to Resend via the server endpoint.
+
+============================================
+EMAIL DELIVERY VIA RESEND
+============================================
+
+Set up Resend integration:
+
+- Use env variable RESEND_API_KEY (user will paste their key 
+  in Replit Secrets)
+- From: "Mykoal DeShazo <mykoal@smartr8.com>"
+- Reply-To: "mykoal@adaxahome.com"
+- Subject: "Your Loan Benefits Worksheet — [Client First Name]"
+- Body (HTML email):
+
+  ─────────────────────────────────────────
+  Hi [First Name],
+  
+  Your personalized loan benefits worksheet is attached.
+  
+  This shows what your numbers could look like with a 
+  debt-consolidating refinance, including how applying 
+  freed-up monthly cash flow to principal lowers your 
+  effective interest rate.
+  
+  A few important reminders:
+  - This is an illustration, not a Loan Estimate or 
+    commitment to lend
+  - All numbers depend on credit approval, appraisal, 
+    income verification, and underwriting
+  - I'm happy to walk through the numbers and answer 
+    questions on a quick call
+  
+  Reply to this email or book a time: 
+  https://cal.com/mykoal-deshazo/consult
+  
+  Talk soon,
+  
+  Mykoal DeShazo
+  Vice President | Senior Loan Officer
+  Adaxa Home LLC
+  (949) 418-5486
+  mykoal@adaxahome.com
+  NMLS #1912347 | Adaxa Home NMLS #2380533
+  Equal Housing Opportunity
+  ─────────────────────────────────────────
+
+- Attach: the generated PDF named 
+  "Loan-Benefits-Worksheet-[LastName].pdf"
+
+============================================
+LEADMAILBOX ROUTING
+============================================
+
+Same pattern as existing funnel routes. POST to LeadMailbox API 
+endpoint (use existing integration credentials) with payload:
+
+{
+  "source": "smartr8.com",
+  "funnel": "worksheet",
+  "firstName": "...",
+  "lastName": "...",
+  "email": "...",
+  "phone": "...",
+  "state": "...",
+  "consentGiven": true,
+  "consentTimestamp": "ISO 8601",
+  "worksheet": {
+    "existingBalance": "...",
+    "existingRate": "...",
+    "existingPayment": "...",
+    "existingEscrow": "...",
+    "newLoanAmount": "...",
+    "newLoanRate": "...",
+    "termYears": "...",
+    "extraMonthly": "...",
+    "cashBack": "...",
+    "debts": [...],
+    "effectiveRate": "...",
+    "timeSaved": "...",
+    "interestSaved": "..."
+  },
+  "submittedAt": "ISO 8601"
+}
+
+Wrap in try/catch. If LeadMailbox fails, still send the PDF 
+email (don't block the user experience).
+
+============================================
+MOBILE RESPONSIVENESS
+============================================
+
+The current HTML template uses fixed 8.5in worksheet width — 
+that breaks on mobile.
+
+For SCREEN view: make the worksheet scale responsively. Use 
+max-width: 8.5in with overflow-x: auto on smaller screens, OR 
+reflow to single-column layout below 768px.
+
+For PDF: keep 8.5in x 11in letter size locked. PDF is always 
+the same size regardless of device.
+
+The input panel and lead capture modal should be fully mobile- 
+optimized.
+
+============================================
+UTM TRACKING + ANALYTICS
+============================================
+
+On page load, capture UTM parameters from URL:
+- utm_source
+- utm_medium
+- utm_campaign
+
+Pass them through to the LeadMailbox payload as additional 
+fields so we can see where worksheet leads originated.
+
+Fire GA4 events:
+- worksheet_view (on page load)
+- worksheet_calculated (when results render, debounced)
+- worksheet_lead_capture_started (when modal opens)
+- worksheet_lead_submitted (on successful submission)
+
+============================================
+PRIVATE MODE SPECIFICS (/worksheet/internal)
+============================================
+
+1. Wrap the entire page in Basic Auth middleware
+   - Username: env var WORKSHEET_ADMIN_USER (default "mykoal")
+   - Password: env var WORKSHEET_ADMIN_PASS (Mykoal sets this)
+
+2. Skip the lead capture modal entirely on Print/Email buttons
+
+3. Add a "Send to Client" inline form (sidebar or top of page):
+   - Client First Name
+   - Client Email
+   - "Send Worksheet to Client" button
+   - On click: generates PDF + emails to client + logs to 
+     LeadMailbox as source "worksheet-internal" + tags as 
+     "manual send"
+
+4. Add a download button "Download PDF" that just saves the 
+   PDF locally without emailing
+
+5. Add a "noindex, nofollow" meta tag so this URL never gets 
+   crawled
+
+============================================
+NAVIGATION INTEGRATION
+============================================
+
+Add subtle links to the worksheet from existing smartr8 pages:
+
+- Homepage: add a small "Free Tool: Loan Benefits Worksheet →" 
+  link in the trust section
+- Every /whats-next page: add a 4th card "Try the Loan Benefits 
+  Worksheet" alongside Schedule/Apply/Compare
+- Footer: add "Loan Benefits Worksheet" as a link
+
+Do NOT add a giant button to the homepage hero. The worksheet 
+is a secondary lead magnet, not the primary conversion path. 
+Keep it discoverable but not dominant.
+
+============================================
+DO NOT CHANGE
+============================================
+
+- The calculation math in the uploaded HTML template — 
+  preserve it exactly. The "effective rate" formula is the 
+  whole point.
+- The visual design language (navy + gold + clean tables)
+- The existing smartr8 funnels and conversion flows
+- Existing LeadMailbox / Cal.com / Meta Pixel integrations
+
+============================================
+ENV VARIABLES TO SET (REPLIT SECRETS)
+============================================
+
+Tell the user to add these in Replit Secrets:
+- RESEND_API_KEY (their Resend API key starting with re_)
+- WORKSHEET_ADMIN_USER (their chosen admin username)
+- WORKSHEET_ADMIN_PASS (their chosen admin password)
+- LEADMAILBOX_API_KEY (already exists from prior build)
+
+============================================
+WHEN DONE
+============================================
+
+Run npm run build. Confirm clean.
+
+Send the user:
+1. Preview URL for /worksheet (public)
+2. Preview URL for /worksheet/internal (private)
+3. List of env variables they still need to populate
+4. Confirmation that EHO logo and compliance language are 
+   added to the PDF output
+5. A test PDF download so user can verify visual fidelity 
+   matches the original HTML template

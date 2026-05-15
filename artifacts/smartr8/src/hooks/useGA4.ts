@@ -5,7 +5,8 @@ type WhatsnextOption =
   | "schedule_call"
   | "continue_application"
   | "compare_heloc"
-  | "get_preapproved";
+  | "get_preapproved"
+  | "loan_benefits_worksheet";
 
 declare global {
   interface Window {
