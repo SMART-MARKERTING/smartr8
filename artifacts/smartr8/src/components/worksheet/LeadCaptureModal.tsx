@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface LeadCaptureModalProps {
   open: boolean;
@@ -23,13 +24,19 @@ export default function LeadCaptureModal({
 }: LeadCaptureModalProps) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
+  const [tcpa, setTcpa] = useState(false);
+  const [errors, setErrors] = useState<{
+    firstName?: string;
+    lastName?: string;
+    tcpa?: string;
+  }>({});
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const newErrors: typeof errors = {};
     if (!firstName.trim()) newErrors.firstName = "First name is required.";
     if (!lastName.trim()) newErrors.lastName = "Last name is required.";
+    if (!tcpa) newErrors.tcpa = "You must agree to be contacted.";
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -63,7 +70,7 @@ export default function LeadCaptureModal({
                 className="h-11"
                 onChange={(e) => {
                   setFirstName(e.target.value);
-                  if (errors.firstName) setErrors((prev) => ({ ...prev, firstName: undefined }));
+                  if (errors.firstName) setErrors((p) => ({ ...p, firstName: undefined }));
                 }}
               />
               {errors.firstName && (
@@ -81,13 +88,38 @@ export default function LeadCaptureModal({
                 className="h-11"
                 onChange={(e) => {
                   setLastName(e.target.value);
-                  if (errors.lastName) setErrors((prev) => ({ ...prev, lastName: undefined }));
+                  if (errors.lastName) setErrors((p) => ({ ...p, lastName: undefined }));
                 }}
               />
               {errors.lastName && (
                 <p className="text-destructive text-xs">{errors.lastName}</p>
               )}
             </div>
+          </div>
+
+          <div className="space-y-1">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="tcpa"
+                checked={tcpa}
+                onCheckedChange={(checked) => {
+                  setTcpa(checked === true);
+                  if (errors.tcpa) setErrors((p) => ({ ...p, tcpa: undefined }));
+                }}
+              />
+              <Label
+                htmlFor="tcpa"
+                className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
+              >
+                By checking this box I agree to be contacted by Mykoal DeShazo / Adaxa Home LLC
+                via phone, email, or text (including automated means) regarding mortgage products.
+                I understand consent is not required to obtain services. Message and data rates may
+                apply.
+              </Label>
+            </div>
+            {errors.tcpa && (
+              <p className="text-destructive text-xs pl-6">{errors.tcpa}</p>
+            )}
           </div>
 
           <Button
