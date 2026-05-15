@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { existsSync } from "fs";
+import type { Plugin } from "vite";
 
 const isProd = process.env.NODE_ENV === "production";
 const isDevServer = !isProd;
@@ -22,9 +24,47 @@ if (isDevServer) {
 
 const basePath = process.env.BASE_PATH ?? "/";
 
+// ─── Fix: @react-pdf/pdfkit imports pako deep subpaths (e.g. pako/lib/zlib/zstream.js)
+// Pako v2 restricts subpath access via its exports map, breaking production builds.
+// We redirect those imports to the pako v1 installation which has the full lib/ tree.
+function findPakoV1LibPath(): string | null {
+  const candidates = [
+    // pnpm store paths — try multiple patch levels
+    "node_modules/.pnpm/pako@1.0.11/node_modules/pako/lib",
+    "node_modules/.pnpm/pako@1.0.10/node_modules/pako/lib",
+    "node_modules/.pnpm/pako@1.0.9/node_modules/pako/lib",
+    // workspace root (two levels up from this file)
+    "../../node_modules/.pnpm/pako@1.0.11/node_modules/pako/lib",
+    "../../node_modules/.pnpm/pako@1.0.10/node_modules/pako/lib",
+  ];
+  for (const rel of candidates) {
+    const abs = path.resolve(import.meta.dirname, rel);
+    if (existsSync(path.join(abs, "zlib/zstream.js"))) return abs;
+  }
+  return null;
+}
+
+const pakoV1LibPath = findPakoV1LibPath();
+
+function fixPakoPlugin(): Plugin {
+  return {
+    name: "fix-pako-subpath-imports",
+    resolveId(id) {
+      if (id.startsWith("pako/lib/")) {
+        if (!pakoV1LibPath) return null;
+        const subpath = id.slice("pako/lib/".length);
+        const resolved = path.join(pakoV1LibPath, subpath);
+        if (existsSync(resolved)) return resolved;
+      }
+      return null;
+    },
+  };
+}
+
 export default defineConfig({
   base: basePath,
   plugins: [
+    fixPakoPlugin(),
     react(),
     tailwindcss(),
     ...(isDevServer && process.env.REPL_ID !== undefined
