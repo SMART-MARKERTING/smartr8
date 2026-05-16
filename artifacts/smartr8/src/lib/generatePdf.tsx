@@ -26,11 +26,16 @@ async function buildBlob(
     import("../components/worksheet/WorksheetPDF"),
   ]);
 
+  // Only pass the default headshot URL as a fallback when the user hasn't
+  // uploaded one in this session. Otherwise the inline data URL on `inputs`
+  // wins (preserving the headshot upload feature).
+  const fallbackHeadshot = inputs.headshotDataUrl ? undefined : headshotAbsoluteUrl();
+
   return pdf(
     <WorksheetPDF
       inputs={inputs}
       results={results}
-      headshotUrl={headshotAbsoluteUrl()}
+      headshotUrl={fallbackHeadshot}
     />,
   ).toBlob();
 }

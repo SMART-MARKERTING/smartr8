@@ -1,0 +1,582 @@
+MAJOR UPDATE: Loan Benefits Worksheet — Public Version 
+Redesign + Calculation Logic Update for Both Public and 
+Internal Versions
+
+This combines a UI redesign (public version becomes a 
+conversational funnel) AND a calculation engine update 
+(both versions). Read all sections before starting.
+
+============================================
+SCOPE SUMMARY
+============================================
+
+PUBLIC /worksheet → Complete UI redesign as 4-step funnel
+INTERNAL /worksheet/internal → Keep single-page layout, but 
+update underlying calculation logic to match public version
+
+Both versions share the same calculation engine. The only 
+difference is the input UI.
+
+============================================
+PART A: PUBLIC WORKSHEET REDESIGN (4-STEP FUNNEL)
+============================================
+
+Build the public /worksheet as a guided 4-step funnel. Each 
+step occupies the full screen. Use smooth slide transitions 
+between steps. Save state in sessionStorage so back/forward 
+navigation preserves data.
+
+GLOBAL UI ELEMENTS (visible on EVERY step):
+
+1. Progress indicator at top: "Step X of 4" with thin 
+   progress bar
+2. Persistent "Start Over" button (top right, subtle but 
+   visible) — clears all sessionStorage and returns to Step 1
+3. "Back" button (except on Step 1)
+4. "Next" or "Calculate" button (bottom)
+5. Validation as user types — fields show red border if 
+   invalid
+
+============================================
+STEP 1: PRODUCT TYPE
+============================================
+
+Header: "What are you trying to do?"
+Subtitle: "We'll customize the worksheet for your goal."
+
+Single dropdown OR card-style buttons (large tappable areas):
+- Cash-Out Refi
+- Rate Reduction Refi
+- Home Equity / 2nd Mortgage
+
+"Next" button advances to Step 2.
+
+============================================
+STEP 2: CURRENT MORTGAGE (CONDITIONAL)
+============================================
+
+LOGIC BRANCHING:
+
+IF product = "Rate Reduction Refi":
+- Skip the "Do you have a mortgage?" question entirely
+- Show mortgage input fields directly (assume yes, all 
+  required)
+- All fields required
+
+IF product = "Cash-Out Refi" OR "Home Equity / 2nd Mortgage":
+- First ask: "Do you have an existing mortgage?"
+  Two buttons: [Yes] [No]
+- If Yes: show mortgage input fields
+- If No: skip mortgage section, advance directly to Step 3 
+  logic (goal selection) — and note in the calc engine that 
+  there's no existing mortgage to factor in
+
+MORTGAGE INPUT FIELDS (when applicable):
+
+Header: "Tell us about your current mortgage (estimates are 
+fine)"
+
+Fields:
+- Estimated Mortgage Balance — REQUIRED
+- Current Interest Rate (leave blank if unknown)
+- Estimated Total Monthly Payment — REQUIRED (this is full 
+  PITI: P&I + escrow combined)
+- Existing Escrow (leave blank if unknown)
+- Years Remaining (leave blank if unknown)
+
+Help text under "Total Monthly Payment": "This is your full 
+monthly mortgage payment including taxes and insurance."
+
+CALC NOTE: If interest rate, escrow, or years remaining are 
+blank, the calc engine should still produce a valid result 
+using only balance and total payment. The "monthly savings" 
+math only requires (current total monthly outflow) minus 
+(new total monthly outflow). Don't block on missing optional 
+fields.
+
+============================================
+STEP 3: GOALS (CONDITIONAL ON PRODUCT)
+============================================
+
+LOGIC BRANCHING:
+
+IF product = "Rate Reduction Refi":
+- Skip Step 3 entirely — no goals needed (the goal IS rate 
+  reduction). Jump straight to Step 4.
+
+IF product = "Cash-Out Refi" OR "Home Equity / 2nd Mortgage":
+- Show goal selection
+
+Header: "What's your goal?"
+
+Three large card-style buttons:
+- Debt Consolidation
+- Home Improvement / Other
+- Both (Debt Consolidation + Home Improvement)
+
+GOAL FLOW LOGIC:
+
+IF "Debt Consolidation" selected:
+- Show "Add Your Debts" section
+- Inline add-row UI:
+  - Creditor Name (optional)
+  - Balance (required)
+  - Minimum Monthly Payment (required)
+  - "+ Add Another Debt" button to add more rows
+  - Trash icon to remove rows
+- Show running total at bottom: "Total Balances: $X,XXX | 
+  Total Min Payments: $XXX"
+- "Next" button advances to Step 4
+
+IF "Home Improvement / Other" selected:
+- Show single input: "How much do you need?" — REQUIRED
+- Placeholder: "$50,000"
+- "Next" button advances to Step 4
+
+IF "Both" selected:
+- First ask: "How much do you need for home improvement / 
+  other?" — REQUIRED
+- THEN show the "Add Your Debts" section
+- "Next" button advances to Step 4
+
+============================================
+STEP 4: NEW LOAN DETAILS (WITH AUTO-CALCULATED DEFAULTS)
+============================================
+
+Header: "Your new loan"
+Subtitle: "We've pre-filled smart defaults. Adjust anything 
+you'd like."
+
+AUTO-CALCULATE the New Loan Amount based on prior steps:
+
+CALCULATION:
+- If existing mortgage: start with existing mortgage balance
+- + If debt consolidation goal: add total debt balances
+- + If home improvement goal: add home improvement amount
+- = pre-filled New Loan Amount (USER CAN EDIT)
+
+FIELDS:
+
+1. New Loan Amount
+   - Pre-filled with calculated total
+   - User-editable
+   - Required
+   - Help text: "Auto-calculated based on your goals — adjust 
+     as needed."
+
+2. New Interest Rate
+   - Pre-filled with: 5.125%
+   - User-editable
+   - Required
+   - Help text below: "Interest rates vary based on credit, 
+     loan type, and market conditions. We're using 5.125% 
+     for illustration. Adjust to match your actual scenario."
+
+3. Total Closing Costs
+   - Pre-filled with: $3,999
+   - User-editable
+   - Required
+   - Help text below: "This is an estimate for illustration. 
+     Adjust to match your actual closing cost estimate from 
+     your loan estimate."
+
+4. Loan Term (dropdown)
+   - Options: 15 years, 20 years, 30 years
+   - Default: 30 years
+
+5. Loan Structure (dropdown)
+   - Fixed Rate (default)
+   - 5/6 ARM
+   - 7/1 ARM
+   - 10/1 ARM
+   - Interest Only
+
+"Calculate" button at the bottom.
+
+============================================
+RESULTS SCREEN (AFTER STEP 4)
+============================================
+
+After "Calculate" is clicked, show full worksheet results 
+directly on the page (NO lead capture wall):
+
+- Snapshot table
+- Three-paths comparison (Current / Standard Refi / 
+  Accelerated)
+- Banner callout with effective rate
+- "How This Strategy Works" explainer (product-specific copy)
+- Key Numbers at a Glance table
+- Signature block (advisor info)
+- Compliance footer
+
+Below the results, ONE button:
+
+Button: "Email My Worksheet" (filled accent color, full width 
+on mobile)
+
+Also show:
+- Small "Start Over" link
+- Small "Back to adjust inputs" link
+
+============================================
+LEAD CAPTURE MODAL (TRIGGERED FROM "EMAIL MY WORKSHEET")
+============================================
+
+When user clicks "Email My Worksheet":
+
+Modal title: "Get your worksheet"
+Subtitle: "We'll email your personalized PDF right now."
+
+Required fields (only):
+- First Name
+- Last Name
+- Email
+- TCPA consent checkbox
+
+NO phone field. NO state dropdown. NO secondary options. 
+Keep it tight.
+
+TCPA consent label:
+"By checking this box I agree to be contacted by Mykoal 
+DeShazo / Adaxa Home LLC via phone, email, or text (including 
+automated means) regarding mortgage products. I understand 
+consent is not required to obtain services. Message and data 
+rates may apply."
+
+Button: "Send My Worksheet"
+
+ON SUBMIT:
+1. Validate form
+2. Lead data is logged to LeadMailbox (source: "worksheet") 
+   AND captured in the worksheet itself (lead first/last name 
+   and email appear in the "Prepared For" line at the top of 
+   the generated PDF)
+3. PDF is generated using all the calculated data
+4. PDF is emailed to the user's entered email address via 
+   Resend
+5. NO download option — only email delivery
+6. Show brief success message: "Sent! Check your inbox in a 
+   few seconds."
+7. AUTO-REDIRECT after 2 seconds to: 
+   /whats-next?source=worksheet&utm_source=worksheet&utm_medium=funnel&utm_campaign=worksheet-completion
+
+The /whats-next page already exists and offers:
+- Schedule a Call (Cal.com)
+- View Instant HELOC Options
+- Full application
+
+User picks their next action from there.
+
+============================================
+PART B: INTERNAL WORKSHEET (CALCULATION LOGIC UPDATE)
+============================================
+
+The /worksheet/internal page keeps its existing single-page 
+layout. Do NOT redesign the UI here.
+
+HOWEVER, the underlying CALCULATION ENGINE must be updated 
+to match the public version. The internal page should use 
+the same calc logic for:
+- Auto-calculating APR from closing costs
+- Auto-applying monthly savings as Extra Monthly Principal 
+  (locked field)
+- Product-type-specific banner copy and "How This Strategy 
+  Works" explainer
+- ARM/IO display in snapshot
+- Debts table without rate column
+
+The internal page should also have:
+- Same Loan Product Type dropdown (Cash-Out / Rate Reduction 
+  / Home Equity 2nd Mortgage) at the top
+- Same calculation switches based on product type
+- Same advisor headshot upload field
+
+The internal page should NOT have:
+- Multi-step funnel UI (stays single-page for fast use)
+- Lead capture modal (no friction for internal use)
+- Auto-redirect to /whats-next (internal use is for client 
+  calls, not lead generation)
+
+INTERNAL-ONLY FEATURE: "Send to Client" form
+- Sidebar or top panel with:
+  - Client First Name
+  - Client Last Name  
+  - Client Email
+  - "Send to Client" button
+- On submit: generates PDF with current inputs, emails to 
+  client, logs to LeadMailbox as source 
+  "worksheet-internal-send"
+
+============================================
+PART C: ADVISOR PANEL CHANGES (BOTH VERSIONS)
+============================================
+
+REMOVE from advisor input section:
+- "Licensed States" field (now hardcoded in compliance footer)
+
+ADD to advisor input section:
+- "Advisor Photo" file upload (image/* accepted)
+- Per-session storage only
+- Shows thumbnail preview when uploaded
+- Falls back to placeholder if no upload
+- Appears in worksheet signature block and PDF
+
+KEEP unchanged:
+- Prepared By, Title, Company Name, Phone, Email, NMLS, 
+  Company NMLS
+
+============================================
+PART D: CALCULATION ENGINE (BOTH VERSIONS)
+============================================
+
+1. EXISTING MORTGAGE
+   - Required: Balance, Total Monthly Payment
+   - Optional: Rate, Escrow, Years Remaining
+   - If "no mortgage" was selected in public mode, all values 
+     = 0
+
+2. NEW LOAN APR — AUTO-CALCULATED
+   Formula:
+   - monthlyPayment = PMT(rate/12, term*12, loanAmount)
+   - netProceeds = loanAmount - closingCosts
+   - APR = solve for rate where 
+     PMT(apr/12, term*12, netProceeds) = monthlyPayment
+   - Use iterative bisection
+   
+   Treat ALL closing costs as prepaid finance charges 
+   (simplified illustration).
+
+3. EXTRA MONTHLY PRINCIPAL — AUTO-CALCULATED AND LOCKED
+   
+   For Cash-Out Refi or Rate Reduction:
+   - currentTotalOutflow = existingTotalPayment + 
+     sum(debt min payments)
+   - newTotalOutflow = newLoanPmt + (existingEscrow if known)
+   - monthlySavings = currentTotalOutflow - newTotalOutflow
+   - extraMonthlyPrincipal = monthlySavings
+   
+   For Home Equity 2nd Mortgage:
+   - currentTotalOutflow = existingTotalPayment + 
+     sum(debt min payments)
+   - newTotalOutflow = existingTotalPayment + newSecondLoanPmt
+   - monthlySavings = currentTotalOutflow - newTotalOutflow
+   - extraMonthlyPrincipal applied to SECOND mortgage only
+   
+   For no-mortgage scenarios:
+   - currentTotalOutflow = sum(debt min payments)
+   - newTotalOutflow = newLoanPmt
+   - monthlySavings = currentTotalOutflow - newTotalOutflow
+   
+   If monthlySavings is NEGATIVE:
+   - Display warning: "With these inputs, the new loan does 
+     not produce monthly savings. This program may not be a 
+     fit — please adjust the inputs or consult Mykoal 
+     directly."
+   - Hide the effective rate calculation
+   - Keep the "Email My Worksheet" button available (capture 
+     the lead anyway, Mykoal can follow up)
+
+4. DEBTS TABLE
+   - Columns: Creditor Name, Balance, Minimum Payment
+   - NO rate column
+   - Auto-sum totals at bottom
+
+============================================
+PART E: PRODUCT-TYPE-SPECIFIC COPY
+============================================
+
+The banner callout and "How This Strategy Works" text must 
+change based on the selected product:
+
+CASH-OUT REFI:
+Banner: "By consolidating $XXX,XXX in higher-interest debt 
+into a new mortgage at X.XXX% (X.XXX% APR), you free up 
+$XXX/month. Redirecting that savings back to principal makes 
+your X.XXX% loan effectively cost X.XXX% — saving $XXX,XXX 
+in interest and X.X years."
+
+Explainer: 
+"Today you pay $XXX/month total — your existing mortgage 
+($XXX) plus $XXX in minimum payments across your other 
+debts. By refinancing your mortgage to $XXX,XXX at X.XXX% 
+(X.XXX% APR), all of those higher-interest debts get rolled 
+into a single lower-rate first mortgage. Your new total 
+monthly outflow drops to $XXX, freeing up $XXX/month in cash 
+flow. That $XXX/month savings is automatically redirected to 
+the new loan's principal each month. Every dollar of 
+principal retired early never accrues interest again. This 
+is why your stated X.XXX% rate behaves like X.XXX% in 
+practice — saving $XXX,XXX in interest and paying off the 
+loan in X.X years instead of XX."
+
+RATE REDUCTION REFI:
+Banner: "By refinancing from X.XXX% to X.XXX% AND redirecting 
+your monthly savings of $XXX/month back to principal, your 
+new loan effectively costs you X.XXX% — saving $XXX,XXX in 
+interest and X.X years vs. just lowering your rate alone."
+
+Explainer:
+"Your current mortgage costs you $XXX/month at X.XXX%. By 
+refinancing to X.XXX% (X.XXX% APR), your new payment drops 
+to $XXX — a monthly savings of $XXX. That $XXX/month savings 
+is automatically redirected to the new loan's principal each 
+month. Every dollar of principal retired early never accrues 
+interest again, which is why your stated X.XXX% behaves like 
+X.XXX% in practice — saving $XXX,XXX in interest and shaving 
+X.X years off your payoff timeline."
+
+HOME EQUITY 2ND MORTGAGE:
+Banner: "By using a Home Equity Loan of $XXX,XXX to 
+consolidate $XXX,XXX in higher-interest debt at an average 
+rate of XX.XX%, you free up $XXX/month while keeping your 
+low-rate first mortgage intact. Redirecting that savings back 
+to the second-mortgage principal pays it off in X.X years at 
+an effective rate of X.XXX%."
+
+Explainer:
+"Today you pay $XXX/month total — your existing first 
+mortgage at X.XXX% ($XXX) plus $XXX in minimum payments 
+across your other debts. A new Home Equity Loan of $XXX,XXX 
+at X.XXX% lets you consolidate those higher-interest debts 
+WITHOUT touching your low-rate first mortgage. Your new 
+total monthly outflow becomes $XXX — your first mortgage 
+payment plus the new second-mortgage payment — freeing up 
+$XXX/month in cash flow. That $XXX/month savings is 
+automatically redirected to the SECOND mortgage's principal 
+each month. The second mortgage gets paid off in X.X years 
+at an effective rate of X.XXX%, saving $XXX,XXX in interest 
+— all while keeping your low-rate first mortgage exactly as 
+it is."
+
+============================================
+PART F: PDF GENERATION (BOTH VERSIONS)
+============================================
+
+PDF must use clean page breaks:
+- page-break-inside: avoid on every table, banner, signature 
+  block, compliance footer, and "How This Strategy Works" 
+  paragraph
+- Compliance footer never splits
+- Multi-page acceptable for long debt lists
+- NEVER split mid-word, mid-row, or mid-section header
+
+PDF content must include:
+- Lead's First and Last Name in "Prepared For" line at top
+- Advisor headshot thumbnail in signature block
+- Product-type-specific banner and explainer
+- ARM/IO disclaimer in compliance footer (only when 
+  applicable)
+- APR estimation disclaimer in compliance footer
+- Hardcoded "Licensed in AZ, CO, CT, FL, MI, MN, OR, PA, TX, 
+  VA, WA"
+- Equal Housing Opportunity logo and language
+
+============================================
+PART G: START OVER BUTTON (PUBLIC VERSION)
+============================================
+
+CRITICAL FEATURE: Every step in the public funnel MUST have 
+a visible "Start Over" button.
+
+Behavior:
+- Clears all sessionStorage data
+- Returns user to Step 1 (Product Type)
+- Shows brief confirmation: "Reset!"
+- Available in top-right corner of every step screen AND 
+  the results screen
+
+Placement: small, subtle, but always reachable. Not flashy 
+red — just a small text link or ghost button.
+
+============================================
+PART H: COMPLIANCE FOOTER (BOTH VERSIONS)
+============================================
+
+Hardcoded compliance text (no longer user-editable):
+
+"[Company Name] | Company NMLS #2380533 | Mykoal DeShazo 
+NMLS #1912347. Licensed to originate mortgage loans in AZ, 
+CO, CT, FL, MI, MN, OR, PA, TX, VA, WA. Verify licensing at 
+www.nmlsconsumeraccess.org.
+
+This document is for informational and illustrative purposes 
+only and does NOT constitute a commitment to lend, an offer 
+to extend credit, a Loan Estimate as required under 12 CFR 
+1026.19, or a guarantee of any specific terms or rates. The 
+interest rate and APR shown are hypothetical for illustration 
+only. Actual rates, APR, fees, and terms depend on credit 
+approval, property appraisal, income and asset verification, 
+loan-to-value, occupancy, property type, debt-to-income 
+ratio, and current market conditions, and are subject to 
+change without notice.
+
+APR shown is estimated based on entered closing costs and is 
+for illustration only. Actual APR on your Loan Estimate may 
+vary based on actual finance charges, prepaids, and other 
+factors.
+
+[ARM/IO DISCLAIMER — only show if ARM or Interest Only is 
+selected:]
+ARM rates may adjust after the initial fixed period. 
+Interest-only loans defer principal payment for an initial 
+period after which principal is required. This illustration 
+assumes the initial rate remains constant for the entire 
+loan term and does not account for rate adjustments or 
+principal recapture.
+
+The 'effective rate' calculation illustrates how applying 
+additional principal payments may reduce total interest paid 
+over the life of the loan; it is NOT the loan's contractual 
+interest rate, NOT the Annual Percentage Rate (APR) required 
+under the Truth in Lending Act, and assumes consistent 
+voluntary additional principal payments. Results depend on 
+the borrower actually making those payments.
+
+Consult a licensed loan originator for an official Loan 
+Estimate disclosing actual loan terms, costs, and APR. All 
+loans subject to underwriting approval. Programs, rates, 
+terms, and conditions subject to change without notice.
+
+Equal Housing Opportunity. Adaxa Home LLC is an Equal 
+Housing Lender. We do business in accordance with the 
+Federal Fair Housing Law and the Equal Credit Opportunity 
+Act. We do not discriminate on the basis of race, color, 
+religion, national origin, sex, marital status, age 
+(provided the applicant has the capacity to enter into a 
+binding contract), because all or part of the applicant's 
+income derives from any public assistance program, or 
+because the applicant has in good faith exercised any right 
+under the Consumer Credit Protection Act.
+
+Prepared [Date]."
+
+============================================
+WHEN DONE
+============================================
+
+Push to GitHub. Cloudflare auto-deploys. Send me:
+
+1. Confirmation public /worksheet now uses 4-step funnel
+2. Confirmation Start Over button is on every step
+3. Confirmation /worksheet/internal still uses single-page 
+   layout but has updated calc engine
+4. Screenshots of:
+   - Step 1 (Product Type)
+   - Step 2 (Current Mortgage) — both with and without 
+     mortgage paths
+   - Step 3 (Goals) — debt consolidation, home improvement, 
+     and both paths
+   - Step 4 (New Loan Details) with pre-filled defaults
+   - Results screen with "Email My Worksheet" button
+   - Lead capture modal (name + email + TCPA only)
+   - Auto-redirect to /whats-next
+5. Test PDFs for each product type:
+   - Cash-Out Refi scenario
+   - Rate Reduction scenario
+   - Home Equity 2nd Mortgage scenario
+   - All with clean page breaks
+6. Confirmation lead data appears in:
+   - LeadMailbox (source: worksheet)
+   - Worksheet PDF "Prepared For" line at top
+7. Confirmation no-mortgage scenarios work (cash-out refi on 
+   free-and-clear home)

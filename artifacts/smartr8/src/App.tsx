@@ -16,6 +16,7 @@ import Purchase from "@/pages/Purchase";
 import PurchaseWhatsnext from "@/pages/PurchaseWhatsnext";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
+import WhatsNext from "@/pages/WhatsNext";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/apply/purchase/whats-next" component={PurchaseWhatsnext} />
       <Route path="/worksheet/internal" component={WorksheetInternal} />
       <Route path="/worksheet" component={Worksheet} />
+      <Route path="/whats-next" component={WhatsNext} />
       <Route component={NotFound} />
     </Switch>
   );

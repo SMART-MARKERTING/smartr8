@@ -1,9 +1,20 @@
-import { useState } from "react";
-import { WorksheetInputs, Debt, DEFAULT_ADVISOR } from "@/lib/worksheetCalc";
+import { useRef, useState } from "react";
+import {
+  WorksheetInputs,
+  Debt,
+  DEFAULT_ADVISOR,
+  PRODUCT_LABELS,
+  STRUCTURE_LABELS,
+  ProductType,
+  LoanStructure,
+  solveApr,
+  money,
+  pct,
+} from "@/lib/worksheetCalc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Mail } from "lucide-react";
+import { Mail, Download, Printer, Plus, Trash2, ChevronDown, Upload, X, ImageIcon } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -16,7 +27,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown, Plus, Trash2 } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface WorksheetInputPanelProps {
   inputs: WorksheetInputs;
@@ -30,38 +41,18 @@ interface WorksheetInputPanelProps {
 }
 
 function NumInput({
-  label,
-  value,
-  onChange,
-  step = 100,
-  min = 0,
-  prefix,
-  suffix,
-  placeholder,
-  required,
+  label, value, onChange, step = 100, min = 0, prefix, suffix, placeholder, optional,
 }: {
-  label: string;
-  value: number;
-  onChange: (v: number) => void;
-  step?: number;
-  min?: number;
-  prefix?: string;
-  suffix?: string;
-  placeholder?: string;
-  required?: boolean;
+  label: string; value: number; onChange: (v: number) => void; step?: number; min?: number;
+  prefix?: string; suffix?: string; placeholder?: string; optional?: boolean;
 }) {
   return (
     <div className="space-y-1">
       <Label className="text-xs font-medium text-muted-foreground">
-        {label}
-        {required && <span className="text-destructive ml-0.5">*</span>}
+        {label}{optional && <span className="ml-1 text-[10px]">(opt)</span>}
       </Label>
       <div className="relative">
-        {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-            {prefix}
-          </span>
-        )}
+        {prefix && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{prefix}</span>}
         <Input
           type="number"
           value={value || ""}
@@ -71,11 +62,7 @@ function NumInput({
           onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
           className={prefix ? "pl-7" : suffix ? "pr-8" : ""}
         />
-        {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
-            {suffix}
-          </span>
-        )}
+        {suffix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">{suffix}</span>}
       </div>
     </div>
   );
@@ -100,11 +87,10 @@ export default function WorksheetInputPanel({
   pdfLoading = false,
 }: WorksheetInputPanelProps) {
   const [advisorOpen, setAdvisorOpen] = useState(false);
-  const [showAprError, setShowAprError] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function set<K extends keyof WorksheetInputs>(key: K, value: WorksheetInputs[K]) {
     onChange({ ...inputs, [key]: value });
-    if (key === "loanAPR" && (value as number) > 0) setShowAprError(false);
   }
 
   function updateDebt(i: number, field: keyof Debt, value: string | number) {
@@ -115,157 +101,171 @@ export default function WorksheetInputPanel({
   }
 
   function addDebt() {
-    set("debts", [...inputs.debts, { name: "New Debt", balance: 0, rate: 0, payment: 0 }]);
+    set("debts", [...inputs.debts, { name: "New Debt", balance: 0, payment: 0 }]);
   }
-
   function removeDebt(i: number) {
     set("debts", inputs.debts.filter((_, idx) => idx !== i));
   }
 
-  function guardApr(fn: () => void) {
-    if (!inputs.loanAPR || inputs.loanAPR <= 0) {
-      setShowAprError(true);
+  function handleHeadshotUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file.");
       return;
     }
-    setShowAprError(false);
-    fn();
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Image must be smaller than 2MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      set("headshotDataUrl", reader.result as string);
+    };
+    reader.readAsDataURL(file);
   }
+
+  // Auto APR display
+  const autoApr = solveApr(
+    inputs.loanAmount,
+    inputs.loanRate,
+    inputs.termYears * 12,
+    inputs.closingCosts,
+  );
 
   return (
     <div className="space-y-6 text-sm">
-      {/* Client Name */}
-      <div className="space-y-1">
-        <Label className="text-xs font-medium text-muted-foreground">Client Name</Label>
-        <Input
-          placeholder="Jane Smith"
-          value={inputs.clientName}
-          onChange={(e) => set("clientName", e.target.value)}
-        />
+      {/* Lead identity */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Client First Name</Label>
+          <Input
+            placeholder="Jane"
+            value={inputs.clientFirstName}
+            onChange={(e) => set("clientFirstName", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs font-medium text-muted-foreground">Client Last Name</Label>
+          <Input
+            placeholder="Smith"
+            value={inputs.clientLastName}
+            onChange={(e) => set("clientLastName", e.target.value)}
+          />
+        </div>
+      </div>
+
+      {/* Product Type & Loan Structure */}
+      <div>
+        <SectionHeader>Product</SectionHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-muted-foreground">Product Type</Label>
+            <Select
+              value={inputs.productType}
+              onValueChange={(v) => set("productType", v as ProductType)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.entries(PRODUCT_LABELS) as [ProductType, string][]).map(([v, label]) => (
+                  <SelectItem key={v} value={v}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-muted-foreground">Loan Structure</Label>
+            <Select
+              value={inputs.loanStructure}
+              onValueChange={(v) => set("loanStructure", v as LoanStructure)}
+            >
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.entries(STRUCTURE_LABELS) as [LoanStructure, string][]).map(([v, label]) => (
+                  <SelectItem key={v} value={v}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {inputs.loanStructure !== "FIXED" && (
+              <p className="text-[10px] text-amber-700 mt-1">
+                ARM/IO disclaimer is auto-added to the PDF compliance footer.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Current Mortgage */}
       <div>
         <SectionHeader>Current Mortgage</SectionHeader>
-        <div className="grid grid-cols-2 gap-3">
-          <NumInput
-            label="Balance"
-            prefix="$"
-            value={inputs.existBalance}
-            onChange={(v) => set("existBalance", v)}
-            step={1000}
-          />
-          <NumInput
-            label="Interest Rate"
-            suffix="%"
-            value={inputs.existRate}
-            onChange={(v) => set("existRate", v)}
-            step={0.125}
-          />
-          <div className="col-span-2">
-            <NumInput
-              label="Existing Mortgage APR (optional)"
-              suffix="%"
-              value={inputs.existAPR}
-              onChange={(v) => set("existAPR", v)}
-              step={0.001}
-              placeholder="6.987"
-            />
+        {inputs.productType !== "RATE_REDUCTION" && (
+          <div className="mb-3">
+            <Label className="text-xs font-medium text-muted-foreground mb-1 block">
+              Has existing mortgage?
+            </Label>
+            <RadioGroup
+              value={inputs.hasExistingMortgage ? "yes" : "no"}
+              onValueChange={(v) => set("hasExistingMortgage", v === "yes")}
+              className="flex gap-4"
+            >
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem id="ip-hm-yes" value="yes" />
+                <Label htmlFor="ip-hm-yes" className="text-xs font-normal cursor-pointer">Yes</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem id="ip-hm-no" value="no" />
+                <Label htmlFor="ip-hm-no" className="text-xs font-normal cursor-pointer">No</Label>
+              </div>
+            </RadioGroup>
           </div>
-          <NumInput
-            label="P&I Payment"
-            prefix="$"
-            value={inputs.existPayment}
-            onChange={(v) => set("existPayment", v)}
-            step={50}
-          />
-          <NumInput
-            label="Monthly Escrow"
-            prefix="$"
-            value={inputs.existEscrow}
-            onChange={(v) => set("existEscrow", v)}
-            step={25}
-          />
-        </div>
+        )}
+        {inputs.hasExistingMortgage && (
+          <div className="grid grid-cols-2 gap-3">
+            <NumInput label="Balance" prefix="$" value={inputs.existBalance} onChange={(v) => set("existBalance", v)} step={1000} />
+            <NumInput label="Total Pmt (PITI)" prefix="$" value={inputs.existTotalPayment} onChange={(v) => set("existTotalPayment", v)} step={50} />
+            <NumInput label="Interest Rate" suffix="%" value={inputs.existRate} onChange={(v) => set("existRate", v)} step={0.001} optional />
+            <NumInput label="Monthly Escrow" prefix="$" value={inputs.existEscrow} onChange={(v) => set("existEscrow", v)} step={25} optional />
+            <NumInput label="Years Remaining" value={inputs.existYearsRemaining} onChange={(v) => set("existYearsRemaining", v)} step={1} optional />
+          </div>
+        )}
       </div>
 
       {/* New Loan */}
       <div>
         <SectionHeader>New Loan</SectionHeader>
         <div className="grid grid-cols-2 gap-3">
-          <NumInput
-            label="Loan Amount"
-            prefix="$"
-            value={inputs.loanAmount}
-            onChange={(v) => set("loanAmount", v)}
-            step={1000}
-          />
-          <NumInput
-            label="Interest Rate"
-            suffix="%"
-            value={inputs.loanRate}
-            onChange={(v) => set("loanRate", v)}
-            step={0.125}
-          />
-          <div className="col-span-2">
-            <NumInput
-              label="New Loan APR"
-              suffix="%"
-              value={inputs.loanAPR}
-              onChange={(v) => set("loanAPR", v)}
-              step={0.001}
-              placeholder="6.752"
-              required
-            />
-            {showAprError && (
-              <p className="text-destructive text-xs mt-1">
-                APR is required by federal law (TILA Reg Z) when displaying an interest rate.
-              </p>
-            )}
-          </div>
+          <NumInput label="Loan Amount" prefix="$" value={inputs.loanAmount} onChange={(v) => set("loanAmount", v)} step={1000} />
+          <NumInput label="Interest Rate" suffix="%" value={inputs.loanRate} onChange={(v) => set("loanRate", v)} step={0.001} />
+          <NumInput label="Closing Costs" prefix="$" value={inputs.closingCosts} onChange={(v) => set("closingCosts", v)} step={100} />
           <div className="space-y-1">
-            <Label className="text-xs font-medium text-muted-foreground">Loan Term</Label>
-            <Select
-              value={String(inputs.termYears)}
-              onValueChange={(v) => set("termYears", parseInt(v, 10))}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Label className="text-xs font-medium text-muted-foreground">Term</Label>
+            <Select value={String(inputs.termYears)} onValueChange={(v) => set("termYears", parseInt(v, 10))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {[10, 15, 20, 25, 30].map((y) => (
-                  <SelectItem key={y} value={String(y)}>
-                    {y} years
-                  </SelectItem>
+                  <SelectItem key={y} value={String(y)}>{y} years</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <NumInput
-            label="Extra Monthly Principal"
-            prefix="$"
-            value={inputs.extraMonthly}
-            onChange={(v) => set("extraMonthly", v)}
-            step={50}
-          />
-          <NumInput
-            label="Cash Back at Closing"
-            prefix="$"
-            value={inputs.cashBack}
-            onChange={(v) => set("cashBack", v)}
-            step={500}
-          />
+          <NumInput label="Cash Back at Closing" prefix="$" value={inputs.cashBack} onChange={(v) => set("cashBack", v)} step={500} optional />
+        </div>
+        <div className="mt-3 p-2 rounded bg-muted/40 text-[11px] text-muted-foreground space-y-0.5">
+          <div>
+            APR (auto-calculated): <strong className="text-primary">{autoApr > 0 ? pct(autoApr) : "—"}</strong>
+          </div>
+          <div>
+            Extra principal: <strong className="text-primary">auto = monthly savings</strong> (locked)
+          </div>
         </div>
       </div>
 
-      {/* Debts */}
+      {/* Debts (no rate column) */}
       <div>
         <SectionHeader>Debts to Consolidate</SectionHeader>
         <div className="space-y-2">
           {inputs.debts.map((d, i) => (
-            <div
-              key={i}
-              className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-1.5 items-center p-2 rounded bg-secondary/30"
-            >
+            <div key={i} className="grid grid-cols-[1fr_auto_auto_auto] gap-1.5 items-center p-2 rounded bg-secondary/30">
               <Input
                 placeholder="Debt name"
                 value={d.name}
@@ -275,122 +275,122 @@ export default function WorksheetInputPanel({
               <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input
-                  type="number"
-                  placeholder="Balance"
-                  value={d.balance || ""}
-                  step={100}
+                  type="number" placeholder="Balance"
+                  value={d.balance || ""} step={100}
                   onChange={(e) => updateDebt(i, "balance", e.target.value)}
                   className="pl-5 w-24 text-xs h-8"
                 />
               </div>
               <div className="relative">
-                <Input
-                  type="number"
-                  placeholder="Rate"
-                  value={d.rate || ""}
-                  step={0.01}
-                  onChange={(e) => updateDebt(i, "rate", e.target.value)}
-                  className="pr-5 w-20 text-xs h-8"
-                />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">%</span>
-              </div>
-              <div className="relative">
                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs">$</span>
                 <Input
-                  type="number"
-                  placeholder="Min pmt"
-                  value={d.payment || ""}
-                  step={5}
+                  type="number" placeholder="Min pmt"
+                  value={d.payment || ""} step={5}
                   onChange={(e) => updateDebt(i, "payment", e.target.value)}
                   className="pl-5 w-24 text-xs h-8"
                 />
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-destructive hover:text-destructive"
-                onClick={() => removeDebt(i)}
-              >
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => removeDebt(i)}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
             </div>
           ))}
         </div>
-        <div className="text-xs text-muted-foreground mt-1 mb-2 hidden sm:grid grid-cols-[1fr_auto_auto_auto_auto] gap-1.5 px-2">
-          <span>Name</span>
-          <span className="w-24 text-center">Balance</span>
-          <span className="w-20 text-center">Rate</span>
-          <span className="w-24 text-center">Min Pmt</span>
-          <span className="w-8" />
-        </div>
-        <Button variant="outline" size="sm" className="mt-1" onClick={addDebt}>
+        <Button variant="outline" size="sm" className="mt-2" onClick={addDebt}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Add Debt
         </Button>
       </div>
 
-      {/* Advisor info (collapsible) */}
+      {/* Headshot upload */}
+      <div>
+        <SectionHeader>Headshot (this session)</SectionHeader>
+        <div className="flex items-center gap-3">
+          {inputs.headshotDataUrl ? (
+            <img src={inputs.headshotDataUrl} alt="headshot preview" className="h-12 w-12 rounded-full object-cover border-2 border-accent" />
+          ) : (
+            <div className="h-12 w-12 rounded-full border-2 border-dashed border-muted-foreground/40 flex items-center justify-center text-muted-foreground">
+              <ImageIcon className="h-5 w-5" />
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleHeadshotUpload}
+            />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+              <Upload className="h-3.5 w-3.5 mr-1.5" /> {inputs.headshotDataUrl ? "Replace" : "Upload"}
+            </Button>
+            {inputs.headshotDataUrl && (
+              <Button variant="ghost" size="sm" onClick={() => set("headshotDataUrl", undefined)}>
+                <X className="h-3.5 w-3.5 mr-1.5" /> Remove
+              </Button>
+            )}
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5">PNG/JPG, max 2MB. Stays in your browser session only.</p>
+      </div>
+
+      {/* Advisor info (collapsible) — license states removed (hardcoded) */}
       <Collapsible open={advisorOpen} onOpenChange={setAdvisorOpen}>
         <CollapsibleTrigger asChild>
           <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors">
-            <ChevronDown
-              className={`h-3.5 w-3.5 transition-transform ${advisorOpen ? "rotate-180" : ""}`}
-            />
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${advisorOpen ? "rotate-180" : ""}`} />
             {advisorOpen ? "Hide" : "Customize"} advisor info
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent className="pt-3">
           <SectionHeader>Advisor Information</SectionHeader>
           <div className="grid grid-cols-2 gap-3">
-            {[
-              { label: "Prepared By", key: "preparedBy" as const, placeholder: DEFAULT_ADVISOR.preparedBy },
-              { label: "Title", key: "preparedByTitle" as const, placeholder: DEFAULT_ADVISOR.preparedByTitle },
-              { label: "Company", key: "companyName" as const, placeholder: DEFAULT_ADVISOR.companyName },
-              { label: "Phone", key: "contactPhone" as const, placeholder: DEFAULT_ADVISOR.contactPhone },
-              { label: "Email", key: "contactEmail" as const, placeholder: DEFAULT_ADVISOR.contactEmail },
-              { label: "Personal NMLS", key: "contactNMLS" as const, placeholder: DEFAULT_ADVISOR.contactNMLS },
-              { label: "Company NMLS", key: "companyNMLS" as const, placeholder: DEFAULT_ADVISOR.companyNMLS },
-              { label: "Licensed States", key: "licenseStates" as const, placeholder: DEFAULT_ADVISOR.licenseStates },
-            ].map(({ label, key, placeholder }) => (
+            {([
+              ["Prepared By", "preparedBy", DEFAULT_ADVISOR.preparedBy],
+              ["Title", "preparedByTitle", DEFAULT_ADVISOR.preparedByTitle],
+              ["Company", "companyName", DEFAULT_ADVISOR.companyName],
+              ["Phone", "contactPhone", DEFAULT_ADVISOR.contactPhone],
+              ["Email", "contactEmail", DEFAULT_ADVISOR.contactEmail],
+              ["Personal NMLS", "contactNMLS", DEFAULT_ADVISOR.contactNMLS],
+              ["Company NMLS", "companyNMLS", DEFAULT_ADVISOR.companyNMLS],
+            ] as const).map(([label, key, placeholder]) => (
               <div key={key} className="space-y-1">
                 <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
                 <Input
                   placeholder={placeholder}
-                  value={inputs[key] as string}
+                  value={(inputs[key] as string) ?? ""}
                   onChange={(e) => set(key, e.target.value)}
                   className="text-sm"
                 />
               </div>
             ))}
           </div>
+          <p className="text-[10px] text-muted-foreground mt-2">
+            Licensed states are hardcoded in the compliance footer (AZ, CO, CT, FL, MI, MN, OR, PA, TX, VA, WA).
+          </p>
         </CollapsibleContent>
       </Collapsible>
 
       {/* Action buttons */}
       <div className="space-y-2 pt-2 border-t">
         <Button variant="outline" className="w-full" onClick={onPrint}>
-          Print / Save as PDF
+          <Printer className="mr-2 h-4 w-4" /> Print / Save as PDF
         </Button>
         <Button
           className="w-full bg-primary hover:bg-primary/90 text-white"
-          onClick={() => guardApr(onDownloadPdf)}
+          onClick={onDownloadPdf}
           disabled={pdfLoading}
         >
+          <Download className="mr-2 h-4 w-4" />
           {pdfLoading ? "Generating PDF…" : "Download PDF"}
         </Button>
         {!isInternal && onEmailSelf && (
-          <Button
-            className="w-full bg-accent hover:bg-accent/90 text-white"
-            onClick={() => guardApr(onEmailSelf)}
-          >
+          <Button className="w-full bg-accent hover:bg-accent/90 text-white" onClick={onEmailSelf}>
             <Mail className="mr-2 h-4 w-4" /> Email Worksheet to Myself
           </Button>
         )}
         {isInternal && onEmailClient && (
-          <Button
-            className="w-full bg-accent hover:bg-accent/90 text-white"
-            onClick={() => guardApr(onEmailClient)}
-          >
-            Email to Client
+          <Button className="w-full bg-accent hover:bg-accent/90 text-white" onClick={onEmailClient}>
+            <Mail className="mr-2 h-4 w-4" /> Send to Client
           </Button>
         )}
       </div>
