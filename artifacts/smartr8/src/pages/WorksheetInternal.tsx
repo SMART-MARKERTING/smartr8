@@ -76,9 +76,7 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
           <Lock className="h-5 w-5 text-primary" />
         </div>
         <h1 className="text-xl font-bold text-primary text-center mb-1">Internal Access</h1>
-        <p className="text-sm text-muted-foreground text-center mb-6">
-          Adaxa Home team only
-        </p>
+        <p className="text-sm text-muted-foreground text-center mb-6">Adaxa Home team only</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1">
             <Label htmlFor="username">Username</Label>
@@ -124,32 +122,49 @@ function EmailClientModal({
   results: ReturnType<typeof computeScenarios>;
 }) {
   const { toast } = useToast();
+  const [clientFirstName, setClientFirstName] = useState(
+    () => inputs.clientName.trim().split(/\s+/)[0] ?? ""
+  );
+  const [clientLastName, setClientLastName] = useState(
+    () => inputs.clientName.trim().split(/\s+/).slice(1).join(" ") ?? ""
+  );
   const [clientEmail, setClientEmail] = useState("");
   const [sending, setSending] = useState(false);
 
+  const clientName = `${clientFirstName.trim()} ${clientLastName.trim()}`.trim();
+
   async function handleSend() {
-    if (!clientEmail.trim()) return;
+    if (!clientEmail.trim() || !clientFirstName.trim()) return;
     setSending(true);
     try {
       const base64 = await getWorksheetPdfBase64(inputs, results);
-
+      const name = clientName || inputs.clientName || "Client";
       const res = await fetch("/api/worksheet/submit-lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           source: "worksheet-internal",
-          clientName: inputs.clientName,
+          clientName: name,
+          clientFirstName: clientFirstName.trim(),
+          clientLastName: clientLastName.trim(),
           clientEmail,
           advisorName: inputs.preparedBy,
           pdfBase64: base64,
-          fileName: `Loan-Benefits-Worksheet-${inputs.clientName.replace(/\s+/g, "-")}.pdf`,
+          fileName: `Loan-Benefits-Worksheet-${name.replace(/\s+/g, "-")}.pdf`,
+          worksheetSummary: "",
         }),
       });
 
-      const data = (await res.json()) as { success: boolean; error?: string };
-      if (data.success) {
-        toast({ title: "Worksheet sent!", description: `Email delivered to ${clientEmail}` });
+      const data = (await res.json()) as { success: boolean; emailOk?: boolean; emailError?: string; error?: string };
+      if (data.success && data.emailOk) {
+        toast({ title: `Sent to ${clientFirstName}!`, description: `Email delivered to ${clientEmail}` });
         onOpenChange(false);
+      } else if (data.success && !data.emailOk) {
+        toast({
+          title: "Lead logged, but email may not have delivered",
+          description: data.emailError ?? "Check Cloudflare logs — RESEND_API_KEY may not be set or domain not verified.",
+          variant: "destructive",
+        });
       } else {
         toast({ title: "Send failed", description: data.error ?? "Unknown error", variant: "destructive" });
       }
@@ -163,34 +178,51 @@ function EmailClientModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Email Worksheet to Client</DialogTitle>
+          <DialogTitle>Email Worksheet to a Client</DialogTitle>
           <DialogDescription>
-            The PDF will be generated and emailed to the client via Resend.
+            Generates the PDF from current worksheet numbers and emails it directly to the client.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>First Name <span className="text-destructive">*</span></Label>
+              <Input
+                placeholder="Jane"
+                value={clientFirstName}
+                onChange={(e) => setClientFirstName(e.target.value)}
+                disabled={sending}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Last Name</Label>
+              <Input
+                placeholder="Smith"
+                value={clientLastName}
+                onChange={(e) => setClientLastName(e.target.value)}
+                disabled={sending}
+              />
+            </div>
+          </div>
           <div className="space-y-1">
-            <Label>Client Email</Label>
+            <Label>Client Email <span className="text-destructive">*</span></Label>
             <Input
               type="email"
               placeholder="client@example.com"
               value={clientEmail}
               onChange={(e) => setClientEmail(e.target.value)}
+              disabled={sending}
             />
-          </div>
-          <div className="space-y-1">
-            <Label>Client Name</Label>
-            <Input value={inputs.clientName} disabled className="bg-muted" />
           </div>
           <Button
             className="w-full bg-accent hover:bg-accent/90 text-white"
             onClick={handleSend}
-            disabled={sending || !clientEmail.trim()}
+            disabled={sending || !clientEmail.trim() || !clientFirstName.trim()}
           >
             {sending ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending…</>
             ) : (
-              <><Send className="mr-2 h-4 w-4" /> Send Worksheet</>
+              <><Send className="mr-2 h-4 w-4" /> Send to {clientFirstName || "Client"}</>
             )}
           </Button>
         </div>
@@ -249,7 +281,8 @@ export default function WorksheetInternal() {
                 <ArrowLeft className="h-3.5 w-3.5" /> Back to home
               </Link>
               <h1 className="text-3xl font-bold text-primary mt-4 mb-1">
-                Loan Benefits Worksheet <span className="text-base font-medium text-muted-foreground ml-2">— Internal</span>
+                Loan Benefits Worksheet{" "}
+                <span className="text-base font-medium text-muted-foreground ml-2">— Internal</span>
               </h1>
               <p className="text-muted-foreground">
                 Build a personalized worksheet for a client, then download or email the PDF.
@@ -261,7 +294,6 @@ export default function WorksheetInternal() {
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8 print:block">
-            {/* Input panel */}
             <aside className="lg:w-72 xl:w-80 shrink-0 print:hidden">
               <div className="sticky top-4 bg-card border rounded-lg p-5 shadow-sm">
                 <h2 className="font-semibold text-primary mb-4">Worksheet Inputs</h2>
@@ -277,7 +309,6 @@ export default function WorksheetInternal() {
               </div>
             </aside>
 
-            {/* Worksheet document */}
             <div className="flex-1 overflow-x-auto">
               <div className="min-w-[600px] border rounded-lg shadow-sm overflow-hidden">
                 <WorksheetDocument inputs={inputs} results={results} />

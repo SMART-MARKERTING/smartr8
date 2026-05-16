@@ -5,6 +5,7 @@
 //
 // Required env bindings (Cloudflare Pages dashboard → Settings → Environment variables):
 //   RESEND_API_KEY — Resend API key for sending emails
+//   (also accepts RE_worksheet as an alternative name)
 
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
@@ -29,6 +30,7 @@ function jsonResponse(data, status, cors) {
   });
 }
 
+// Returns { ok: boolean, error?: string }
 async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName }) {
   const body = {
     from: "Mykoal DeShazo <mykoal@smartr8.com>",
@@ -39,24 +41,34 @@ async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName 
   };
 
   if (pdfBase64 && fileName) {
-    body.attachments = [
-      {
-        filename: fileName,
-        content: pdfBase64,
-      },
-    ];
+    body.attachments = [{ filename: fileName, content: pdfBase64 }];
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (networkErr) {
+    console.error("[resend] Network error calling Resend API:", networkErr);
+    return { ok: false, error: `Network error: ${networkErr}` };
+  }
 
-  return res.ok;
+  if (!res.ok) {
+    let resBody = "";
+    try { resBody = await res.text(); } catch {}
+    console.error(`[resend] API error — status=${res.status} to=${Array.isArray(to) ? to.join(",") : to} body=${resBody}`);
+    return { ok: false, error: `Resend ${res.status}: ${resBody}` };
+  }
+
+  const resBody = await res.json().catch(() => ({}));
+  console.log(`[resend] Email sent — id=${resBody.id} to=${Array.isArray(to) ? to.join(",") : to}`);
+  return { ok: true };
 }
 
 function buildClientEmailHtml(clientName, advisorName) {
@@ -104,7 +116,7 @@ function buildClientEmailHtml(clientName, advisorName) {
 `;
 }
 
-function buildAdvisorNotificationHtml(body) {
+function buildAdvisorNotificationHtml(data) {
   return `
 <!DOCTYPE html>
 <html>
@@ -115,13 +127,13 @@ function buildAdvisorNotificationHtml(body) {
   </div>
   <div style="background: #fff; border: 1px solid #e5e5e5; padding: 24px; border-radius: 0 0 4px 4px;">
     <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
-      <tr><td style="padding: 6px 0; color: #666; width: 40%;">Name</td><td style="padding: 6px 0;"><strong>${body.firstName} ${body.lastName}</strong></td></tr>
-      <tr><td style="padding: 6px 0; color: #666;">Email</td><td style="padding: 6px 0;">${body.email}</td></tr>
-      <tr><td style="padding: 6px 0; color: #666;">Phone</td><td style="padding: 6px 0;">${body.phone ?? "—"}</td></tr>
-      <tr><td style="padding: 6px 0; color: #666;">State</td><td style="padding: 6px 0;">${body.state ?? "—"}</td></tr>
-      <tr><td style="padding: 6px 0; color: #666;">Source</td><td style="padding: 6px 0;">Loan Benefits Worksheet</td></tr>
+      <tr><td style="padding: 6px 0; color: #666; width: 40%;">Name</td><td style="padding: 6px 0;"><strong>${data.firstName ?? ""} ${data.lastName ?? ""}</strong></td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Email</td><td style="padding: 6px 0;">${data.email ?? "—"}</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Phone</td><td style="padding: 6px 0;">${data.phone ?? "—"}</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">State</td><td style="padding: 6px 0;">${data.state ?? "—"}</td></tr>
+      <tr><td style="padding: 6px 0; color: #666;">Source</td><td style="padding: 6px 0;">${data.source ?? "Loan Benefits Worksheet"}</td></tr>
     </table>
-    ${body.worksheetSummary ? `<p style="font-size: 12px; color: #666; margin-top: 12px; padding: 10px; background: #f9f9f9; border-radius: 4px;">${body.worksheetSummary}</p>` : ""}
+    ${data.worksheetSummary ? `<p style="font-size: 12px; color: #666; margin-top: 12px; padding: 10px; background: #f9f9f9; border-radius: 4px;">${data.worksheetSummary}</p>` : ""}
   </div>
 </body>
 </html>
@@ -129,6 +141,30 @@ function buildAdvisorNotificationHtml(body) {
 }
 
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
+const FORMSPREE = "https://formspree.io/f/meennekb";
+
+async function submitToLeadMailbox(payload, ip) {
+  try {
+    const lmRes = await fetch(LM_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Forwarded-For": ip,
+        "X-Real-IP": ip,
+        "True-Client-IP": ip,
+      },
+      body: JSON.stringify(payload),
+    });
+    const lmText = await lmRes.text();
+    let lmSuccess = false;
+    try { lmSuccess = JSON.parse(lmText).code === 0; } catch { lmSuccess = lmRes.ok; }
+    console.log(`[lm] submit — name="${payload.FirstName} ${payload.LastName}" ok=${lmSuccess} response=${lmText.slice(0, 200)}`);
+    return lmSuccess;
+  } catch (e) {
+    console.error("[lm] LeadMailbox error:", e);
+    return false;
+  }
+}
 
 export async function onRequest(context) {
   const { request, env, waitUntil } = context;
@@ -151,8 +187,14 @@ export async function onRequest(context) {
 
   const ip = request.headers.get("CF-Connecting-IP") ?? request.headers.get("X-Forwarded-For") ?? "unknown";
 
-  // Resolve Resend API key — accepts either name for flexibility
+  // Resolve Resend API key — log which name was found (never log the value)
   const resendKey = env.RESEND_API_KEY || env.RE_worksheet;
+  if (!resendKey) {
+    console.error("[resend] CRITICAL: No Resend API key found. Checked RESEND_API_KEY and RE_worksheet. Set one in Cloudflare Pages → Settings → Environment variables.");
+  } else {
+    const keyName = env.RESEND_API_KEY ? "RESEND_API_KEY" : "RE_worksheet";
+    console.log(`[resend] Key resolved via: ${keyName}`);
+  }
 
   // ─── Internal path: advisor sending worksheet PDF to a client ───────────────
   if (body.source === "worksheet-internal") {
@@ -160,26 +202,44 @@ export async function onRequest(context) {
       return jsonResponse({ success: false, error: "Missing clientEmail or pdfBase64" }, 400, cors);
     }
 
-    let emailOk = false;
+    const clientName = body.clientName || "";
+    const nameParts = clientName.trim().split(/\s+/);
+    const firstName = body.clientFirstName || nameParts[0] || "Client";
+    const lastName = body.clientLastName || nameParts.slice(1).join(" ") || "";
+
+    console.log(`[worksheet] internal send — to=${body.clientEmail} client="${firstName} ${lastName}"`);
+
+    let emailResult = { ok: false, error: "No Resend key" };
     if (resendKey) {
-      try {
-        emailOk = await sendResendEmail({
-          apiKey: resendKey,
-          to: body.clientEmail,
-          subject: `Your Loan Benefits Worksheet — ${body.clientName || "See attached"}`,
-          html: buildClientEmailHtml(body.clientName, body.advisorName),
-          pdfBase64: body.pdfBase64,
-          fileName: body.fileName || "Loan-Benefits-Worksheet.pdf",
-        });
-      } catch (e) {
-        console.error("[worksheet] Resend error:", e);
-      }
-    } else {
-      console.warn("[worksheet] No Resend API key set — email skipped");
+      emailResult = await sendResendEmail({
+        apiKey: resendKey,
+        to: body.clientEmail,
+        subject: `Your Loan Benefits Worksheet — ${clientName || "See attached"}`,
+        html: buildClientEmailHtml(clientName, body.advisorName),
+        pdfBase64: body.pdfBase64,
+        fileName: body.fileName || "Loan-Benefits-Worksheet.pdf",
+      });
     }
 
-    console.log(`[worksheet] internal send — client=${body.clientEmail} emailOk=${emailOk}`);
-    return jsonResponse({ success: true, emailOk }, 200, cors);
+    // Log to LeadMailbox as manual send
+    const lmPayload = {
+      FirstName: firstName,
+      LastName: lastName,
+      Email: body.clientEmail,
+      MobilePhone: "",
+      Phys_State: "",
+      Loan_Request: "Worksheet Internal Send",
+      Notes: [
+        "Funnel: worksheet-internal",
+        "Tag: manual send by Mykoal",
+        `Submitted: ${new Date().toISOString()}`,
+        `Source: smartr8.com/worksheet/internal`,
+        body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
+      ].filter(Boolean).join("\n"),
+    };
+    waitUntil(submitToLeadMailbox(lmPayload, ip));
+
+    return jsonResponse({ success: true, emailOk: emailResult.ok, emailError: emailResult.error }, 200, cors);
   }
 
   // ─── Self-serve path: public user emailing worksheet to themselves ───────────
@@ -188,92 +248,64 @@ export async function onRequest(context) {
       return jsonResponse({ success: false, error: "Missing clientEmail or pdfBase64" }, 400, cors);
     }
 
-    let emailOk = false;
+    // Accept explicit fields OR parse from clientName for backward compat
+    const clientName = body.clientName || `${body.firstName || ""} ${body.lastName || ""}`.trim();
+    const nameParts = clientName.split(/\s+/);
+    const firstName = body.firstName || nameParts[0] || "Unknown";
+    const lastName = body.lastName || nameParts.slice(1).join(" ") || "";
+
+    console.log(`[worksheet] self-send — to=${body.clientEmail} client="${firstName} ${lastName}"`);
+
+    let emailResult = { ok: false, error: "No Resend key" };
     if (resendKey) {
-      try {
-        emailOk = await sendResendEmail({
-          apiKey: resendKey,
-          to: body.clientEmail,
-          subject: `Your Loan Benefits Worksheet — ${body.clientName || "See attached"}`,
-          html: buildClientEmailHtml(body.clientName, "Mykoal DeShazo"),
-          pdfBase64: body.pdfBase64,
-          fileName: body.fileName || "Loan-Benefits-Worksheet.pdf",
-        });
-      } catch (e) {
-        console.error("[worksheet] Resend self-send error:", e);
-      }
-    } else {
-      console.warn("[worksheet] No Resend API key set — self-send email skipped");
+      emailResult = await sendResendEmail({
+        apiKey: resendKey,
+        to: body.clientEmail,
+        subject: `Your Loan Benefits Worksheet — ${clientName || "See attached"}`,
+        html: buildClientEmailHtml(clientName, "Mykoal DeShazo"),
+        pdfBase64: body.pdfBase64,
+        fileName: body.fileName || "Loan-Benefits-Worksheet.pdf",
+      });
     }
 
-    // Submit lead to LeadMailbox (name + email only — this is the lead capture moment)
-    const clientName = (body.clientName || "").trim();
-    const nameParts = clientName.split(/\s+/);
-    const firstName = nameParts[0] || "Unknown";
-    const lastName = nameParts.slice(1).join(" ") || "";
+    console.log(`[worksheet] self-send result — emailOk=${emailResult.ok}${emailResult.error ? ` error=${emailResult.error}` : ""}`);
 
     const lmPayload = {
       FirstName: firstName,
       LastName: lastName,
       Email: body.clientEmail,
-      MobilePhone: "",
-      Phys_State: "",
+      MobilePhone: body.phone ? body.phone.replace(/\D/g, "") : "",
+      Phys_State: body.state ?? "",
       Loan_Request: "Worksheet Self-Send",
       Notes: [
         "Funnel: worksheet-self",
         `Submitted: ${new Date().toISOString()}`,
         `Source: smartr8.com/worksheet`,
         body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
+      ].filter(Boolean).join("\n"),
     };
 
-    let lmSuccess = false;
-    try {
-      const lmRes = await fetch(LM_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Forwarded-For": ip,
-          "X-Real-IP": ip,
-          "True-Client-IP": ip,
-        },
-        body: JSON.stringify(lmPayload),
-      });
-      const lmText = await lmRes.text();
-      try {
-        lmSuccess = JSON.parse(lmText).code === 0;
-      } catch {
-        lmSuccess = lmRes.ok;
-      }
-    } catch (e) {
-      console.error("[worksheet] LeadMailbox self-send error:", e);
-    }
+    const lmSuccess = await submitToLeadMailbox(lmPayload, ip);
 
-    // Advisor notification via Resend
     if (resendKey) {
       waitUntil(
         sendResendEmail({
           apiKey: resendKey,
           to: "mykoal@adaxahome.com",
           subject: `New Worksheet Self-Send — ${clientName}`,
-          html: buildAdvisorNotificationHtml({ firstName, lastName, email: body.clientEmail, worksheetSummary: body.worksheetSummary }),
-        }).catch((e) => console.error("[worksheet] advisor self-send email error:", e))
+          html: buildAdvisorNotificationHtml({ firstName, lastName, email: body.clientEmail, phone: body.phone, state: body.state, worksheetSummary: body.worksheetSummary, source: "worksheet-self" }),
+        }).then(r => { if (!r.ok) console.error("[resend] advisor self-send notification failed:", r.error); })
       );
     }
 
-    // Formspree backup notification
-    const FORMSPREE = "https://formspree.io/f/meennekb";
     waitUntil(
       fetch(FORMSPREE, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           _subject: `New Worksheet Self-Send — ${clientName}`,
-          firstName,
-          lastName,
-          email: body.clientEmail,
+          firstName, lastName, email: body.clientEmail,
+          phone: body.phone ?? "", state: body.state ?? "",
           source: "worksheet-self",
           worksheetSummary: body.worksheetSummary ?? "",
           lmSuccess,
@@ -281,17 +313,17 @@ export async function onRequest(context) {
       }).catch((e) => console.error("[worksheet] Formspree self-send error:", e))
     );
 
-    console.log(`[worksheet] self-send — client=${body.clientEmail} emailOk=${emailOk} lmSuccess=${lmSuccess}`);
-    return jsonResponse({ success: true, emailOk }, 200, cors);
+    return jsonResponse({ success: true, emailOk: emailResult.ok, emailError: emailResult.error }, 200, cors);
   }
 
-  // ─── Public path: legacy lead capture (no longer used by gate modal) ─────────
+  // ─── Public path: lead capture (no PDF email — used by Download PDF action) ──
   const missing = ["firstName", "lastName", "email"].filter((f) => !body[f]?.trim());
   if (missing.length > 0) {
     return jsonResponse({ success: false, error: `Missing: ${missing.join(", ")}` }, 400, cors);
   }
 
-  // LeadMailbox from CF Worker
+  console.log(`[worksheet] public lead — ${body.firstName} ${body.lastName} <${body.email}> state=${body.state ?? "—"}`);
+
   const lmPayload = {
     FirstName: body.firstName,
     LastName: body.lastName,
@@ -303,62 +335,32 @@ export async function onRequest(context) {
       "Funnel: worksheet",
       `Submitted: ${body.submittedAt ?? new Date().toISOString()}`,
       `Source: smartr8.com/worksheet`,
-      "",
-      body.worksheetSummary ? `Worksheet summary:\n${body.worksheetSummary}` : "",
+      body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
       body.trackingId ? `\nTracking ID: ${body.trackingId}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n"),
+    ].filter(Boolean).join("\n"),
   };
 
-  let lmSuccess = false;
-  try {
-    const lmRes = await fetch(LM_ENDPOINT, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Forwarded-For": ip,
-        "X-Real-IP": ip,
-        "True-Client-IP": ip,
-      },
-      body: JSON.stringify(lmPayload),
-    });
-    const lmText = await lmRes.text();
-    try {
-      const lmData = JSON.parse(lmText);
-      lmSuccess = lmData.code === 0;
-    } catch {
-      lmSuccess = lmRes.ok;
-    }
-  } catch (e) {
-    console.error("[worksheet] LeadMailbox error:", e);
-  }
+  const lmSuccess = await submitToLeadMailbox(lmPayload, ip);
 
-  // Advisor notification email via Resend
   if (resendKey) {
     waitUntil(
       sendResendEmail({
         apiKey: resendKey,
         to: "mykoal@adaxahome.com",
         subject: `New Worksheet Lead — ${body.firstName} ${body.lastName}`,
-        html: buildAdvisorNotificationHtml(body),
-      }).catch((e) => console.error("[worksheet] advisor email error:", e))
+        html: buildAdvisorNotificationHtml({ ...body, source: "worksheet" }),
+      }).then(r => { if (!r.ok) console.error("[resend] advisor lead notification failed:", r.error); })
     );
   }
 
-  // Also notify via Formspree as backup
-  const FORMSPREE = "https://formspree.io/f/meennekb";
   waitUntil(
     fetch(FORMSPREE, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
         _subject: `New Worksheet Lead — ${body.firstName} ${body.lastName}`,
-        firstName: body.firstName,
-        lastName: body.lastName,
-        email: body.email,
-        phone: body.phone ?? "",
-        state: body.state ?? "",
+        firstName: body.firstName, lastName: body.lastName,
+        email: body.email, phone: body.phone ?? "", state: body.state ?? "",
         source: "worksheet",
         worksheetSummary: body.worksheetSummary ?? "",
         lmSuccess,
@@ -366,6 +368,5 @@ export async function onRequest(context) {
     }).catch((e) => console.error("[worksheet] Formspree error:", e))
   );
 
-  console.log(`[worksheet] public lead — ${body.firstName} ${body.lastName} — lmSuccess=${lmSuccess}`);
   return jsonResponse({ success: true, lmPayload: lmSuccess ? null : lmPayload }, 200, cors);
 }
