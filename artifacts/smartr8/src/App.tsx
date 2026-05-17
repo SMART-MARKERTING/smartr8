@@ -3,6 +3,7 @@ import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { trackFbEvent } from "@/lib/fbq";
 import Home from "@/pages/Home";
 import ThankYou from "@/pages/ThankYou";
 import Heloc from "@/pages/Heloc";
@@ -59,6 +60,59 @@ function PixelRouteTracker() {
   return null;
 }
 
+/**
+ * Global click tracker that fires Meta Pixel standard events for high-intent
+ * outbound link clicks. Implemented as a single document-level capture-phase
+ * listener so we don't have to wire onClick on every link across 12+ files.
+ *
+ * Mappings:
+ *   tel:*                  → Contact      (method: 'phone')
+ *   mailto:*               → Contact      (method: 'email')
+ *   *cal.com*              → Schedule     (content_name: 'Consultation Call')
+ *   *lendingpad.com*       → SubmitApplication (content_name: 'Full Application')
+ *
+ * Notes:
+ * - We use capture phase so we fire before any nested onClick stops propagation.
+ * - We do NOT pass any PII (phone numbers, emails, names) to fbq. Only static
+ *   string params, matching the rest of the pixel implementation.
+ * - All event firing is wrapped in try/catch via trackFbEvent so analytics
+ *   failures can never break user navigation.
+ */
+function PixelLinkTracker() {
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      const anchor = target.closest("a") as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+
+      if (href.startsWith("tel:")) {
+        trackFbEvent("Contact", { method: "phone" });
+        return;
+      }
+      if (href.startsWith("mailto:")) {
+        trackFbEvent("Contact", { method: "email" });
+        return;
+      }
+      if (href.includes("cal.com")) {
+        trackFbEvent("Schedule", { content_name: "Consultation Call", content_category: "Mortgage" });
+        return;
+      }
+      if (href.includes("lendingpad.com")) {
+        trackFbEvent("SubmitApplication", { content_name: "Full Application", content_category: "Mortgage" });
+        return;
+      }
+    }
+
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
+  }, []);
+
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -88,6 +142,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <PixelRouteTracker />
+          <PixelLinkTracker />
           <Router />
         </WouterRouter>
         <Toaster />
