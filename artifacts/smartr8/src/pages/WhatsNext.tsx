@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useSearch, Link } from "wouter";
 import { PageMeta } from "@/components/PageMeta";
 import { Header } from "@/components/Header";
@@ -7,16 +7,42 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, CalendarDays, FileText, Zap } from "lucide-react";
 import { trackFbEvent } from "@/lib/fbq";
+import { appendNextStepAction, type FunnelEntryButton } from "@/lib/submitLead";
 
 const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
 const LENDINGPAD_URL =
   "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd28-9b5f-46b8-9029-aa478433a995";
 
+function readContactName(): string {
+  try {
+    const raw = sessionStorage.getItem("smartr8_funnel_contact_v1");
+    if (!raw) return "";
+    const c = JSON.parse(raw) as { firstName?: string };
+    return c.firstName ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function readEntryButton(): FunnelEntryButton | undefined {
+  try {
+    const raw = sessionStorage.getItem("smartr8_funnel_entry_v1");
+    if (!raw) return undefined;
+    return raw as FunnelEntryButton;
+  } catch {
+    return undefined;
+  }
+}
+
 export default function WhatsNext() {
   const search = useSearch();
-  const params = new URLSearchParams(search);
-  const firstName = params.get("name") || "";
+  const params = useMemo(() => new URLSearchParams(search), [search]);
   const source = params.get("source") || "worksheet";
+  const isProfessional = source === "funnel-professional";
+  // URL ?name= takes precedence; fall back to sessionStorage so the personal
+  // banner survives a direct navigation that omits the query string.
+  const firstName = params.get("name") || readContactName();
+  const entryButton = readEntryButton();
 
   useEffect(() => {
     // Single source of truth for Lead conversion event for the worksheet funnel.
@@ -32,19 +58,50 @@ export default function WhatsNext() {
     });
   }, []);
 
-  const headline =
-    source === "worksheet"
-      ? firstName
-        ? `Your worksheet is on its way, ${firstName}.`
-        : "Your worksheet is on its way."
-      : firstName
-      ? `You're all set, ${firstName}.`
-      : "You're all set.";
+  // Headline differs by entry source. Professional-path leads get a personal
+  // handoff confirmation; worksheet leads see "your worksheet is on its way".
+  const headline = isProfessional
+    ? firstName
+      ? `Thanks ${firstName} — your info is on its way to Mykoal.`
+      : "Thanks — your info is on its way to Mykoal."
+    : source === "worksheet"
+    ? firstName
+      ? `Your worksheet is on its way, ${firstName}.`
+      : "Your worksheet is on its way."
+    : firstName
+    ? `You're all set, ${firstName}.`
+    : "You're all set.";
 
-  const subhead =
-    source === "worksheet"
-      ? "Check your inbox for the PDF. While I review your numbers, here's how I can help you move forward right now."
-      : "While I review your information, here's how I can help you move forward right now.";
+  const subhead = isProfessional
+    ? "In the meantime, you can get a head start below — pick whichever next step fits you best."
+    : source === "worksheet"
+    ? "Check your inbox for the PDF. While I review your numbers, here's how I can help you move forward right now."
+    : "While I review your information, here's how I can help you move forward right now.";
+
+  // Each next-step click fires a Meta Pixel event AND appends a slim
+  // "Next-Step-Action" record to LeadMailbox so Mykoal can see what the lead
+  // did after the handoff (correlated by email).
+  function handleScheduleCall() {
+    trackFbEvent("Schedule", {
+      content_name: "Whats Next — Schedule a Call",
+      content_category: "Mortgage",
+    });
+    appendNextStepAction("scheduled-call", { source, entryButton });
+  }
+  function handleHelocOptions() {
+    trackFbEvent("ViewContent", {
+      content_name: "Whats Next — Instant HELOC Options",
+      content_category: "Mortgage",
+    });
+    appendNextStepAction("instant-heloc-options", { source, entryButton });
+  }
+  function handleFullApplication() {
+    trackFbEvent("SubmitApplication", {
+      content_name: "Whats Next — Full Application",
+      content_category: "Mortgage",
+    });
+    appendNextStepAction("full-application", { source, entryButton });
+  }
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
@@ -92,7 +149,13 @@ export default function WhatsNext() {
                   </p>
                 </div>
                 <div className="mt-auto">
-                  <a href={CAL_URL} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={CAL_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleScheduleCall}
+                    data-testid="whatsnext-cta-schedule"
+                  >
                     <Button className="w-full h-11 bg-accent hover:bg-accent/90 text-white">
                       Book a Time <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
@@ -122,7 +185,12 @@ export default function WhatsNext() {
                 </div>
                 <div className="mt-auto">
                   <Link href="/heloc/instant-options">
-                    <Button variant="outline" className="w-full h-11">
+                    <Button
+                      variant="outline"
+                      className="w-full h-11"
+                      onClick={handleHelocOptions}
+                      data-testid="whatsnext-cta-heloc"
+                    >
                       See My Options <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </Link>
@@ -150,7 +218,13 @@ export default function WhatsNext() {
                   </p>
                 </div>
                 <div className="mt-auto">
-                  <a href={LENDINGPAD_URL} target="_blank" rel="noopener noreferrer">
+                  <a
+                    href={LENDINGPAD_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={handleFullApplication}
+                    data-testid="whatsnext-cta-application"
+                  >
                     <Button variant="outline" className="w-full h-11">
                       Apply Now <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
