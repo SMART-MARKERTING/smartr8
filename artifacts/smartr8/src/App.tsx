@@ -10,12 +10,6 @@ import Heloc from "@/pages/Heloc";
 import HelocNextSteps from "@/pages/HelocNextSteps";
 import HelocWhatsnext from "@/pages/HelocWhatsnext";
 import HelocInstantOptions from "@/pages/HelocInstantOptions";
-import CashOut from "@/pages/CashOut";
-import CashOutWhatsnext from "@/pages/CashOutWhatsnext";
-import RateReduction from "@/pages/RateReduction";
-import RateReductionWhatsnext from "@/pages/RateReductionWhatsnext";
-import Purchase from "@/pages/Purchase";
-import PurchaseWhatsnext from "@/pages/PurchaseWhatsnext";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
 import WhatsNext from "@/pages/WhatsNext";
@@ -113,6 +107,19 @@ function PixelLinkTracker() {
   return null;
 }
 
+/**
+ * Redirects legacy /apply/* funnel routes into the unified /worksheet funnel.
+ * The per-product funnels were superseded by the shared funnel; these
+ * redirects keep old links and ad destinations working.
+ */
+function RedirectTo({ to }: { to: string }) {
+  const [, navigate] = useLocation();
+  useEffect(() => {
+    navigate(to, { replace: true });
+  }, [navigate, to]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -122,12 +129,13 @@ function Router() {
       <Route path="/heloc/next-steps" component={HelocNextSteps} />
       <Route path="/heloc/whats-next" component={HelocWhatsnext} />
       <Route path="/heloc/instant-options" component={HelocInstantOptions} />
-      <Route path="/apply/cash-out" component={CashOut} />
-      <Route path="/apply/cash-out/whats-next" component={CashOutWhatsnext} />
-      <Route path="/apply/rate-reduction" component={RateReduction} />
-      <Route path="/apply/rate-reduction/whats-next" component={RateReductionWhatsnext} />
-      <Route path="/apply/purchase" component={Purchase} />
-      <Route path="/apply/purchase/whats-next" component={PurchaseWhatsnext} />
+      {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}
+      <Route path="/apply/cash-out">{() => <RedirectTo to="/worksheet?product=cash-out" />}</Route>
+      <Route path="/apply/rate-reduction">{() => <RedirectTo to="/worksheet?product=rate-reduction" />}</Route>
+      <Route path="/apply/purchase">{() => <RedirectTo to="/worksheet?product=purchase" />}</Route>
+      <Route path="/apply/cash-out/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
+      <Route path="/apply/rate-reduction/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
+      <Route path="/apply/purchase/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
       <Route path="/worksheet/internal" component={WorksheetInternal} />
       <Route path="/worksheet" component={Worksheet} />
       <Route path="/whats-next" component={WhatsNext} />

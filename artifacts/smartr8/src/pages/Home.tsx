@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { Link } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { FunnelModal } from "@/components/FunnelModal";
 import { JsonLd } from "@/components/JsonLd";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,14 +21,6 @@ const STATES_11 = [
 ];
 
 export default function Home() {
-  const [isFunnelOpen, setIsFunnelOpen] = useState(false);
-  const [initialGoal, setInitialGoal] = useState<string | undefined>();
-
-  const openFunnel = (goal?: string) => {
-    setInitialGoal(goal);
-    setIsFunnelOpen(true);
-  };
-
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/10">
       <JsonLd data={{
@@ -85,11 +75,13 @@ export default function Home() {
                 <Button
                   size="lg"
                   className="bg-accent hover:bg-accent/90 text-white shadow-lg text-lg h-14"
-                  onClick={() => openFunnel()}
+                  asChild
                   data-testid="hero-primary-cta"
                 >
-                  See My Options
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <Link href="/worksheet">
+                    See My Options
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
                 <Button
                   size="lg"
@@ -149,56 +141,50 @@ export default function Home() {
         <section className="py-20 px-4 container mx-auto max-w-5xl">
           <h2 className="text-3xl font-bold text-center mb-12 text-primary">How can I help you today?</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card
-              className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
-              onClick={() => openFunnel("Pull cash out of my home")}
-              data-testid="path-card-cash"
-            >
-              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <HomeIcon className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-xl">Pull cash from your home</h3>
-                <p className="text-muted-foreground text-sm">Access your equity to consolidate debt, renovate, or invest.</p>
-                <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Explore cash out <ArrowRight className="h-4 w-4" />
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/worksheet?product=cash-out" className="block h-full" data-testid="path-card-cash">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
+                <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                  <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <HomeIcon className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xl">Pull cash from your home</h3>
+                  <p className="text-muted-foreground text-sm">Access your equity to consolidate debt, renovate, or invest.</p>
+                  <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Explore cash out <ArrowRight className="h-4 w-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
-              onClick={() => openFunnel("Lower my monthly payment")}
-              data-testid="path-card-lower"
-            >
-              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Percent className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-xl">Lower my monthly payment</h3>
-                <p className="text-muted-foreground text-sm">Refinance to a better rate or drop mortgage insurance.</p>
-                <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  See lower rates <ArrowRight className="h-4 w-4" />
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/worksheet?product=rate-reduction" className="block h-full" data-testid="path-card-lower">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
+                <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                  <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <Percent className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xl">Lower my monthly payment</h3>
+                  <p className="text-muted-foreground text-sm">Refinance to a better rate or drop mortgage insurance.</p>
+                  <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    See lower rates <ArrowRight className="h-4 w-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card
-              className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md"
-              onClick={() => openFunnel("Not sure, show me options")}
-              data-testid="path-card-unsure"
-            >
-              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <HelpCircle className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="font-semibold text-xl">Not sure, show me options</h3>
-                <p className="text-muted-foreground text-sm">Let's look at the numbers and see what makes sense for you.</p>
-                <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                  Get a review <ArrowRight className="h-4 w-4" />
-                </div>
-              </CardContent>
-            </Card>
+            <Link href="/worksheet" className="block h-full" data-testid="path-card-unsure">
+              <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
+                <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                  <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <HelpCircle className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-xl">Not sure, show me options</h3>
+                  <p className="text-muted-foreground text-sm">Let's look at the numbers and see what makes sense for you.</p>
+                  <div className="mt-4 text-primary font-medium text-sm flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                    Get a review <ArrowRight className="h-4 w-4" />
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </section>
 
@@ -372,11 +358,13 @@ export default function Home() {
             <Button
               size="lg"
               className="bg-accent hover:bg-accent/90 text-white shadow-xl text-xl h-16 px-8 mb-6"
-              onClick={() => openFunnel()}
+              asChild
               data-testid="footer-cta"
             >
-              See My Options
-              <ArrowRight className="ml-2 h-6 w-6" />
+              <Link href="/worksheet">
+                See My Options
+                <ArrowRight className="ml-2 h-6 w-6" />
+              </Link>
             </Button>
             <p className="text-primary-foreground/70">
               Or text me directly at <a href="tel:9494185486" className="font-semibold hover:underline">(949) 418-5486</a>
@@ -386,11 +374,6 @@ export default function Home() {
       </main>
 
       <Footer />
-      <FunnelModal
-        isOpen={isFunnelOpen}
-        onClose={() => setIsFunnelOpen(false)}
-        initialGoal={initialGoal}
-      />
     </div>
   );
 }

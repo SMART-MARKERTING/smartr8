@@ -297,7 +297,7 @@ export default function Worksheet() {
   // Steps 6 (fork) and 7 (results) sit beyond the progress bar.
   function visibleStep(s: FunnelStep): number {
     if (!isCalc) {
-      if (s === 5) return 2;
+      if (s >= 5) return 2;
       return 1;
     }
     if (s === 5) return isRateReduction ? 4 : 5;
@@ -489,23 +489,32 @@ export default function Worksheet() {
     // Persist trimmed contact (so /whats-next can read the firstName for personal banner)
     setContact({ firstName: first, lastName: last, email, mobile, tcpa: contact.tcpa });
 
-    if (!isCalc) {
-      // Non-calc: no fork, go straight to professional /whats-next
-      const params = new URLSearchParams({
-        source: "funnel-professional",
-        utm_source: "funnel",
-        utm_medium: "fork",
-        utm_campaign: "professional-path",
-      });
-      if (first) params.set("name", first);
-      setLocation(`/whats-next?${params.toString()}`);
-      return;
-    }
+    // All products — calc and non-calc — reach the fork screen.
     setStep(6);
   }
 
   function handleForkSelfBuild() {
-    // Stay in the worksheet — render the calc results screen
+    // HELOC and Purchase have no savings worksheet — route them to the best
+    // available self-directed destination instead of the calc results screen.
+    if (entryButton === "heloc") {
+      const params = new URLSearchParams();
+      if (contact.firstName) params.set("name", contact.firstName);
+      const qs = params.toString();
+      setLocation(`/heloc/instant-options${qs ? `?${qs}` : ""}`);
+      return;
+    }
+    if (entryButton === "purchase") {
+      const params = new URLSearchParams({
+        source: "funnel-self",
+        utm_source: "funnel",
+        utm_medium: "fork",
+        utm_campaign: "self-build-path",
+      });
+      if (contact.firstName) params.set("name", contact.firstName);
+      setLocation(`/whats-next?${params.toString()}`);
+      return;
+    }
+    // Calc products — stay in the worksheet and render the results screen.
     setStep(7);
   }
 
@@ -974,6 +983,24 @@ export default function Worksheet() {
   }
 
   function renderStep6Fork() {
+    // Card 1 ("Build It Yourself") adapts to the product: calc products get the
+    // savings worksheet, HELOC gets instant online offers, Purchase gets
+    // self-directed next steps.
+    const selfBuild =
+      entryButton === "heloc"
+        ? {
+            body: "Jump straight to instant HELOC offers — compare real rates and terms from our partner lenders online, right now.",
+            cta: "See Instant Options",
+          }
+        : entryButton === "purchase"
+        ? {
+            body: "Head to your next steps and explore your options online — start your application or book a time, at your own pace.",
+            cta: "Explore My Options",
+          }
+        : {
+            body: "See your full worksheet right now — monthly savings, interest saved, and years shaved off your loan. Email a copy to yourself when you're ready.",
+            cta: "Create My Quote",
+          };
     return (
       <div className="space-y-8">
         <div className="text-center">
@@ -992,12 +1019,11 @@ export default function Worksheet() {
             </div>
             <h3 className="text-lg font-bold text-primary mb-2">Build It Yourself</h3>
             <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-              See your full worksheet right now — monthly savings, interest saved, and years shaved
-              off your loan. Email a copy to yourself when you're ready.
+              {selfBuild.body}
             </p>
             <div className="mt-auto">
               <span className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-accent text-white font-semibold px-4 py-2.5 text-sm">
-                Create My Quote <ArrowRight className="h-4 w-4" />
+                {selfBuild.cta} <ArrowRight className="h-4 w-4" />
               </span>
               <div className="text-xs text-muted-foreground font-medium text-center mt-3">
                 No cost · No obligation · No credit pull
@@ -1020,7 +1046,7 @@ export default function Worksheet() {
             </div>
             <h3 className="text-lg font-bold mb-2">Done For You</h3>
             <p className="text-sm text-white/85 mb-4 leading-relaxed">
-              Mykoal personally reviews your numbers and builds a tailored game plan — a real human
+              Mykoal personally reviews your details and builds a tailored game plan — a real human
               looking at your situation, not a calculator.
             </p>
             <div className="mt-auto">
