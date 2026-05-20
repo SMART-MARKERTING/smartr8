@@ -91,7 +91,6 @@ export default function HelocQuick() {
       return;
     }
     if (!state) { setError("Please select your property state."); return; }
-    if (!consent) { setError("Please check the consent box to continue."); return; }
 
     setIsSubmitting(true);
     try {
@@ -105,7 +104,11 @@ export default function HelocQuick() {
         // 1-step form: pass pageLoadTime 0 so the Worker skips its "<8s = bot"
         // check. A genuinely fast submission here is expected, not a bot.
         pageLoadTime: 0,
-        additionalFields: { variant: "B", "Funnel-Source": "heloc-quick" },
+        additionalFields: {
+          variant: "B",
+          "Funnel-Source": "heloc-quick",
+          consent_box_checked: consent ? "yes" : "no",
+        },
       });
       if (result.success) {
         // Variant B fires its Lead event here. Variant A fires on /heloc/whats-next.
@@ -241,10 +244,11 @@ export default function HelocQuick() {
                   htmlFor="hq-consent"
                   className="text-xs text-muted-foreground cursor-pointer leading-relaxed"
                 >
-                  By submitting, you agree to be contacted by Mykoal DeShazo at
-                  Adaxa Home regarding your inquiry. Consent is not a condition of
-                  any service. Standard rates may apply. You can opt out at any
-                  time.
+                  By clicking "See My HELOC Options," you agree to be contacted
+                  by Mykoal DeShazo at Adaxa Home regarding your inquiry.
+                  Checking the box above is optional and confirms your consent.
+                  Consent is not a condition of any service. Standard rates may
+                  apply. You can opt out at any time.
                 </label>
               </div>
 
