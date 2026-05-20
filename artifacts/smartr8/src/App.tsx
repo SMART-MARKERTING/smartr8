@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { trackFbEvent, generateEventId } from "@/lib/fbq";
+import { LegacyAssetWarn } from "@/lib/legacyAssetWarn";
 import Home from "@/pages/Home";
 import ThankYou from "@/pages/ThankYou";
 import Heloc from "@/pages/Heloc";
@@ -161,6 +162,7 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <PixelRouteTracker />
           <PixelLinkTracker />
+          <LegacyAssetWarn />
           <Router />
         </WouterRouter>
         <Toaster />
