@@ -2,6 +2,93 @@
 
 ## Unreleased
 
+### Site-wide performance fixes (all pages)
+
+Targets: Performance 80+ on v1 mobile, v2 within 3 points of v1, LCP < 4s,
+TBT < 200ms, CLS 0. PSI baseline before this batch (mobile, Slow 4G):
+v1 quick 67, v2 quick 51, v1 instant-options 63, v2 instant-options 54.
+
+**1. Optimized logos.** `/eho-logo.png` (1130x1209, 25 KB) and
+`/adaxa-logo.jpg` (432x155, 7.3 KB) were served everywhere and displayed
+at 15-32px tall.
+
+- `public/eho-logo-optimized.png` (112x120, **4.2 KB**, 83% smaller)
+- `public/adaxa-logo-optimized.jpg` (312x112, **5.6 KB**, 24% smaller)
+- Originals retained at their old paths for any external references
+  (email signatures, etc.). They are no longer referenced by the app.
+- All three `<img>` references updated to point at the optimized files:
+  `src/components/Header.tsx`, `src/components/Footer.tsx`,
+  `src/components/FunnelLayout.tsx`. Every `<img>` now has explicit
+  `width` and `height` attributes so the browser reserves space (CLS
+  stays at 0). Header logo gets `fetchPriority="high"`; EHO footer
+  logos get `loading="lazy"`.
+- **If a vector source exists** for either logo, replacing the raster
+  with `.svg` will eliminate even the optimized raster cost and look
+  sharper on retina. The PNG/JPG path is documented under "What's
+  needed from Mykoal" below.
+
+**2. Self-hosted Inter (variable font, latin subset).** The previous
+setup loaded Inter via Google Fonts in both `index.html` (link tag)
+AND `src/index.css` (`@import url(...)`), forcing two render-blocking
+cross-origin requests (~750ms combined).
+
+- Added `public/fonts/inter-latin.woff2` (48 KB; covers weights
+  400-700 as a variable font; latin subset only).
+- `src/index.css`: replaced the Google `@import` with a single
+  `@font-face` declaration with `font-weight: 400 700` range and
+  `font-display: swap`.
+- `index.html`: removed both `<link rel="preconnect">` tags (no
+  longer needed) and the Google Fonts stylesheet link. Added
+  `<link rel="preload" href="/fonts/inter-latin.woff2" as="font"
+  type="font/woff2" crossorigin>`.
+
+**3. Modern build target.** `vite.config.ts`: `build.target = "es2020"`.
+Bundle audit confirms no `@babel/`, `core-js/`, `regeneratorRuntime`,
+or `_classCallCheck` polyfills present in the production main bundle.
+
+**4. Cloudflare Pages cache headers.** New `public/_headers` file
+applies `Cache-Control: public, max-age=31536000, immutable` to
+`/assets/*` (content-hashed Vite output) and `/fonts/*` (immutable
+woff2). Logos and other static images get 30-day caching.
+
+**5. Deferred analytics tags.** `index.html` rewrite moves GTM, GA,
+and Meta Pixel inline scripts to the **end of `<body>`**, just below
+the `<div id="root">` and before the deferred module script for
+`/src/main.tsx`. The browser now parses the document head and starts
+painting before executing any analytics IIFEs. All three still fire:
+
+- GTM gtm.js still loads async via the inline loader.
+- gtag/js external script keeps its `async` attribute.
+- Meta Pixel still calls `fbq('init', ...)` and `fbq('track', 'PageView')`
+  during initial parse (just later than before). `trackFbEvent` calls
+  from React `useEffect` run after the inline IIFEs, so the fbq queue
+  is set up before any event is fired.
+
+**6. Eager-loaded v2 routes.** `src/App.tsx`: removed `React.lazy()`
++ `Suspense` for `HelocQuickV2` and `HelocInstantOptionsV2`. These are
+ad-traffic landing pages: visitors arrive directly, so the lazy split
+saved zero bytes on the warmup path while costing ~750-840ms of
+critical-path latency. All other routes remain eager (as they were).
+Bundle cost: +18 KB raw / +3.6 KB gz in the main `index.js`.
+
+### Assets needed from Mykoal (handoff)
+
+For the largest LCP wins, replace the raster logos with vector:
+
+- **Adaxa logo (SVG):** ideal display sizes 56-156px wide. Save to
+  `artifacts/smartr8/public/adaxa-logo.svg`. Then update Header.tsx
+  to `src="/adaxa-logo.svg"`. SVG removes the 5.6 KB raster cost
+  entirely and renders pixel-perfect at any size.
+- **EHO logo (SVG):** ideal display size 15-32px square. Save to
+  `artifacts/smartr8/public/eho-logo.svg`. Update Footer.tsx and
+  FunnelLayout.tsx to `src="/eho-logo.svg"`. SVG also lets us drop
+  the current `brightness-0 invert` filter hack used in Footer.tsx.
+
+These are nice-to-have, not blockers. The optimized rasters already
+deliver most of the byte savings.
+
+---
+
 ### Added: HELOC v2 A/B test (Meta/Instagram campaign)
 
 Two new pages built as the **treatment** arm of an A/B test against the

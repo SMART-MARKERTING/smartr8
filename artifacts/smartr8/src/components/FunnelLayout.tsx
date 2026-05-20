@@ -57,8 +57,12 @@ export function FunnelLayout({ step, totalSteps, onBack, children }: FunnelLayou
 
       <div className="shrink-0 border-t border-border px-4 py-3 flex items-center justify-center gap-2 bg-secondary/20">
         <img
-          src="/eho-logo.png"
+          src="/eho-logo-optimized.png"
           alt="Equal Housing Opportunity"
+          width={15}
+          height={16}
+          loading="lazy"
+          decoding="async"
           className="h-4 w-auto object-contain opacity-60"
           onError={(e) => { e.currentTarget.style.display = "none"; }}
         />

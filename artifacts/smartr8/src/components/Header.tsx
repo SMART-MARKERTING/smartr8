@@ -6,7 +6,15 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-[#0f3d4d] shadow-sm" style={{ backgroundColor: "#13485A" }}>
       <div className="container mx-auto px-4 h-12 flex items-center justify-between max-w-5xl gap-3">
         <Link href="/" className="flex items-center min-w-0">
-          <img src="/adaxa-logo.jpg" alt="Adaxa Home" className="h-8 w-auto object-contain shrink-0" />
+          <img
+            src="/adaxa-logo-optimized.jpg"
+            alt="Adaxa Home"
+            width={89}
+            height={32}
+            className="h-8 w-auto object-contain shrink-0"
+            fetchPriority="high"
+            decoding="async"
+          />
         </Link>
         <a
           href="tel:9494185486"

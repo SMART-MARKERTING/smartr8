@@ -1,4 +1,4 @@
-import { useEffect, useRef, lazy, Suspense } from "react";
+import { useEffect, useRef } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,13 +11,12 @@ import HelocNextSteps from "@/pages/HelocNextSteps";
 import HelocWhatsnext from "@/pages/HelocWhatsnext";
 import HelocInstantOptions from "@/pages/HelocInstantOptions";
 import HelocQuick from "@/pages/HelocQuick";
+import HelocQuickV2 from "@/pages/HelocQuickV2";
+import HelocInstantOptionsV2 from "@/pages/HelocInstantOptionsV2";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
 import WhatsNext from "@/pages/WhatsNext";
 import NotFound from "@/pages/not-found";
-
-const HelocQuickV2 = lazy(() => import("@/pages/HelocQuickV2"));
-const HelocInstantOptionsV2 = lazy(() => import("@/pages/HelocInstantOptionsV2"));
 
 const queryClient = new QueryClient();
 
@@ -130,30 +129,28 @@ function RedirectTo({ to }: { to: string }) {
 
 function Router() {
   return (
-    <Suspense fallback={null}>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/thank-you" component={ThankYou} />
-        <Route path="/heloc" component={Heloc} />
-        <Route path="/heloc/next-steps" component={HelocNextSteps} />
-        <Route path="/heloc/whats-next" component={HelocWhatsnext} />
-        <Route path="/heloc/instant-options" component={HelocInstantOptions} />
-        <Route path="/heloc/instant-options-v2" component={HelocInstantOptionsV2} />
-        <Route path="/heloc/quick" component={HelocQuick} />
-        <Route path="/heloc/quick-v2" component={HelocQuickV2} />
-        {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}
-        <Route path="/apply/cash-out">{() => <RedirectTo to="/worksheet?product=cash-out" />}</Route>
-        <Route path="/apply/rate-reduction">{() => <RedirectTo to="/worksheet?product=rate-reduction" />}</Route>
-        <Route path="/apply/purchase">{() => <RedirectTo to="/worksheet?product=purchase" />}</Route>
-        <Route path="/apply/cash-out/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
-        <Route path="/apply/rate-reduction/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
-        <Route path="/apply/purchase/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
-        <Route path="/worksheet/internal" component={WorksheetInternal} />
-        <Route path="/worksheet" component={Worksheet} />
-        <Route path="/whats-next" component={WhatsNext} />
-        <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/thank-you" component={ThankYou} />
+      <Route path="/heloc" component={Heloc} />
+      <Route path="/heloc/next-steps" component={HelocNextSteps} />
+      <Route path="/heloc/whats-next" component={HelocWhatsnext} />
+      <Route path="/heloc/instant-options" component={HelocInstantOptions} />
+      <Route path="/heloc/instant-options-v2" component={HelocInstantOptionsV2} />
+      <Route path="/heloc/quick" component={HelocQuick} />
+      <Route path="/heloc/quick-v2" component={HelocQuickV2} />
+      {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}
+      <Route path="/apply/cash-out">{() => <RedirectTo to="/worksheet?product=cash-out" />}</Route>
+      <Route path="/apply/rate-reduction">{() => <RedirectTo to="/worksheet?product=rate-reduction" />}</Route>
+      <Route path="/apply/purchase">{() => <RedirectTo to="/worksheet?product=purchase" />}</Route>
+      <Route path="/apply/cash-out/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
+      <Route path="/apply/rate-reduction/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
+      <Route path="/apply/purchase/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
+      <Route path="/worksheet/internal" component={WorksheetInternal} />
+      <Route path="/worksheet" component={Worksheet} />
+      <Route path="/whats-next" component={WhatsNext} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

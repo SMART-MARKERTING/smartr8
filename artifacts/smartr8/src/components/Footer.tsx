@@ -7,7 +7,15 @@ export function Footer() {
         <p className="text-sm mb-6" style={{ color: "rgba(255,255,255,0.7)" }}>16767 N Perimeter Dr., Ste 150, Scottsdale, AZ 85260</p>
 
         <div className="flex items-center justify-center gap-2 mb-4">
-          <img src="/eho-logo.png" alt="Equal Housing Opportunity" className="h-4 w-auto object-contain brightness-0 invert" />
+          <img
+            src="/eho-logo-optimized.png"
+            alt="Equal Housing Opportunity"
+            width={15}
+            height={16}
+            loading="lazy"
+            decoding="async"
+            className="h-4 w-auto object-contain brightness-0 invert"
+          />
           <span className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.85)" }}>Equal Housing Opportunity</span>
         </div>
 
