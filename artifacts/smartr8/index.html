@@ -20,8 +20,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="canonical" href="https://smartr8.com/" />
-    <meta property="og:url" content="https://smartr8.com/" />
+
+    <!-- Canonical and robots meta are set per-route by PageMeta after React
+         mounts. We deliberately do not declare a static canonical here so
+         PSI / Lighthouse don't normalize deep-route analyses (e.g. /heloc/
+         quick-v2) back to the root URL. -->
 
     <!-- Self-hosted Inter (variable font, weights 400-700, latin subset).
          Preload removes the font from the critical-path tail on initial load. -->

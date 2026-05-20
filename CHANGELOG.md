@@ -2,7 +2,42 @@
 
 ## Unreleased
 
-### Site-wide performance fixes (all pages)
+### Round 2: render-blocking CSS + PSI URL normalization
+
+**Non-blocking CSS.** Added a small Vite plugin (`nonBlockingCssPlugin`
+in `vite.config.ts`) that rewrites the generated stylesheet link from
+
+    <link rel="stylesheet" crossorigin href="/assets/index-*.css">
+
+to
+
+    <link rel="preload" as="style" crossorigin href="..."
+          onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" crossorigin href="..."></noscript>
+
+The browser starts the CSS download without blocking render. The
+`<noscript>` fallback preserves blocking-stylesheet behavior for
+JS-disabled crawlers. FOUC risk is minimal for this SPA: CSS (20 kB gz)
+typically loads well before main.tsx (167 kB gz) finishes parsing, so
+React mounts into already-styled DOM.
+
+Critical-CSS inlining (beasties / vite-plugin-critical) was considered
+and rejected: this is a client-rendered SPA whose initial body is just
+`<div id="root">`, so static critical-CSS extraction has nothing to
+analyze. The preload-swap pattern gives most of the win without the
+complexity of pre-rendering.
+
+**Removed static canonical from index.html.** PSI / Lighthouse on the
+two v2 routes sometimes normalized the displayed URL back to the root
+because they saw the initial-HTML `<link rel="canonical"
+href="https://smartr8.com/">` before React mounted. `PageMeta` already
+sets the correct per-route canonical after mount, so the static one was
+both redundant and misleading. Removed; PageMeta is now the single
+source of truth for canonical and robots meta.
+
+---
+
+### Round 1: site-wide performance fixes (all pages)
 
 Targets: Performance 80+ on v1 mobile, v2 within 3 points of v1, LCP < 4s,
 TBT < 200ms, CLS 0. PSI baseline before this batch (mobile, Slow 4G):

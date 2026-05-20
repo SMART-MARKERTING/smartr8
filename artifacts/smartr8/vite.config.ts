@@ -61,12 +61,37 @@ function fixPakoPlugin(): Plugin {
   };
 }
 
+function nonBlockingCssPlugin(): Plugin {
+  // Vite emits <link rel="stylesheet" crossorigin href="/assets/index-*.css">
+  // in production. That tag is render-blocking. Swap it to a preload + onload
+  // promotion so the browser can paint immediately, with a <noscript> fallback
+  // for JS-disabled crawlers. Pattern: https://web.dev/articles/defer-non-critical-css
+  return {
+    name: "non-blocking-css",
+    enforce: "post",
+    apply: "build",
+    transformIndexHtml(html) {
+      return html.replace(
+        /<link\s+rel="stylesheet"([^>]*?)href="([^"]+\.css)"([^>]*)>/g,
+        (_match, before, href, after) => {
+          const attrs = `${before}href="${href}"${after}`.trim();
+          return (
+            `<link rel="preload" as="style" ${attrs} onload="this.onload=null;this.rel='stylesheet'">` +
+            `<noscript><link rel="stylesheet" ${attrs}></noscript>`
+          );
+        },
+      );
+    },
+  };
+}
+
 export default defineConfig({
   base: basePath,
   plugins: [
     fixPakoPlugin(),
     react(),
     tailwindcss(),
+    nonBlockingCssPlugin(),
     ...(isDevServer && process.env.REPL_ID !== undefined
       ? [
           await import("@replit/vite-plugin-runtime-error-modal").then((m) =>
