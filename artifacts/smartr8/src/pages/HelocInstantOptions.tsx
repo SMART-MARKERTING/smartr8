@@ -185,7 +185,7 @@ export default function HelocInstantOptions() {
             </div>
 
             {/* Trust strip */}
-            <div className="grid grid-cols-3 gap-4 mb-10 text-center">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 text-center">
               {[
                 { icon: Shield, label: "Soft credit check only" },
                 { icon: Clock, label: "Results in minutes" },

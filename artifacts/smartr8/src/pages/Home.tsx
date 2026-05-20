@@ -69,10 +69,10 @@ export default function Home() {
 
       <main className="flex-1">
         {/* HERO SECTION */}
-        <section className="pt-16 pb-12 md:pt-24 md:pb-20 px-4 container mx-auto max-w-5xl">
+        <section className="pt-12 pb-12 md:pt-24 md:pb-20 px-4 container mx-auto max-w-5xl">
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-primary leading-[1.1]">
                 Real mortgage options from a loan officer who actually picks up the phone.
               </h1>
               <p className="text-lg md:text-xl text-muted-foreground leading-relaxed">
@@ -106,11 +106,11 @@ export default function Home() {
             </div>
 
             {/* HEADSHOT */}
-            <div className="relative h-64 md:h-[420px] w-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-700 delay-150 flex items-center justify-center">
+            <div className="relative h-56 sm:h-64 md:h-[420px] w-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-700 delay-150 flex items-center justify-center">
               <img
                 src="/mykoal-headshot.jpg"
                 alt="Mykoal DeShazo — VP & Senior Loan Officer at Adaxa Home"
-                className="h-64 w-64 md:h-[380px] md:w-[380px] rounded-full object-cover object-top border-4 border-white shadow-2xl"
+                className="h-56 w-56 sm:h-64 sm:w-64 md:h-[380px] md:w-[380px] rounded-full object-cover object-top border-4 border-white shadow-2xl"
                 onError={(e) => {
                   const el = e.currentTarget;
                   el.style.display = "none";

@@ -93,7 +93,7 @@ export default function ThankYou() {
             </svg>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-6" style={{ color: "#1A3A47" }}>
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight mb-6" style={{ color: "#1A3A47" }}>
             Got it. Let's talk.
           </h1>
 
@@ -111,8 +111,7 @@ export default function ThankYou() {
             <p className="text-muted-foreground mb-6">Pick a time that works for you. I'll call you at the number you provided.</p>
             <div
               id="my-cal-inline"
-              className="w-full border border-border rounded-xl bg-white shadow-sm overflow-hidden"
-              style={{ minHeight: "600px" }}
+              className="w-full border border-border rounded-xl bg-white shadow-sm overflow-hidden min-h-[500px] sm:min-h-[600px]"
               data-testid="calcom-embed"
             />
           </div>
