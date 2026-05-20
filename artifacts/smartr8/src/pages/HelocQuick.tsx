@@ -84,7 +84,12 @@ export default function HelocQuick() {
     if (!firstName.trim()) { setError("Please enter your first name."); return; }
     if (!lastName.trim()) { setError("Please enter your last name."); return; }
     if (!isValidEmail(email)) { setError("Please enter a valid email address."); return; }
-    if (phone.replace(/\D/g, "").length < 10) { setError("Please enter a valid 10-digit phone number."); return; }
+    // Phone is optional — only validate the format if the user actually typed something.
+    const phoneDigits = phone.replace(/\D/g, "").length;
+    if (phoneDigits > 0 && phoneDigits < 10) {
+      setError("Please enter a valid 10-digit phone number or leave it blank.");
+      return;
+    }
     if (!state) { setError("Please select your property state."); return; }
     if (!consent) { setError("Please check the consent box to continue."); return; }
 
@@ -197,7 +202,9 @@ export default function HelocQuick() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="hq-phone">Mobile Phone</Label>
+                <Label htmlFor="hq-phone">
+                  Mobile Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                </Label>
                 <Input
                   id="hq-phone"
                   type="tel"
@@ -206,7 +213,6 @@ export default function HelocQuick() {
                   onChange={(e) => setPhone(formatPhone(e.target.value))}
                   className="h-12 text-base"
                   autoComplete="tel"
-                  required
                 />
               </div>
 

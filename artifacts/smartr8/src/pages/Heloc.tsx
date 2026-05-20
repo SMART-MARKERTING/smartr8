@@ -65,7 +65,7 @@ export default function HelocFunnel() {
   const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (949) 418-5486 and he will get back to you within minutes.";
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!st.email || !st.phone || !st.consent) { setSubmitError("Please fill out all fields and accept the consent."); return; }
+    if (!st.email || !st.consent) { setSubmitError("Please enter your email and accept the consent."); return; }
     setIsSubmitting(true); setSubmitError("");
     try {
       const result = await submitLead({ funnel:"heloc", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline } });
@@ -208,13 +208,13 @@ export default function HelocFunnel() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <input type="text" name="website" value={st.honeypot} onChange={(e) => p({ honeypot:e.target.value })} tabIndex={-1} aria-hidden="true" autoComplete="off" style={{ position:"absolute", left:"-9999px", opacity:0, height:0, width:0 }} />
             <div className="space-y-1.5"><Label htmlFor="email">Email</Label><Input id="email" type="email" placeholder="jane@example.com" value={st.email} onChange={(e) => p({ email:e.target.value })} className="text-base py-5" required /></div>
-            <div className="space-y-1.5"><Label htmlFor="phone">Mobile Phone</Label><Input id="phone" type="tel" placeholder="(555) 555-5555" value={st.phone} onChange={(e) => p({ phone:e.target.value })} className="text-base py-5" required /></div>
+            <div className="space-y-1.5"><Label htmlFor="phone">Mobile Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label><Input id="phone" type="tel" placeholder="(555) 555-5555" value={st.phone} onChange={(e) => p({ phone:e.target.value })} className="text-base py-5" /></div>
             <div className="flex items-start gap-3 bg-secondary/50 p-4 rounded-xl mt-1">
               <Checkbox id="consent" checked={st.consent} onCheckedChange={(c) => p({ consent:!!c })} className="mt-0.5" />
               <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">By submitting, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.</label>
             </div>
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
-            <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !st.phone || !st.consent}>
+            <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !st.consent}>
               {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My HELOC Options"}
             </Button>
           </form>
