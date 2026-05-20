@@ -73,7 +73,6 @@ export default function ExportLeadModal({
     if (!form.firstName.trim()) e.firstName = "Required.";
     if (!form.lastName.trim()) e.lastName = "Required.";
     if (!form.email.trim() || !form.email.includes("@")) e.email = "Enter a valid email.";
-    if (!form.tcpa) e.tcpa = "Please agree to be contacted.";
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -107,6 +106,7 @@ export default function ExportLeadModal({
           fileName: `Loan-Benefits-Worksheet-${clientName.replace(/\s+/g, "-")}.pdf`,
           worksheetSummary,
           trackingId: getOrCreateTrackingId(),
+          consentBoxChecked: form.tcpa,
         }),
       });
       const data = (await res.json()) as { success: boolean; emailOk?: boolean; error?: string };
@@ -229,10 +229,10 @@ export default function ExportLeadModal({
                   htmlFor="ex-tcpa"
                   className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
                 >
-                  By checking this box I agree to be contacted by Mykoal DeShazo / Adaxa Home LLC
-                  via phone, email, or text (including automated means) regarding mortgage products.
-                  I understand consent is not required to obtain services. Message and data rates may
-                  apply.
+                  By submitting this form, I agree to be contacted by Mykoal DeShazo / Adaxa Home
+                  LLC via phone, email, or text (including automated means) regarding mortgage
+                  products. Checking the box above is optional and confirms my consent. Consent is
+                  not required to obtain services. Message and data rates may apply.
                 </Label>
               </div>
               {errors.tcpa && (

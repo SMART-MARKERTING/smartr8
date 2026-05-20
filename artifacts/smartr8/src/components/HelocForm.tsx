@@ -187,7 +187,6 @@ export function HelocForm() {
     if (!isValidEmail(form.email)) { setError("Please enter a valid email address."); return; }
     if (form.phone.replace(/\D/g, "").length < 10) { setError("Please enter a valid 10-digit phone number."); return; }
     if (!form.state) { setError("Please select your property state."); return; }
-    if (!form.consent) { setError("Please check the consent box to continue."); return; }
 
     setIsSubmitting(true);
     try {
@@ -201,7 +200,12 @@ export function HelocForm() {
         homeValue: form.home_value,
         mortgageBalance: form.mortgage_balance,
         pageLoadTime: pageLoadTimeRef.current,
-        additionalFields: { helocPurposes: form.heloc_purposes, timeline: form.timeline, variant: "A" },
+        additionalFields: {
+          helocPurposes: form.heloc_purposes,
+          timeline: form.timeline,
+          variant: "A",
+          consent_box_checked: form.consent ? "yes" : "no",
+        },
       });
       if (result.success) {
         setLocation(`/heloc/whats-next?name=${encodeURIComponent(form.first_name)}`);
@@ -405,7 +409,7 @@ export function HelocForm() {
                 className="mt-0.5 shrink-0"
               />
               <label htmlFor="heloc_consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-                By submitting, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.
+                By submitting this form, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Checking the box above is optional and confirms your consent. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.
               </label>
             </div>
           </div>

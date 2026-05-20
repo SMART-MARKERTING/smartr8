@@ -593,11 +593,6 @@ export default function Worksheet() {
       toast({ title: "Mobile required", description: "Please enter a 10-digit mobile number so Mykoal can reach you.", variant: "destructive" });
       return;
     }
-    if (!contact.tcpa) {
-      toast({ title: "Consent required", description: "Please check the box agreeing to be contacted.", variant: "destructive" });
-      return;
-    }
-
     setIsSubmittingContact(true);
 
     // Snapshot every captured answer for LeadMailbox Notes
@@ -626,7 +621,10 @@ export default function Worksheet() {
       email,
       phone: mobile,
       entryButton: entryButton ?? "cash-out",
-      funnelAnswers,
+      funnelAnswers: {
+        ...funnelAnswers,
+        "Consent-Box-Checked": contact.tcpa ? "Yes" : "No",
+      },
     });
 
     if (!result.success) {
@@ -671,6 +669,7 @@ export default function Worksheet() {
             fileName: `Loan-Benefits-Worksheet-${clientName.replace(/\s+/g, "-")}.pdf`,
             worksheetSummary,
             trackingId: getOrCreateTrackingId(),
+            consentBoxChecked: contact.tcpa,
           }),
         });
       } catch (err) {
@@ -1327,10 +1326,11 @@ export default function Worksheet() {
             data-testid="contact-tcpa"
           />
           <Label htmlFor="cf-tcpa" className="text-xs leading-snug font-normal cursor-pointer">
-            By providing my contact info and submitting, I agree to receive calls, texts, and emails
-            from Mykoal DeShazo at Adaxa Home, LLC regarding my mortgage inquiry, including via
-            automated dialer. I understand consent is not a condition of any purchase and I can opt
-            out at any time. Standard message and data rates may apply.
+            By submitting this form, I agree to receive calls, texts, and emails from Mykoal DeShazo
+            at Adaxa Home, LLC regarding my mortgage inquiry, including via automated dialer.
+            Checking the box above is optional and confirms my consent. Consent is not a condition
+            of any purchase and I can opt out at any time. Standard message and data rates may
+            apply.
           </Label>
         </div>
         <p className="text-[11px] text-muted-foreground">

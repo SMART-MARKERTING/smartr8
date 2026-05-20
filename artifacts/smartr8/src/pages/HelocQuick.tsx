@@ -244,11 +244,11 @@ export default function HelocQuick() {
                   htmlFor="hq-consent"
                   className="text-xs text-muted-foreground cursor-pointer leading-relaxed"
                 >
-                  By clicking "See My HELOC Options," you agree to be contacted
-                  by Mykoal DeShazo at Adaxa Home regarding your inquiry.
-                  Checking the box above is optional and confirms your consent.
-                  Consent is not a condition of any service. Standard rates may
-                  apply. You can opt out at any time.
+                  By submitting this form, you agree to be contacted by Mykoal
+                  DeShazo at Adaxa Home regarding your inquiry. Checking the
+                  box above is optional and confirms your consent. Consent is
+                  not a condition of any service. Standard rates may apply. You
+                  can opt out at any time.
                 </label>
               </div>
 

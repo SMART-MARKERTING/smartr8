@@ -61,7 +61,6 @@ export default function LeadCaptureModal({
     if (!firstName.trim()) e.firstName = "First name is required.";
     if (!lastName.trim()) e.lastName = "Last name is required.";
     if (!email.trim() || !email.includes("@")) e.email = "Enter a valid email address.";
-    if (!tcpa) e.tcpa = "You must agree to be contacted.";
     return e;
   }
 
@@ -109,6 +108,7 @@ export default function LeadCaptureModal({
         submittedAt: new Date().toISOString(),
         userAgent: navigator.userAgent,
         trackingId,
+        consentBoxChecked: tcpa,
       }),
     })
       .then((res) => res.json())
@@ -238,10 +238,10 @@ export default function LeadCaptureModal({
                 htmlFor="tcpa"
                 className="text-xs text-muted-foreground leading-relaxed cursor-pointer"
               >
-                By checking this box I agree to be contacted by Mykoal DeShazo / Adaxa Home LLC
+                By submitting this form, I agree to be contacted by Mykoal DeShazo / Adaxa Home LLC
                 via phone, email, or text (including automated means) regarding mortgage products.
-                I understand consent is not required to obtain services. Message and data rates may
-                apply.
+                Checking the box above is optional and confirms my consent. Consent is not required
+                to obtain services. Message and data rates may apply.
               </Label>
             </div>
             {errors.tcpa && (
