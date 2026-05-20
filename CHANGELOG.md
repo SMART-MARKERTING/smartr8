@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+### Follow-up backlog (after Meta campaign launches)
+
+Parked here while the v2 A/B test runs. Revisit once we have ~1 week of
+ad data:
+
+1. **`manualChunks` route-split for ad-traffic visitors.** Move
+   `pages/Home`, `pages/Worksheet`, `pages/WorksheetInternal`, and the
+   `/heloc/whats-next` family into their own lazy chunks so visitors
+   landing on `/heloc/quick(-v2)` from a Meta ad don't carry home-page
+   or worksheet code. Keep the HELOC funnel routes (`HelocQuick`,
+   `HelocQuickV2`, `HelocInstantOptions`, `HelocInstantOptionsV2`,
+   `HelocWhatsnext`) eager-bundled together since users move between
+   them. Estimated main-bundle shrink: 30-60 kB raw / 8-15 kB gz.
+
+2. **Defer Meta Pixel and GTM further.** Currently end-of-body, which
+   removed them from the critical path but they still execute on initial
+   parse. Push them behind `requestIdleCallback` or a 1-2 second
+   `setTimeout` so they don't compete with React mount for the main
+   thread. **Risk:** the click-through Lead event on `/heloc/quick(-v2)`
+   form submit must still fire reliably. Add a defensive timer that
+   force-loads fbq before the form is submittable, or accept that a
+   user who submits within ~1 second of landing might miss a Lead
+   attribution. Verify in Meta Events Manager Test Events before
+   shipping.
+
+3. **Critical CSS pre-render.** Only feasible if we move to SSR
+   (Cloudflare Workers, Vite SSR) or static pre-rendering at build
+   time. Would unlock proper above-the-fold inlining (~3-5 kB inline,
+   the rest deferred). Probably not worth the architectural change
+   unless PSI is still flagging render-blocking CSS at that point.
+
+4. **Delete legacy `/eho-logo.png` and `/adaxa-logo.jpg`.** Run the
+   preview for ~24-48 hours with the `[smartr8 perf]` console-warn
+   active. If no warnings surface and no external systems (email
+   signatures, CRM templates) hot-link the originals, delete them
+   from `public/` along with `src/lib/legacyAssetWarn.tsx` and its
+   import in `App.tsx`. Single-commit cleanup.
+
+---
+
 ### Round 2: render-blocking CSS + PSI URL normalization
 
 **Non-blocking CSS.** Added a small Vite plugin (`nonBlockingCssPlugin`
