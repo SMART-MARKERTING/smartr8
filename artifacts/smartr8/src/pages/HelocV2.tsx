@@ -106,6 +106,9 @@ export default function HelocV2() {
 
   useEffect(() => { sessionStorage.setItem(SESSION_KEY, JSON.stringify(st)); }, [st]);
   useEffect(() => { ga4.trackFunnelStart(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Reset scroll to the top on each step change so the header/progress/question
+  // are in view (steps render in one component, so there's no remount to do it).
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "auto" }); }, [st.step]);
 
   const p = (patch: Partial<FS>) => setSt((prev) => ({ ...prev, ...patch }));
   const advance = () => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, step: prev.step+1 }; });
@@ -340,7 +343,7 @@ export default function HelocV2() {
                 form={cta.submit ? "heloc-v2-form" : undefined}
                 onClick={cta.onClick}
                 disabled={cta.disabled}
-                className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-muted text-muted-foreground" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
+                className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-gray-300 text-gray-600" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
               >
                 {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
               </Button>
@@ -359,7 +362,7 @@ export default function HelocV2() {
               form={cta.submit ? "heloc-v2-form" : undefined}
               onClick={cta.onClick}
               disabled={cta.disabled}
-              className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-muted text-muted-foreground" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
+              className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-gray-300 text-gray-600" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
             >
               {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
             </Button>
