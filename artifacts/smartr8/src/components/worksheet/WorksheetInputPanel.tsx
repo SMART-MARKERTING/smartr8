@@ -125,13 +125,15 @@ export default function WorksheetInputPanel({
     reader.readAsDataURL(file);
   }
 
-  // Auto APR display
+  // Auto APR (used when no manual override is entered)
   const autoApr = solveApr(
     inputs.loanAmount,
     inputs.loanRate,
     inputs.termYears * 12,
     inputs.closingCosts,
   );
+  const usingCustomApr = inputs.customApr > 0;
+  const effectiveApr = usingCustomApr ? inputs.customApr : autoApr;
 
   return (
     <div className="space-y-6 text-sm">
@@ -249,10 +251,24 @@ export default function WorksheetInputPanel({
             </Select>
           </div>
           <NumInput label="Cash Back at Closing" prefix="$" value={inputs.cashBack} onChange={(v) => set("cashBack", v)} step={500} optional />
+          <NumInput label="APR (override)" suffix="%" value={inputs.customApr} onChange={(v) => set("customApr", v)} step={0.001} optional placeholder={autoApr > 0 ? autoApr.toFixed(3) : undefined} />
         </div>
         <div className="mt-3 p-2 rounded bg-muted/40 text-[11px] text-muted-foreground space-y-0.5">
           <div>
-            APR (auto-calculated): <strong className="text-primary">{autoApr > 0 ? pct(autoApr) : "—"}</strong>
+            APR in use: <strong className="text-primary">{effectiveApr > 0 ? pct(effectiveApr) : "—"}</strong>{" "}
+            <span className="text-muted-foreground">({usingCustomApr ? "manual override" : "auto from closing costs"})</span>
+          </div>
+          {usingCustomApr && (
+            <button
+              type="button"
+              className="text-[11px] underline text-muted-foreground hover:text-primary"
+              onClick={() => set("customApr", 0)}
+            >
+              Clear override and use auto APR ({autoApr > 0 ? pct(autoApr) : "—"})
+            </button>
+          )}
+          <div className="pt-0.5">
+            Leave APR blank to auto-calculate. Enter your Loan Estimate APR to override.
           </div>
           <div>
             Extra principal: <strong className="text-primary">auto = monthly savings</strong> (locked)

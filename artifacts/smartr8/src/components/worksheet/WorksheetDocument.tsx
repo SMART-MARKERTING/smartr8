@@ -208,7 +208,7 @@ const WorksheetDocument = React.forwardRef<HTMLDivElement, WorksheetDocumentProp
                 </tr>
                 <tr style={{ background: LIGHT }}>
                   <td style={{ ...tdStyle, fontWeight: 700, color: isNegativeSavings ? RED : GREEN }}>
-                    Auto-Applied Monthly Savings
+                    Monthly Savings (if applied to principal)
                   </td>
                   <td style={{ ...tdNumStyle, fontWeight: 700, color: isNegativeSavings ? RED : GREEN }}>
                     {money(results.monthlySavings)}
@@ -338,7 +338,7 @@ const WorksheetDocument = React.forwardRef<HTMLDivElement, WorksheetDocumentProp
                   ["APR (estimated)", newLoanApr > 0 ? pct(newLoanApr) : pct(inputs.loanRate)],
                   ["Loan structure", STRUCTURE_LABELS[inputs.loanStructure]],
                   ...(isNegativeSavings ? [] : [
-                    ["Monthly savings applied", money(results.extraMonthly)] as [string, string],
+                    ["Monthly savings (if applied)", money(results.extraMonthly)] as [string, string],
                     ["Years shaved off", timeSaved.toFixed(1) + " years"] as [string, string],
                     ["Total interest eliminated", money(totalSaved)] as [string, string],
                     ["Effective interest rate†", pct(accelerated.effectiveRate ?? 0)] as [string, string],

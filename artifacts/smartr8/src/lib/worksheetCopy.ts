@@ -36,14 +36,14 @@ export function buildExplainer(inputs: WorksheetInputs, results: ScenarioResults
         : `restructuring into a new mortgage`;
       const banner =
         `By ${debtBlurb} at ${aprStr}, you free up ${money(monthlySavings)}/month. ` +
-        `Redirecting that savings back to principal makes your ${pct(inputs.loanRate)} loan effectively cost ${pct(effRate)} — ` +
+        `By applying that ${money(monthlySavings)}/month in savings to the new loan's principal each month, your ${pct(inputs.loanRate)} loan effectively costs ${pct(effRate)} — ` +
         `saving ${money(totalSaved)} in interest and ${fixed(timeSaved)} years.`;
 
       const p1 = inputs.hasExistingMortgage
         ? `Today you pay ${money(current.monthlyPmt)}/month total — your existing mortgage (${money(firstMortgagePITI)}) plus ${money(results.debtMinPmt)} in minimum payments across your other debts.`
         : `Today you pay ${money(current.monthlyPmt)}/month in minimum payments across your higher-interest debts.`;
       const p2 = `By ${inputs.hasExistingMortgage ? "refinancing your mortgage" : "taking out a new mortgage"} of ${money(inputs.loanAmount)} at ${aprStr}, all of those higher-interest debts get rolled into a single lower-rate first mortgage. Your new total monthly outflow drops to ${money(results.newTotalOutflow)}, freeing up ${money(monthlySavings)}/month in cash flow.`;
-      const p3 = `That ${money(monthlySavings)}/month savings is automatically redirected to the new loan's principal each month. Every dollar of principal retired early never accrues interest again. This is why your stated ${pct(inputs.loanRate)} rate behaves like ${pct(effRate)} in practice — saving ${money(totalSaved)} in interest and paying off the loan in ${fixed(accelerated.years)} years instead of ${fixed(consolidated.years, 0)}.`;
+      const p3 = `By applying that ${money(monthlySavings)}/month in savings to the new loan's principal each month, every dollar of principal you retire early never accrues interest again. If those payments are made consistently, your stated ${pct(inputs.loanRate)} rate behaves like ${pct(effRate)} in practice — saving ${money(totalSaved)} in interest and paying off the loan in ${fixed(accelerated.years)} years instead of ${fixed(consolidated.years, 0)}.`;
 
       return { banner, paragraphs: [p1, p2, p3] };
     }
@@ -51,12 +51,12 @@ export function buildExplainer(inputs: WorksheetInputs, results: ScenarioResults
     case "RATE_REDUCTION": {
       const oldRateStr = inputs.existRate > 0 ? pct(inputs.existRate) : "your current rate";
       const banner =
-        `By refinancing from ${oldRateStr} to ${pct(inputs.loanRate)} AND redirecting your monthly savings of ${money(monthlySavings)}/month back to principal, ` +
+        `By refinancing from ${oldRateStr} to ${pct(inputs.loanRate)} AND applying your monthly savings of ${money(monthlySavings)}/month to the new loan's principal each month, ` +
         `your new loan effectively costs you ${pct(effRate)} — saving ${money(totalSaved)} in interest and ${fixed(timeSaved)} years vs. just lowering your rate alone.`;
 
       const p1 = `Your current mortgage costs you ${money(firstMortgagePITI)}/month${inputs.existRate > 0 ? ` at ${oldRateStr}` : ""}.`;
       const p2 = `By refinancing to ${aprStr}, your new payment drops to ${money(results.newTotalOutflow)} — a monthly savings of ${money(monthlySavings)}.`;
-      const p3 = `That ${money(monthlySavings)}/month savings is automatically redirected to the new loan's principal each month. Every dollar of principal retired early never accrues interest again, which is why your stated ${pct(inputs.loanRate)} behaves like ${pct(effRate)} in practice — saving ${money(totalSaved)} in interest and shaving ${fixed(timeSaved)} years off your payoff timeline.`;
+      const p3 = `By applying that ${money(monthlySavings)}/month in savings to the new loan's principal each month, every dollar of principal you retire early never accrues interest again. If those payments are made consistently, your stated ${pct(inputs.loanRate)} behaves like ${pct(effRate)} in practice — saving ${money(totalSaved)} in interest and shaving ${fixed(timeSaved)} years off your payoff timeline.`;
 
       return { banner, paragraphs: [p1, p2, p3] };
     }
@@ -65,14 +65,14 @@ export function buildExplainer(inputs: WorksheetInputs, results: ScenarioResults
       const banner =
         `By using a Home Equity Loan of ${money(inputs.loanAmount)} to consolidate ${money(totalDebt)} in higher-interest debt, ` +
         `you free up ${money(monthlySavings)}/month while keeping your low-rate first mortgage intact. ` +
-        `Redirecting that savings back to the second-mortgage principal pays it off in ${fixed(accelerated.years)} years at an effective rate of ${pct(effRate)}.`;
+        `By applying that ${money(monthlySavings)}/month in savings to the second-mortgage principal each month, it pays off in ${fixed(accelerated.years)} years at an effective rate of ${pct(effRate)}.`;
 
       const firstRateStr = inputs.existRate > 0 ? ` at ${pct(inputs.existRate)}` : "";
       const p1 = inputs.hasExistingMortgage
         ? `Today you pay ${money(current.monthlyPmt)}/month total — your existing first mortgage${firstRateStr} (${money(firstMortgagePITI)}) plus ${money(results.debtMinPmt)} in minimum payments across your other debts.`
         : `Today you pay ${money(current.monthlyPmt)}/month in minimum payments across your higher-interest debts.`;
       const p2 = `A new Home Equity Loan of ${money(inputs.loanAmount)} at ${aprStr} lets you consolidate those higher-interest debts${inputs.hasExistingMortgage ? " WITHOUT touching your low-rate first mortgage" : ""}. Your new total monthly outflow becomes ${money(results.newTotalOutflow)}${inputs.hasExistingMortgage ? " — your first mortgage payment plus the new second-mortgage payment" : ""} — freeing up ${money(monthlySavings)}/month in cash flow.`;
-      const p3 = `That ${money(monthlySavings)}/month savings is automatically redirected to the ${inputs.hasExistingMortgage ? "SECOND" : "new"} mortgage's principal each month. ${inputs.hasExistingMortgage ? "The second mortgage" : "It"} gets paid off in ${fixed(accelerated.years)} years at an effective rate of ${pct(effRate)}, saving ${money(totalSaved)} in interest${inputs.hasExistingMortgage ? " — all while keeping your low-rate first mortgage exactly as it is" : ""}.`;
+      const p3 = `By applying that ${money(monthlySavings)}/month in savings to the ${inputs.hasExistingMortgage ? "SECOND" : "new"} mortgage's principal each month, ${inputs.hasExistingMortgage ? "the second mortgage" : "it"} gets paid off in ${fixed(accelerated.years)} years at an effective rate of ${pct(effRate)}, saving ${money(totalSaved)} in interest${inputs.hasExistingMortgage ? " — all while keeping your low-rate first mortgage exactly as it is" : ""}.`;
 
       return { banner, paragraphs: [p1, p2, p3] };
     }

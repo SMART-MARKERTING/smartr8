@@ -167,7 +167,7 @@ export function WorksheetPDF({ inputs, results, headshotUrl }: WorksheetPDFProps
   ];
   if (!isNegativeSavings) {
     keyNumbers.push(
-      ["Monthly savings applied", money(results.extraMonthly)],
+      ["Monthly savings (if applied)", money(results.extraMonthly)],
       ["Years shaved off", timeSaved.toFixed(1) + " years"],
       ["Total interest eliminated", money(totalSaved)],
       ["Effective interest rate\u2020", pct(accelerated.effectiveRate ?? 0)],
@@ -235,7 +235,7 @@ export function WorksheetPDF({ inputs, results, headshotUrl }: WorksheetPDFProps
               <View style={s.totalsRow}>
                 <View style={[s.td, { flex: 1 }]}>
                   <Text style={isNegativeSavings ? { ...s.totalsLabel, color: RED } : s.savingsLabel}>
-                    Auto-Applied Monthly Savings
+                    Monthly Savings (if applied to principal)
                   </Text>
                 </View>
                 <View style={[s.td, { flex: 1 }]}>

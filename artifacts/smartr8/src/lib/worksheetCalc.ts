@@ -81,6 +81,8 @@ export interface WorksheetInputs extends AdvisorInfo {
   closingCosts: number;
   termYears: number;
   cashBack: number;
+  /** Manual APR override (%). 0 = auto-calculate from closing costs via solveApr. */
+  customApr: number;
 
   // Debts to consolidate
   debts: Debt[];
@@ -210,7 +212,9 @@ export function computeScenarios(inputs: WorksheetInputs): ScenarioResults {
 
   // ── New loan ────────────────────────────────────────────────────────────
   const newLoanPmt = monthlyPayment(inputs.loanAmount, inputs.loanRate, termMonths);
-  const newLoanApr = solveApr(inputs.loanAmount, inputs.loanRate, termMonths, inputs.closingCosts);
+  const newLoanApr = inputs.customApr > 0
+    ? inputs.customApr
+    : solveApr(inputs.loanAmount, inputs.loanRate, termMonths, inputs.closingCosts);
 
   // ── Existing mortgage ──────────────────────────────────────────────────
   const firstMortgagePITI = inputs.hasExistingMortgage ? inputs.existTotalPayment : 0;
@@ -355,6 +359,7 @@ export function makeDefaultInputs(overrides: Partial<WorksheetInputs> = {}): Wor
     closingCosts: DEFAULT_CLOSING_COSTS,
     termYears: 30,
     cashBack: 0,
+    customApr: 0,
     debts: [...DEFAULT_DEBTS],
     ...overrides,
   };
