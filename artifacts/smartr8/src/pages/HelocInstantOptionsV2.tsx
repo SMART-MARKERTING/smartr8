@@ -157,7 +157,7 @@ export default function HelocInstantOptionsV2() {
                       Recommended
                     </span>
                   )}
-                  <span className="text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#CC1818" }}>
+                  <span className="text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#13485A" }}>
                     Fastest Option
                   </span>
                 </div>
