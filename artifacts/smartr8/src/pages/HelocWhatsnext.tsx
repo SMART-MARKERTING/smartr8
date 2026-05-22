@@ -14,7 +14,7 @@ const LENDINGPAD_URL = "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd
 
 export default function HelocWhatsnext() {
   const search = useSearch();
-  const firstName = new URLSearchParams(search).get("name") || "";
+  const firstName = (new URLSearchParams(search).get("name") || "").trim();
   const ga4 = useGA4("heloc");
 
   useEffect(() => {

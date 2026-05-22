@@ -48,23 +48,6 @@ type FS = {
 };
 const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",helocPurposes:[],timeline:"",creditScore:"",dob:"",email:"",phone:"",consent:false,honeypot:"",pageLoadTime:0 };
 
-function TrustPills() {
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {TRUST_PILLS.map(({ icon: Icon, label }) => (
-        <div
-          key={label}
-          className="flex flex-col items-center justify-center text-center gap-1.5 py-3 px-2 rounded-xl border border-border"
-          style={{ backgroundColor: "#F8F5F0" }}
-        >
-          <Icon className="h-4 w-4" style={{ color: "#1F8A5F" }} />
-          <span className="text-[11px] sm:text-xs font-semibold text-foreground leading-tight">{label}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function ChoiceCardV2({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
     <button
@@ -207,26 +190,33 @@ export default function HelocV2() {
       </div>
 
       <main className="flex-1 px-4 py-6 sm:py-10">
-        <div className="mx-auto max-w-xl pb-28 sm:pb-0">
+        <div className="mx-auto max-w-xl pb-[calc(9rem+env(safe-area-inset-bottom))] sm:pb-0">
 
           {/* STEP 1: compact hero + name */}
           {st.step === 1 && (
-            <div className="animate-in fade-in slide-in-from-bottom-3 duration-300 space-y-5">
-              <div className="space-y-3 text-center">
+            <div className="animate-in fade-in slide-in-from-bottom-3 duration-300 space-y-4">
+              <div className="space-y-2 text-center">
                 <span className="inline-flex items-center text-[11px] font-bold tracking-widest uppercase px-3 py-1 rounded-full" style={{ backgroundColor: "rgba(19,72,90,0.08)", color: "#13485A" }}>
                   HELOC Options
                 </span>
-                <h1 className="text-2xl sm:text-3xl font-bold text-primary leading-tight">
+                <h1 className="text-xl sm:text-3xl font-bold text-primary leading-tight">
                   Tap your equity without touching your mortgage rate
                 </h1>
-                <p className="text-base text-muted-foreground leading-relaxed">
-                  Skip refinancing your first mortgage. A HELOC lets you use your home equity for paying off debt, home improvement, or big expenses. See what you qualify for in a few minutes.
+                <p className="text-sm sm:text-base text-muted-foreground leading-snug">
+                  Use your home equity for debt, home improvement, or big expenses, without refinancing your first mortgage. See what you qualify for in minutes.
                 </p>
               </div>
-              <TrustPills />
-              <div className="space-y-4 pt-1">
-                <div className="space-y-1.5"><Label htmlFor="fn" className="text-sm">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName: e.target.value })} className="h-12 text-base" autoComplete="given-name" /></div>
-                <div className="space-y-1.5"><Label htmlFor="ln" className="text-sm">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName: e.target.value })} className="h-12 text-base" autoComplete="family-name" /></div>
+              <div className="grid grid-cols-3 gap-2">
+                {TRUST_PILLS.map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex flex-col items-center justify-center text-center gap-1 py-2 px-2 rounded-xl border border-border" style={{ backgroundColor: "#F8F5F0" }}>
+                    <Icon className="h-4 w-4" style={{ color: "#1F8A5F" }} />
+                    <span className="text-[10px] sm:text-xs font-semibold text-foreground leading-tight">{label}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="space-y-3">
+                <div className="space-y-1"><Label htmlFor="fn" className="text-sm">First Name</Label><Input id="fn" placeholder="Jane" value={st.firstName} onChange={(e) => p({ firstName: e.target.value })} className="h-12 text-base" autoComplete="given-name" /></div>
+                <div className="space-y-1"><Label htmlFor="ln" className="text-sm">Last Name</Label><Input id="ln" placeholder="Doe" value={st.lastName} onChange={(e) => p({ lastName: e.target.value })} className="h-12 text-base" autoComplete="family-name" /></div>
               </div>
             </div>
           )}
@@ -336,7 +326,7 @@ export default function HelocV2() {
                 form={cta.submit ? "heloc-v2-form" : undefined}
                 onClick={cta.onClick}
                 disabled={cta.disabled}
-                className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-white shadow-lg rounded-xl"
+                className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-muted text-muted-foreground" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
               >
                 {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
               </Button>
@@ -355,7 +345,7 @@ export default function HelocV2() {
               form={cta.submit ? "heloc-v2-form" : undefined}
               onClick={cta.onClick}
               disabled={cta.disabled}
-              className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-white shadow-lg rounded-xl"
+              className={["w-full h-12 text-base shadow-lg rounded-xl disabled:opacity-100", cta.disabled ? "bg-muted text-muted-foreground" : "bg-accent hover:bg-accent/90 text-white"].join(" ")}
             >
               {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
             </Button>
