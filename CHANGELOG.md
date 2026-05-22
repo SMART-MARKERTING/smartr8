@@ -10,8 +10,21 @@ untouched.
 
 - New file `artifacts/smartr8/src/pages/HelocV2.tsx`; new route
   `/heloc-v2` in `App.tsx` (eager import, like the other v2 pages).
-- Same 9-step funnel, same fields, same submit routing to
-  `/heloc/whats-next`. Only design, copy, and the test tag differ.
+- Same 9-step funnel, same fields. On step 9 submit it now routes to
+  `/heloc/instant-options-v2` (not `/heloc/whats-next`), passing
+  `name`, `credit`, `use` (pipe-joined purposes), and `timeline`. The
+  control `/heloc` funnel still routes to `/heloc/whats-next`.
+- `/heloc/instant-options-v2` reads those params: shows a personalized
+  banner ("Thanks [name], here are two paths that fit homeowners like
+  you", with a no-name fallback) and shifts the emphasis badge by
+  profile (credit 700+ and not self-employment-funded => Fast Digital
+  Path "Fastest Option"; otherwise Flexible Path "Recommended"). Both
+  options always stay visible. The quick path (no credit/use params)
+  defaults to Flexible.
+- Lead event: the Meta `Lead` now fires on step 9 submit (with
+  `variant: "A"` + `funnel_version: "v2"`) before the redirect, since
+  v2 skips the shared whats-next page where the control funnel fires
+  it. GA4 `generate_lead` also fires on submit (unchanged).
 - Mobile-first: compact step-1 hero with the first field above the fold,
   trust pills (soft credit / minutes / 99+ lenders) up top, sticky
   bottom CTA on mobile with `env(safe-area-inset-bottom)`, 48px tap

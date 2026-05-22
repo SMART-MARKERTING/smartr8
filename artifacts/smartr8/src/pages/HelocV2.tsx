@@ -124,7 +124,21 @@ export default function HelocV2() {
     setIsSubmitting(true); setSubmitError("");
     try {
       const result = await submitLead({ funnel:"heloc", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline, variant:"A", funnel_version: FUNNEL_VERSION, consent_box_checked: st.consent ? "yes" : "no" } });
-      if (result.success) { ga4.trackLead(); saveRateContext({ creditScore: st.creditScore, funnel: "heloc" }); sessionStorage.removeItem(SESSION_KEY); setLocation(`/heloc/whats-next?name=${encodeURIComponent(st.firstName)}&credit=${encodeURIComponent(st.creditScore)}&funnel=heloc`); }
+      if (result.success) {
+        // Lead fires here on submit (v2 routes straight to instant-options-v2
+        // and skips /heloc/whats-next, where the control funnel fires it).
+        trackFbEvent("Lead", { content_name: "HELOC", content_category: "Mortgage", variant: "A", funnel_version: FUNNEL_VERSION });
+        ga4.trackLead();
+        saveRateContext({ creditScore: st.creditScore, funnel: "heloc" });
+        sessionStorage.removeItem(SESSION_KEY);
+        const params = new URLSearchParams({
+          name: st.firstName,
+          credit: st.creditScore,
+          use: st.helocPurposes.join("|"),
+          timeline: st.timeline,
+        });
+        setLocation(`/heloc/instant-options-v2?${params.toString()}`);
+      }
       else { setSubmitError(result.error || SUBMIT_ERR); setIsSubmitting(false); }
     } catch { setSubmitError(SUBMIT_ERR); setIsSubmitting(false); }
   };

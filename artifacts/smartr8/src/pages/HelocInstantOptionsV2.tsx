@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useSearch } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PageMeta } from "@/components/PageMeta";
@@ -48,6 +49,20 @@ function trackOptionSelected(option: "flexible" | "fast") {
 }
 
 export default function HelocInstantOptionsV2() {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const firstName = (params.get("name") || "").trim();
+  const creditRange = params.get("credit") || "";
+  const fundUse = (params.get("use") || "").split("|").filter(Boolean);
+
+  // Profile-based emphasis: strong credit + not self-employment-funded => Fast.
+  // Everything else (including the quick path, which sends no credit/use)
+  // defaults to the broader Flexible Path.
+  const recommended: "fast" | "flexible" =
+    parseInt(creditRange, 10) >= 700 && !fundUse.includes("Business or self-employment cash")
+      ? "fast"
+      : "flexible";
+
   useEffect(() => {
     trackFbEvent("ViewContent", {
       content_name: "HELOC Instant Options",
@@ -114,13 +129,27 @@ export default function HelocInstantOptionsV2() {
         {/* OPTION CARDS */}
         <div className="px-4 py-8 sm:py-12">
           <div className="container mx-auto max-w-4xl">
+            {/* Personalized banner */}
+            <div className="rounded-xl border border-border px-4 py-3 mb-6 text-center" style={{ backgroundColor: "#F8F5F0" }}>
+              <p className="text-base font-semibold text-primary">
+                {firstName
+                  ? `Thanks ${firstName}, here are two paths that fit homeowners like you.`
+                  : "Here are two paths that fit homeowners like you."}
+              </p>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-5 mb-8">
 
               {/* OPTION 1 (Flexible Path) */}
               <div
-                className="relative rounded-2xl border border-border overflow-hidden shadow-sm flex flex-col"
-                style={{ backgroundColor: "#F8F5F0" }}
+                className={`relative rounded-2xl overflow-hidden shadow-sm flex flex-col ${recommended === "flexible" ? "border-2" : "border border-border"}`}
+                style={{ backgroundColor: "#F8F5F0", borderColor: recommended === "flexible" ? "#CC1818" : undefined }}
               >
+                {recommended === "flexible" && (
+                  <div className="absolute top-4 right-4 z-10 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#CC1818" }}>
+                    Recommended
+                  </div>
+                )}
                 <div className="h-1.5 w-full" style={{ background: "#13485A" }} />
                 <div className="p-6 sm:p-7 flex flex-col gap-4 flex-1">
                   <div className="flex items-center justify-between gap-3">
@@ -182,15 +211,17 @@ export default function HelocInstantOptionsV2() {
 
               {/* OPTION 2 (Fast Digital Path) */}
               <div
-                className="relative rounded-2xl border-2 overflow-hidden shadow-sm flex flex-col bg-white"
-                style={{ borderColor: "#CC1818" }}
+                className={`relative rounded-2xl overflow-hidden shadow-sm flex flex-col bg-white ${recommended === "fast" ? "border-2" : "border border-border"}`}
+                style={{ borderColor: recommended === "fast" ? "#CC1818" : undefined }}
               >
-                <div
-                  className="absolute top-4 right-4 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white"
-                  style={{ backgroundColor: "#CC1818" }}
-                >
-                  Fastest Option
-                </div>
+                {recommended === "fast" && (
+                  <div
+                    className="absolute top-4 right-4 z-10 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white"
+                    style={{ backgroundColor: "#CC1818" }}
+                  >
+                    Fastest Option
+                  </div>
+                )}
                 <div className="h-1.5 w-full" style={{ background: "#CC1818" }} />
                 <div className="p-6 sm:p-7 flex flex-col gap-4 flex-1">
                   <div className="flex items-center justify-between gap-3">
