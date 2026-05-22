@@ -88,7 +88,7 @@ function buildLeadMailboxPayload(body, isDuplicate) {
     FirstName: body.firstName,
     LastName: body.lastName,
     Email: body.email,
-    MobilePhone: body.phone.replace(/\D/g, ""),
+    MobilePhone: (body.phone ?? "").replace(/\D/g, ""),
     DOB: body.dob ?? "",
     Phys_Address: body.address ?? "",
     Phys_City: body.city ?? "",
@@ -147,16 +147,17 @@ export async function onRequest(context) {
     }
   }
 
-  // Required-field validation
-  const missing = ["firstName", "lastName", "email", "phone"].filter((f) => !body[f]?.trim());
+  // Required-field validation (phone is optional)
+  const missing = ["firstName", "lastName", "email"].filter((f) => !body[f]?.trim());
   if (missing.length > 0) {
     return jsonResponse({ success: false, error: `Missing required fields: ${missing.join(", ")}` }, 400, cors);
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email)) {
     return jsonResponse({ success: false, error: "Invalid email address" }, 400, cors);
   }
-  const digits = body.phone.replace(/\D/g, "");
-  if (digits.length < 10) {
+  // Phone is optional. Only validate the length if one was actually provided.
+  const digits = (body.phone ?? "").replace(/\D/g, "");
+  if (digits.length > 0 && digits.length < 10) {
     return jsonResponse({ success: false, error: "Phone number must be at least 10 digits" }, 400, cors);
   }
 
@@ -182,16 +183,15 @@ export async function onRequest(context) {
   if (env.CF_KV_NAMESPACE) {
     try {
       const emailKey = `dup:${body.email.toLowerCase()}`;
-      const phoneKey = `dup:${digits}`;
+      const phoneKey = digits ? `dup:${digits}` : null;
       const [ed, pd] = await Promise.all([
         env.CF_KV_NAMESPACE.get(emailKey),
-        env.CF_KV_NAMESPACE.get(phoneKey),
+        phoneKey ? env.CF_KV_NAMESPACE.get(phoneKey) : Promise.resolve(null),
       ]);
       isDuplicate = !!(ed || pd);
-      await Promise.all([
-        env.CF_KV_NAMESPACE.put(emailKey, "1", { expirationTtl: 3600 }),
-        env.CF_KV_NAMESPACE.put(phoneKey, "1", { expirationTtl: 3600 }),
-      ]);
+      const puts = [env.CF_KV_NAMESPACE.put(emailKey, "1", { expirationTtl: 3600 })];
+      if (phoneKey) puts.push(env.CF_KV_NAMESPACE.put(phoneKey, "1", { expirationTtl: 3600 }));
+      await Promise.all(puts);
     } catch (e) {
       console.error("[smartr8] KV duplicate-check error (skipping):", e);
     }

@@ -211,7 +211,7 @@ export default function HelocFunnel() {
             <div className="space-y-1.5"><Label htmlFor="phone">Mobile Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label><Input id="phone" type="tel" placeholder="(555) 555-5555" value={st.phone} onChange={(e) => p({ phone:e.target.value })} className="text-base py-5" /></div>
             <div className="flex items-start gap-3 bg-secondary/50 p-4 rounded-xl mt-1">
               <Checkbox id="consent" checked={st.consent} onCheckedChange={(c) => p({ consent:!!c })} className="mt-0.5" />
-              <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">By submitting this form, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Checking the box above is optional and confirms your consent. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.</label>
+              <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">By submitting this form, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Checking the box is optional and your form will still be submitted if you leave it unchecked. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.</label>
             </div>
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
             <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email}>
