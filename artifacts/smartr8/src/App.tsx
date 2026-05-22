@@ -14,6 +14,7 @@ import HelocInstantOptions from "@/pages/HelocInstantOptions";
 import HelocQuick from "@/pages/HelocQuick";
 import HelocQuickV2 from "@/pages/HelocQuickV2";
 import HelocInstantOptionsV2 from "@/pages/HelocInstantOptionsV2";
+import HelocV2 from "@/pages/HelocV2";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
 import WhatsNext from "@/pages/WhatsNext";
@@ -134,6 +135,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/thank-you" component={ThankYou} />
       <Route path="/heloc" component={Heloc} />
+      <Route path="/heloc-v2" component={HelocV2} />
       <Route path="/heloc/next-steps" component={HelocNextSteps} />
       <Route path="/heloc/whats-next" component={HelocWhatsnext} />
       <Route path="/heloc/instant-options" component={HelocInstantOptions} />

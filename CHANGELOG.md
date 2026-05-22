@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+### Added: /heloc-v2 (full-funnel A/B treatment)
+
+Treatment arm for the `/heloc` full funnel, parallel to the v2 work on
+`/heloc/quick` and `/heloc/instant-options`. Control (`/heloc`) is
+untouched.
+
+- New file `artifacts/smartr8/src/pages/HelocV2.tsx`; new route
+  `/heloc-v2` in `App.tsx` (eager import, like the other v2 pages).
+- Same 9-step funnel, same fields, same submit routing to
+  `/heloc/whats-next`. Only design, copy, and the test tag differ.
+- Mobile-first: compact step-1 hero with the first field above the fold,
+  trust pills (soft credit / minutes / 99+ lenders) up top, sticky
+  bottom CTA on mobile with `env(safe-area-inset-bottom)`, 48px tap
+  targets, 16px body / 14px labels, cream (#F8F5F0) + green (#1F8A5F)
+  accents.
+- Copy rewritten warmer/first-person, no em dashes, no banned AI words,
+  no jargon (no LTV/CLTV/DTI/draw period).
+- Compliance: uses the full shared `Footer` (NMLS, EHO, licensed states,
+  "not a commitment to lend", privacy/terms/worksheet/Texas links). The
+  TCPA consent disclosure matches the rest of the app (optional
+  sign-in-wrap).
+- Tracking: `ViewContent` with `funnel_version: "v2"` on mount; the lead
+  record carries `variant: "A"` + `funnel_version: "v2"`. The Meta `Lead`
+  still fires once on the shared `/heloc/whats-next` (no double-count;
+  whats-next left untouched per the v1 rule). Separate `funnel_heloc_v2`
+  sessionStorage key so it can't cross-contaminate the control funnel.
+
+**Attribution note:** because the Meta `Lead` fires from the shared
+whats-next page, the Lead event itself is not tagged `funnel_version`.
+Split the test on `ViewContent` (funnel_version) and on the lead
+record's `funnel_version` field in the CRM. If you want the Meta `Lead`
+split too, that needs a one-line `fv` param read added to whats-next
+(deliberately not done here to keep v1 untouched).
+
 ### Follow-up backlog (after Meta campaign launches)
 
 Parked here while the v2 A/B test runs. Revisit once we have ~1 week of
