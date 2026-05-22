@@ -129,6 +129,21 @@ function RedirectTo({ to }: { to: string }) {
   return null;
 }
 
+/**
+ * Scrolls the window to the top on every wouter route change so a new page
+ * never loads scrolled to a position carried over from the previous route
+ * (e.g. submitting /heloc-v2 step 9 and landing on /heloc/instant-options-v2).
+ * In-page step changes within a single route (the funnel) are handled by the
+ * page itself, since the location does not change between steps.
+ */
+function RouteChangeScrollReset() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
@@ -162,6 +177,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <RouteChangeScrollReset />
           <PixelRouteTracker />
           <PixelLinkTracker />
           <LegacyAssetWarn />

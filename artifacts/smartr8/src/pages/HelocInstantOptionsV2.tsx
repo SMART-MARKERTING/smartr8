@@ -64,7 +64,6 @@ export default function HelocInstantOptionsV2() {
       : "flexible";
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "auto" });
     trackFbEvent("ViewContent", {
       content_name: "HELOC Instant Options",
       content_category: "Mortgage",
