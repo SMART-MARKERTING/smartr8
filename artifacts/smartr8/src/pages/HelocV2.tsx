@@ -139,6 +139,7 @@ export default function HelocV2() {
           credit: st.creditScore,
           use: st.helocPurposes.join("|"),
           timeline: st.timeline,
+          v: "A",
         });
         setLocation(`/heloc/instant-options-v2?${params.toString()}`);
       }
