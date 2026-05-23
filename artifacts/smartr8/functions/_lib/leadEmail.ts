@@ -37,7 +37,7 @@ export function subjectFor(funnel, firstName) {
   return `Thanks ${firstName}, I'm working on your options`;
 }
 
-function renderText(firstName) {
+export function renderText(firstName) {
   return `Hi ${firstName},
 
 Thanks for reaching out through Adaxa Home. I just got your information and I'm already starting to dig through 99+ lender options to find the best fit for your situation.
@@ -69,7 +69,7 @@ This is not a commitment to lend. All loans subject to credit approval, income v
 This email was sent because you submitted a request through smartr8.com. If you did not submit this request, please disregard this email.`;
 }
 
-function renderHtml(firstNameRaw) {
+export function renderHtml(firstNameRaw) {
   const firstName = escapeHtml(firstNameRaw);
   return `<!DOCTYPE html>
 <html lang="en">
