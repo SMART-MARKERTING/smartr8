@@ -9,6 +9,8 @@
 // LeadMailbox is called client-side (from the browser) to avoid Cloudflare egress IP blocks.
 // This Worker handles: bot detection, rate limiting, KV dedup, and Formspree notifications.
 
+import { handleLeadEmail } from "../_lib/leadEmail";
+
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
 function isAllowedOrigin(origin) {
@@ -196,6 +198,18 @@ export async function onRequest(context) {
       console.error("[smartr8] KV duplicate-check error (skipping):", e);
     }
   }
+
+  // Fire the "thanks for starting" lead email server-side (non-blocking).
+  // Its own KV dedup prevents re-sending on duplicate/retry submits.
+  waitUntil(
+    handleLeadEmail(env, {
+      firstName: body.firstName,
+      email: body.email,
+      phone: body.phone,
+      funnel: body.funnelType,
+      leadId: body.trackingId,
+    }).catch((e) => console.error("[leadEmail] submit-lead trigger error:", e)),
+  );
 
   const lmPayload = buildLeadMailboxPayload(body, isDuplicate);
 

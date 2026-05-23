@@ -7,6 +7,8 @@
 //   RESEND_API_KEY — Resend API key for sending emails
 //   (also accepts RE_worksheet as an alternative name)
 
+import { handleLeadEmail } from "../../_lib/leadEmail";
+
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
 function isAllowedOrigin(origin) {
@@ -342,6 +344,18 @@ export async function onRequest(context) {
   };
 
   const lmSuccess = await submitToLeadMailbox(lmPayload, ip);
+
+  // "Thanks for starting" email to the lead (this branch is the only worksheet
+  // path that doesn't already email the client a worksheet PDF). Non-blocking.
+  waitUntil(
+    handleLeadEmail(env, {
+      firstName: body.firstName,
+      email: body.email,
+      phone: body.phone,
+      funnel: "other",
+      leadId: body.trackingId,
+    }).catch((e) => console.error("[leadEmail] worksheet lead trigger error:", e)),
+  );
 
   if (resendKey) {
     waitUntil(
