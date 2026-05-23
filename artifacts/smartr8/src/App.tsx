@@ -14,6 +14,7 @@ import HelocInstantOptions from "@/pages/HelocInstantOptions";
 import HelocQuick from "@/pages/HelocQuick";
 import HelocQuickV2 from "@/pages/HelocQuickV2";
 import HelocInstantOptionsV2 from "@/pages/HelocInstantOptionsV2";
+import HelocV2 from "@/pages/HelocV2";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
 import WhatsNext from "@/pages/WhatsNext";
@@ -128,12 +129,28 @@ function RedirectTo({ to }: { to: string }) {
   return null;
 }
 
+/**
+ * Scrolls the window to the top on every wouter route change so a new page
+ * never loads scrolled to a position carried over from the previous route
+ * (e.g. submitting /heloc-v2 step 9 and landing on /heloc/instant-options-v2).
+ * In-page step changes within a single route (the funnel) are handled by the
+ * page itself, since the location does not change between steps.
+ */
+function RouteChangeScrollReset() {
+  const [location] = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+  return null;
+}
+
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/thank-you" component={ThankYou} />
       <Route path="/heloc" component={Heloc} />
+      <Route path="/heloc-v2" component={HelocV2} />
       <Route path="/heloc/next-steps" component={HelocNextSteps} />
       <Route path="/heloc/whats-next" component={HelocWhatsnext} />
       <Route path="/heloc/instant-options" component={HelocInstantOptions} />
@@ -160,6 +177,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <RouteChangeScrollReset />
           <PixelRouteTracker />
           <PixelLinkTracker />
           <LegacyAssetWarn />
