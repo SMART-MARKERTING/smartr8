@@ -8,7 +8,7 @@
 // enables idempotency + IP rate limiting). Both are already bound in the
 // capture Workers.
 
-const FROM = "Mykoal at Adaxa Home <noreply@smartr8.com>";
+const FROM = "Mykoal DeShazo, Adaxa Home <mykoal@mykoal.com>";
 const REPLY_TO = "mykoal@adaxahome.com";
 // Absolute, production-hosted assets (emails cannot use bundle-relative paths).
 const LOGO_URL = "https://smartr8.com/adaxa-logo-optimized.jpg";

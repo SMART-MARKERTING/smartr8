@@ -35,7 +35,7 @@ function jsonResponse(data, status, cors) {
 // Returns { ok: boolean, error?: string }
 async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName }) {
   const body = {
-    from: "Mykoal DeShazo <mykoal@smartr8.com>",
+    from: "Mykoal DeShazo <mykoal@mykoal.com>",
     reply_to: "mykoal@adaxahome.com",
     to: Array.isArray(to) ? to : [to],
     subject,
