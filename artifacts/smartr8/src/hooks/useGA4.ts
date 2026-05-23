@@ -33,8 +33,8 @@ export function useGA4(funnel: FunnelId) {
       trackEvent("funnel_start", { funnel }),
     trackStepCompleted: (step_number: number, step_name: string) =>
       trackEvent("funnel_step_completed", { funnel, step_number, step_name }),
-    trackLead: () =>
-      trackEvent("generate_lead", { funnel, currency: "USD", value: 0 }),
+    trackLead: (extra: Record<string, unknown> = {}) =>
+      trackEvent("generate_lead", { funnel, currency: "USD", value: 0, ...extra }),
     trackWhatsnextClick: (option: WhatsnextOption) =>
       trackEvent("whats_next_clicked", { funnel, option }),
     trackEvent: (eventName: string, params: Record<string, unknown> = {}) =>

@@ -130,8 +130,8 @@ export default function HelocV2() {
       if (result.success) {
         // Lead fires here on submit (v2 routes straight to instant-options-v2
         // and skips /heloc/whats-next, where the control funnel fires it).
-        trackFbEvent("Lead", { content_name: "HELOC", content_category: "Mortgage", variant: "A", funnel_version: FUNNEL_VERSION });
-        ga4.trackLead();
+        trackFbEvent("Lead", { content_name: "HELOC", content_category: "Mortgage", variant: "A", funnel_version: FUNNEL_VERSION, funnel_length: "long" });
+        ga4.trackLead({ variant: "A", funnel_version: FUNNEL_VERSION, funnel_length: "long" });
         saveRateContext({ creditScore: st.creditScore, funnel: "heloc" });
         sessionStorage.removeItem(SESSION_KEY);
         const params = new URLSearchParams({

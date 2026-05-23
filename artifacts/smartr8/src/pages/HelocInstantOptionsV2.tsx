@@ -44,6 +44,8 @@ export default function HelocInstantOptionsV2() {
   // variant: "B" when the visitor came from /heloc/quick-v2 (which passes v=B);
   // "A" for the full /heloc-v2 funnel. Matches the Lead-event variant tag.
   const variant = params.get("v") === "B" ? "B" : "A";
+  // long = full /heloc-v2 funnel (variant A); short = /heloc/quick-v2 (variant B).
+  const funnelLength = variant === "B" ? "short" : "long";
   const ga4 = useGA4("heloc");
 
   // Profile-based emphasis: strong credit + not self-employment-funded => Fast.
@@ -60,12 +62,12 @@ export default function HelocInstantOptionsV2() {
       const fbq = (window as unknown as { fbq?: (...args: unknown[]) => void }).fbq;
       if (typeof fbq === "function") {
         fbq("trackCustom", "OptionSelected", { option: path, funnel_version: FUNNEL_VERSION });
-        fbq("trackCustom", "HelocPathStarted", { path, funnel_version: FUNNEL_VERSION, variant });
+        fbq("trackCustom", "HelocPathStarted", { path, funnel_version: FUNNEL_VERSION, variant, funnel_length: funnelLength });
       }
     } catch {
       // analytics never blocks navigation
     }
-    ga4.trackEvent("heloc_path_started", { path, funnel_version: FUNNEL_VERSION, variant });
+    ga4.trackEvent("heloc_path_started", { path, funnel_version: FUNNEL_VERSION, variant, funnel_length: funnelLength });
   }
 
   useEffect(() => {

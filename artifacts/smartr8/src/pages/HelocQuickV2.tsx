@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { submitLead } from "@/lib/submitLead";
 import { trackFbEvent } from "@/lib/fbq";
+import { useGA4 } from "@/hooks/useGA4";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PageMeta } from "@/components/PageMeta";
@@ -56,6 +57,7 @@ const SUBMIT_ERR =
 
 export default function HelocQuickV2() {
   const [, setLocation] = useLocation();
+  const ga4 = useGA4("heloc");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -111,7 +113,9 @@ export default function HelocQuickV2() {
           content_category: "Mortgage",
           variant: "B",
           funnel_version: FUNNEL_VERSION,
+          funnel_length: "short",
         });
+        ga4.trackLead({ variant: "B", funnel_version: FUNNEL_VERSION, funnel_length: "short" });
         setLocation(
           `/heloc/instant-options-v2?name=${encodeURIComponent(firstName.trim())}&v=B`,
         );
