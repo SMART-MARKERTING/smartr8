@@ -344,7 +344,7 @@ export default function HelocV2() {
                 form={cta.submit ? "heloc-v2-form" : undefined}
                 onClick={cta.onClick}
                 disabled={cta.disabled}
-                className="w-full h-12 text-base shadow-lg rounded-xl border-0 disabled:opacity-100 hover:opacity-90" style={cta.disabled ? { backgroundColor: "#94A3B8", color: "#FFFFFF" } : { backgroundColor: "#CC1818", color: "#FFFFFF" }}
+                className="w-full h-12 text-base shadow-lg rounded-xl border-0 disabled:opacity-100 hover:opacity-90" style={cta.disabled ? { backgroundColor: "#94A3B8", color: "#FFFFFF" } : { backgroundColor: "#E31B23", color: "#FFFFFF" }}
               >
                 {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
               </Button>
@@ -363,7 +363,7 @@ export default function HelocV2() {
               form={cta.submit ? "heloc-v2-form" : undefined}
               onClick={cta.onClick}
               disabled={cta.disabled}
-              className="w-full h-12 text-base shadow-lg rounded-xl border-0 disabled:opacity-100 hover:opacity-90" style={cta.disabled ? { backgroundColor: "#94A3B8", color: "#FFFFFF" } : { backgroundColor: "#CC1818", color: "#FFFFFF" }}
+              className="w-full h-12 text-base shadow-lg rounded-xl border-0 disabled:opacity-100 hover:opacity-90" style={cta.disabled ? { backgroundColor: "#94A3B8", color: "#FFFFFF" } : { backgroundColor: "#E31B23", color: "#FFFFFF" }}
             >
               {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
             </Button>

@@ -97,12 +97,12 @@ export function renderHtml(firstNameRaw) {
     </table>
   </td></tr>
   <tr><td style="padding:14px 32px 4px;">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fdf2f2;border-left:4px solid #CC1818;border-radius:4px;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fdf2f2;border-left:4px solid #E31B23;border-radius:4px;">
       <tr><td style="padding:16px 20px;font-size:15px;line-height:1.8;color:#333333;">
-        <strong style="color:#CC1818;">Have questions before then? Reach me directly:</strong><br>
-        Phone: <a href="tel:+19494185486" style="color:#CC1818;text-decoration:none;">(949) 418-5486</a><br>
-        Text: <a href="sms:+19494185486" style="color:#CC1818;text-decoration:none;">(949) 418-5486</a><br>
-        Email: <a href="mailto:mykoal@adaxahome.com" style="color:#CC1818;text-decoration:none;">mykoal@adaxahome.com</a>
+        <strong style="color:#E31B23;">Have questions before then? Reach me directly:</strong><br>
+        Phone: <a href="tel:+19494185486" style="color:#E31B23;text-decoration:none;">(949) 418-5486</a><br>
+        Text: <a href="sms:+19494185486" style="color:#E31B23;text-decoration:none;">(949) 418-5486</a><br>
+        Email: <a href="mailto:mykoal@adaxahome.com" style="color:#E31B23;text-decoration:none;">mykoal@adaxahome.com</a>
       </td></tr>
     </table>
   </td></tr>

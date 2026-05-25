@@ -150,12 +150,12 @@ export default function HelocInstantOptionsV2() {
               {/* OPTION 1 (Fast Digital Path) */}
               <div
                 className={`relative rounded-2xl overflow-hidden shadow-sm flex flex-col bg-white ${recommended === "fast" ? "border-2" : "border border-border"}`}
-                style={{ borderColor: recommended === "fast" ? "#CC1818" : undefined }}
+                style={{ borderColor: recommended === "fast" ? "#E31B23" : undefined }}
               >
                 {/* "Fastest Option" is a factual claim shown always; "Recommended" moves by profile. */}
                 <div className="absolute top-4 right-4 z-10 flex flex-col items-end gap-1.5">
                   {recommended === "fast" && (
-                    <span className="text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#CC1818" }}>
+                    <span className="text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#E31B23" }}>
                       Recommended
                     </span>
                   )}
@@ -163,7 +163,7 @@ export default function HelocInstantOptionsV2() {
                     Fastest Option
                   </span>
                 </div>
-                <div className="h-1.5 w-full" style={{ background: "#CC1818" }} />
+                <div className="h-1.5 w-full" style={{ background: "#E31B23" }} />
                 <div className="p-6 sm:p-7 flex flex-col gap-4 flex-1">
                   <div className="flex items-center gap-3">
                     <span className="text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full bg-secondary text-muted-foreground">
@@ -171,9 +171,9 @@ export default function HelocInstantOptionsV2() {
                     </span>
                     <div
                       className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: "rgba(204,24,24,0.08)" }}
+                      style={{ backgroundColor: "rgba(227,27,35,0.08)" }}
                     >
-                      <Zap className="h-5 w-5" style={{ color: "#CC1818" }} />
+                      <Zap className="h-5 w-5" style={{ color: "#E31B23" }} />
                     </div>
                   </div>
 
@@ -181,7 +181,7 @@ export default function HelocInstantOptionsV2() {
                     <h2 className="text-xl sm:text-2xl font-bold text-primary leading-tight">
                       Fast Digital Path
                     </h2>
-                    <p className="text-sm font-medium" style={{ color: "#CC1818" }}>
+                    <p className="text-sm font-medium" style={{ color: "#E31B23" }}>
                       Best for W-2 borrowers with strong credit
                     </p>
                   </div>
@@ -211,7 +211,7 @@ export default function HelocInstantOptionsV2() {
                       rel="noopener noreferrer"
                       onClick={() => startPath("fast")}
                       className="flex items-center justify-center gap-2 w-full h-12 rounded-xl font-bold text-base text-white transition-opacity hover:opacity-90 active:scale-[0.98]"
-                      style={{ backgroundColor: "#CC1818" }}
+                      style={{ backgroundColor: "#E31B23" }}
                       data-testid="v2-option-fast"
                     >
                       Continue
@@ -224,10 +224,10 @@ export default function HelocInstantOptionsV2() {
               {/* OPTION 2 (Flexible Path) */}
               <div
                 className={`relative rounded-2xl overflow-hidden shadow-sm flex flex-col ${recommended === "flexible" ? "border-2" : "border border-border"}`}
-                style={{ backgroundColor: "#F8F5F0", borderColor: recommended === "flexible" ? "#CC1818" : undefined }}
+                style={{ backgroundColor: "#F8F5F0", borderColor: recommended === "flexible" ? "#E31B23" : undefined }}
               >
                 {recommended === "flexible" && (
-                  <div className="absolute top-4 right-4 z-10 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#CC1818" }}>
+                  <div className="absolute top-4 right-4 z-10 text-[11px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full text-white" style={{ backgroundColor: "#E31B23" }}>
                     Recommended
                   </div>
                 )}
@@ -317,7 +317,7 @@ export default function HelocInstantOptionsV2() {
                 <a
                   href="tel:9494185486"
                   className="flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-semibold text-sm text-white transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: "#CC1818" }}
+                  style={{ backgroundColor: "#E31B23" }}
                 >
                   <Phone className="h-4 w-4" />
                   Call (949) 418-5486
