@@ -120,9 +120,9 @@ async function safeInsertLead(db: Env["LEADS_DB"], lead: Lead): Promise<void> {
       .prepare(
         `INSERT OR IGNORE INTO leads (
           lead_id, created_at, funnel, first_name, last_name, email, phone_e164,
-          address1, loan_request, notes, source, referrer, landing_page,
+          address1, property_state, loan_request, notes, source, referrer, landing_page,
           utm_source, utm_medium, utm_campaign, utm_content, utm_term, ip, user_agent
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .bind(
         lead.lead_id,
@@ -133,6 +133,7 @@ async function safeInsertLead(db: Env["LEADS_DB"], lead: Lead): Promise<void> {
         lead.email,
         lead.phone_e164 ?? "",
         lead.address1 ?? "",
+        lead.property_state ?? null,
         lead.loan_request ?? "",
         lead.notes ?? "",
         lead.source ?? "smartr8.com",

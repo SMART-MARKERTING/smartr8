@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS leads (
   email                    TEXT,
   phone_e164               TEXT,
   address1                 TEXT,
+  property_state           TEXT,
   loan_request             TEXT,
   notes                    TEXT,
   source                   TEXT,
