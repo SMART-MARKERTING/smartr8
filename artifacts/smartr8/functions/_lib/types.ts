@@ -84,12 +84,17 @@ export interface SendblueResult extends DestinationResult {
   service?: string;
 }
 
-/** Cloudflare Pages Functions environment shape used across this codebase. */
+/** Cloudflare Pages Functions environment shape used across this codebase.
+ *  LEADS_DB and LEAD_DEDUP are optional so the new endpoint deploys cleanly
+ *  before the D1 + KV resources are provisioned (see
+ *  scripts/setup-cloudflare.sh). When unbound, the pipeline runs in
+ *  audit-less mode: destinations still fire, no D1 row is written, no
+ *  dedup is applied. */
 export interface Env {
   // D1
-  LEADS_DB: D1Database;
+  LEADS_DB?: D1Database;
   // KV
-  LEAD_DEDUP: KVNamespace;
+  LEAD_DEDUP?: KVNamespace;
   CF_KV_NAMESPACE?: KVNamespace;
 
   // Resend

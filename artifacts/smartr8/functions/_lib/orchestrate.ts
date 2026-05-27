@@ -65,11 +65,13 @@ export async function processLead(
         // Best-effort: write a minimal D1 row reflecting the dedup so
         // the audit trail still captures the attempt.
         await safeInsertLead(db, { ...lead, lead_id: lead.lead_id }).catch(() => {});
-        await db
-          .prepare("UPDATE leads SET leadmailbox_status = 'deduped' WHERE lead_id = ?")
-          .bind(lead.lead_id)
-          .run()
-          .catch(() => {});
+        if (db) {
+          await db
+            .prepare("UPDATE leads SET leadmailbox_status = 'deduped' WHERE lead_id = ?")
+            .bind(lead.lead_id)
+            .run()
+            .catch(() => {});
+        }
         return {
           ok: true,
           lead_id: lead.lead_id,
@@ -111,6 +113,7 @@ export async function processLead(
 // ───────────────────────────────────────────────────────────────────────
 
 async function safeInsertLead(db: Env["LEADS_DB"], lead: Lead): Promise<void> {
+  if (!db) return;
   try {
     await db
       .prepare(
@@ -149,6 +152,7 @@ async function safeInsertLead(db: Env["LEADS_DB"], lead: Lead): Promise<void> {
 }
 
 async function safeInsertConsent(db: Env["LEADS_DB"], c: TcpaConsent): Promise<void> {
+  if (!db) return;
   try {
     await db
       .prepare(
@@ -164,6 +168,7 @@ async function safeInsertConsent(db: Env["LEADS_DB"], c: TcpaConsent): Promise<v
 }
 
 async function updateLeadmailboxStatus(db: Env["LEADS_DB"], lead_id: string, r: LeadMailboxResult): Promise<void> {
+  if (!db) return;
   const status = r.ok ? "sent" : "failed";
   try {
     await db
@@ -187,6 +192,7 @@ async function updateLeadmailboxStatus(db: Env["LEADS_DB"], lead_id: string, r: 
 
 async function runGhl(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const r = await sendToGhl(env, lead);
+  if (!db) return;
   try {
     await db
       .prepare(
@@ -203,6 +209,7 @@ async function runGhl(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> 
 
 async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const r = await sendResendConfirmation(env, lead);
+  if (!db) return;
   try {
     await db
       .prepare(
@@ -219,6 +226,12 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
 
 async function runSendblue(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const r = await sendToSendblue(env, lead);
+  if (!db) {
+    if (r.ok) {
+      log("info", "orchestrate.sendblue_ok_no_db_skip_tag", { lead_id: lead.lead_id });
+    }
+    return;
+  }
   try {
     await db
       .prepare(

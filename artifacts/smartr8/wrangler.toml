@@ -1,35 +1,29 @@
 # Cloudflare Pages config for the smartr8 site.
 #
-# This file is the source of truth for bindings on the Pages project.
-# Run scripts/setup-cloudflare.sh once after merge to create LEADS_DB
-# and LEAD_DEDUP and paste their IDs in the placeholders below before
-# the first deploy that depends on them.
+# Bindings are NOT declared here yet because their real IDs only exist
+# after `wrangler d1 create` and `wrangler kv:namespace create` run.
+# See scripts/setup-cloudflare.sh for the ordered one-time setup, then
+# uncomment + populate the blocks at the bottom of this file with the
+# IDs that those commands print.
 #
 # Env vars (secrets) are managed in Cloudflare Pages -> Settings ->
-# Environment variables (Production + Preview). See README.md for the
-# full list.
+# Environment variables (Production + Preview). See README.md.
 
 name = "smartr8"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
-pages_build_output_dir = "./dist/public"
 
-# D1 audit database (leads + tcpa_consents).
-[[d1_databases]]
-binding = "LEADS_DB"
-database_name = "smartr8-leads"
-database_id = "REPLACE_AFTER_WRANGLER_D1_CREATE"
-
-# Dedup KV for the new lead-capture pipeline (10-minute window keyed by
-# sha256(email|phone|funnel)).
-[[kv_namespaces]]
-binding = "LEAD_DEDUP"
-id = "REPLACE_AFTER_WRANGLER_KV_CREATE"
-
-# Existing KV used by the current rate-limit + idempotency code in the
-# capture Workers and the lead-email endpoint. Preserve. If it was
-# previously dashboard-bound only, copy its ID here so the new
-# wrangler-managed config keeps it bound.
-[[kv_namespaces]]
-binding = "CF_KV_NAMESPACE"
-id = "REPLACE_WITH_EXISTING_CF_KV_NAMESPACE_ID"
+# ─── Add these blocks after running scripts/setup-cloudflare.sh ────────
+#
+# [[d1_databases]]
+# binding = "LEADS_DB"
+# database_name = "smartr8-leads"
+# database_id = "<paste the database_id returned by `wrangler d1 create smartr8-leads`>"
+#
+# [[kv_namespaces]]
+# binding = "LEAD_DEDUP"
+# id = "<paste the id returned by `wrangler kv:namespace create LEAD_DEDUP`>"
+#
+# [[kv_namespaces]]
+# binding = "CF_KV_NAMESPACE"
+# id = "<existing CF_KV_NAMESPACE id (look it up in the Cloudflare dashboard)>"
