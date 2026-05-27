@@ -223,6 +223,11 @@ export interface FunnelCompletionPayload {
   honeypot?: string;
   /** Full snapshot of every captured funnel answer — sent in Notes. */
   funnelAnswers: Record<string, string | number | boolean | null | undefined>;
+  /** Required by the v2 server pipeline. Forwarded straight through to submitLead. */
+  turnstile_token?: string;
+  consent?: boolean;
+  consent_version?: string;
+  consent_text?: string;
 }
 
 /**
@@ -252,6 +257,10 @@ export async function submitFunnelCompletion(
     additionalFields,
     honeypot: p.honeypot,
     pageLoadTime: 0,
+    turnstile_token: p.turnstile_token,
+    consent: p.consent,
+    consent_version: p.consent_version,
+    consent_text: p.consent_text,
   });
 }
 

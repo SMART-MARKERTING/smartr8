@@ -82,6 +82,8 @@ Click **Save and Deploy**.
 
 ## Lead-capture pipeline (production)
 
+All web-lead forms now require TCPA consent + Cloudflare Turnstile completion before the Submit button enables. The `<TcpaConsent />` component (canonical consent text + Turnstile widget) gates submission on every funnel: HELOC long, HELOC quick, HELOC v2 long, HELOC quick v2, and the worksheet unlock-lead step. The Worker rejects any submission missing `turnstile_token` or `consent_version`.
+
 Website lead capture: Worker validates form input (zod + Turnstile + honeypot + rate limit), writes to LeadMailbox synchronously, then via `ctx.waitUntil` upserts the contact to GHL with tags `['web lead', 'heloc']` plus `loan_type`, `property_state`, `tcpa_consent`, and `conversation_summary` custom fields, creates an opportunity in the Web Leads pipeline, and sends a Resend confirmation to the lead. The upsert triggers GHL's existing "Contact Created with web lead tag" workflow, which routes by loan-type tags, assigns by timezone, and handles all SMS and nurture downstream. The Worker does NOT send SMS directly. The Sendblue API is integrated only inside GHL's send_blue connector and is never called from this codebase.
 
 D1 audit + KV dedup details:

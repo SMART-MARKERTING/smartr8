@@ -8,7 +8,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { TcpaConsent } from "@/components/TcpaConsent";
 import {
   Select,
   SelectContent,
@@ -65,7 +65,10 @@ export default function HelocQuick() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [state, setState] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [consentState, setConsentState] = useState({
+    ready: false, consent: false, consent_version: "",
+    consent_text: "", turnstile_token: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -104,10 +107,13 @@ export default function HelocQuick() {
         // 1-step form: pass pageLoadTime 0 so the Worker skips its "<8s = bot"
         // check. A genuinely fast submission here is expected, not a bot.
         pageLoadTime: 0,
+        turnstile_token: consentState.turnstile_token,
+        consent: consentState.consent,
+        consent_version: consentState.consent_version,
+        consent_text: consentState.consent_text,
         additionalFields: {
           variant: "B",
           "Funnel-Source": "heloc-quick",
-          consent_box_checked: consent ? "yes" : "no",
         },
       });
       if (result.success) {
@@ -233,24 +239,7 @@ export default function HelocQuick() {
                 </Select>
               </div>
 
-              <div className="flex items-start gap-3 bg-secondary/50 p-4 rounded-lg">
-                <Checkbox
-                  id="hq-consent"
-                  checked={consent}
-                  onCheckedChange={(checked) => setConsent(!!checked)}
-                  className="mt-0.5 shrink-0"
-                />
-                <label
-                  htmlFor="hq-consent"
-                  className="text-xs text-muted-foreground cursor-pointer leading-relaxed"
-                >
-                  By submitting this form, you agree to be contacted by Mykoal
-                  DeShazo at Adaxa Home regarding your inquiry. Checking the
-                  box above is optional and confirms your consent. Consent is
-                  not a condition of any service. Standard rates may apply. You
-                  can opt out at any time.
-                </label>
-              </div>
+              <TcpaConsent onChange={setConsentState} />
 
               {error && (
                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
@@ -261,7 +250,7 @@ export default function HelocQuick() {
               <Button
                 type="submit"
                 className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-white shadow-lg"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !consentState.ready}
               >
                 {isSubmitting ? (
                   <>

@@ -9,7 +9,6 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -18,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, Loader2, Zap, Shield, Clock, TrendingUp } from "lucide-react";
+import { TcpaConsent } from "@/components/TcpaConsent";
 
 const LICENSED_STATES = [
   { value: "AZ", label: "Arizona" },
@@ -63,7 +63,10 @@ export default function HelocQuickV2() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [state, setState] = useState("");
-  const [consent, setConsent] = useState(false);
+  const [consentState, setConsentState] = useState({
+    ready: false, consent: false, consent_version: "",
+    consent_text: "", turnstile_token: "",
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -100,11 +103,14 @@ export default function HelocQuickV2() {
         phone,
         state,
         pageLoadTime: 0,
+        turnstile_token: consentState.turnstile_token,
+        consent: consentState.consent,
+        consent_version: consentState.consent_version,
+        consent_text: consentState.consent_text,
         additionalFields: {
           variant: "B",
           "Funnel-Source": "heloc-quick-v2",
           funnel_version: FUNNEL_VERSION,
-          consent_box_checked: consent ? "yes" : "no",
         },
       });
       if (result.success) {
@@ -255,27 +261,7 @@ export default function HelocQuickV2() {
                 </Select>
               </div>
 
-              <div
-                className="flex items-start gap-3 p-4 rounded-xl border border-border"
-                style={{ backgroundColor: "#F8F5F0" }}
-              >
-                <Checkbox
-                  id="hqv2-consent"
-                  checked={consent}
-                  onCheckedChange={(checked) => setConsent(!!checked)}
-                  className="mt-0.5 shrink-0"
-                />
-                <label
-                  htmlFor="hqv2-consent"
-                  className="text-sm text-muted-foreground cursor-pointer leading-relaxed"
-                >
-                  By submitting this form, you agree to be contacted by Mykoal
-                  DeShazo at Adaxa Home regarding your inquiry. Checking the
-                  box above is optional and confirms your consent. Consent is
-                  not a condition of any service. Standard rates may apply. You
-                  can opt out at any time.
-                </label>
-              </div>
+              <TcpaConsent onChange={setConsentState} />
 
               {error && (
                 <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
@@ -288,7 +274,7 @@ export default function HelocQuickV2() {
                 <Button
                   type="submit"
                   className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-white shadow-lg rounded-xl"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || !consentState.ready}
                 >
                   {isSubmitting ? (
                     <>
@@ -324,7 +310,7 @@ export default function HelocQuickV2() {
             type="submit"
             form="hq-v2-form"
             className="w-full h-12 text-base bg-accent hover:bg-accent/90 text-white shadow-lg rounded-xl"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !consentState.ready}
           >
             {isSubmitting ? (
               <>

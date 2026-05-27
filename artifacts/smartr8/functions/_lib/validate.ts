@@ -28,14 +28,13 @@ export const LeadSubmissionSchema = z.object({
   loanRequest: z.string().max(200).optional().default(""),
   notes: z.string().max(8000).optional().default(""),
 
-  // Turnstile + TCPA. Optional so the strict v2 path opts in by sending
-  // them; legacy forms without these fields skip Turnstile + the consent
-  // audit row but still hit the new pipeline (D1 audit, LM, GHL, Resend,
-  // Sendblue). Migrate forms incrementally, then tighten to required.
-  turnstile_token: z.string().max(4096).optional().default(""),
+  // Turnstile + TCPA. All forms now ship <TcpaConsent /> so turnstile_token
+  // and consent_version are required. consent_text is optional (server has
+  // CONSENT_TEXT canonical copy) but accepted up to 2000 chars when sent.
+  turnstile_token: z.string().trim().min(1, "turnstile_token required").max(4096),
   consent: z.boolean().optional(),
-  consent_version: z.string().trim().max(80).optional().default(""),
-  consent_text: z.string().trim().max(8000).optional().default(""),
+  consent_version: z.string().trim().min(1, "consent_version required").max(80),
+  consent_text: z.string().trim().max(2000).optional().default(""),
 
   // Attribution
   page_url: z.string().max(2048).optional().default(""),
