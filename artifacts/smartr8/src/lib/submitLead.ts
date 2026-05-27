@@ -19,6 +19,13 @@ export interface LeadPayload {
   additionalFields?: Record<string, string | string[]>;
   honeypot?: string;
   pageLoadTime?: number;
+  /** When set, opts into the strict v2 server pipeline (Turnstile +
+   *  TCPA audit). Forms not yet migrated to <TcpaConsent /> can omit
+   *  these fields and the server still accepts them. */
+  turnstile_token?: string;
+  consent?: boolean;
+  consent_version?: string;
+  consent_text?: string;
 }
 
 export interface SubmitResult {
@@ -94,7 +101,17 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
   // Pre-build LM payload client-side for browser fallback (used only if Worker's LM call fails)
   const lmPayload = buildLmPayload(payload);
 
-  const body = {
+  // Fields are named for the new v2 server (functions/api/submit-lead.ts
+  // zod schema). Legacy aliases (funnelType, utmSource, referer) are
+  // kept alongside the new names so any older consumer still sees them;
+  // the server's zod schema tolerates unknown fields.
+  const utm_source = getParam("utm_source");
+  const utm_medium = getParam("utm_medium");
+  const utm_campaign = getParam("utm_campaign");
+  const utm_content = getParam("utm_content");
+  const utm_term = getParam("utm_term");
+  const body: Record<string, unknown> = {
+    funnel: payload.funnel,
     firstName: payload.firstName,
     lastName: payload.lastName,
     email: payload.email,
@@ -107,19 +124,33 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
     mortgageBalance: payload.mortgageBalance ?? "",
     creditScore: payload.creditScore ?? "",
     dob: formatDob(payload.dob ?? ""),
-    funnelType: payload.funnel,
     additionalFields: payload.additionalFields ?? {},
     honeypot: payload.honeypot ?? "",
     pageLoadTime: payload.pageLoadTime ?? 0,
     submittedAt: new Date().toISOString(),
     userAgent: navigator.userAgent,
-    utmSource: getParam("utm_source"),
-    utmMedium: getParam("utm_medium"),
-    utmCampaign: getParam("utm_campaign"),
-    utmContent: getParam("utm_content"),
-    referer: document.referrer,
+    utm_source,
+    utm_medium,
+    utm_campaign,
+    utm_content,
+    utm_term,
+    referrer: document.referrer,
+    page_url: typeof window !== "undefined" ? window.location.href : "",
     trackingId: getOrCreateTrackingId(),
+    // Legacy aliases for backwards compatibility
+    funnelType: payload.funnel,
+    utmSource: utm_source,
+    utmMedium: utm_medium,
+    utmCampaign: utm_campaign,
+    utmContent: utm_content,
+    referer: document.referrer,
   };
+  if (payload.turnstile_token) {
+    body.turnstile_token = payload.turnstile_token;
+    if (payload.consent !== undefined) body.consent = payload.consent;
+    if (payload.consent_version) body.consent_version = payload.consent_version;
+    if (payload.consent_text) body.consent_text = payload.consent_text;
+  }
 
   // Call the Worker — it tries LM server-side (with user IP forwarding) + Formspree + KV dedup.
   // If the Worker's LM call was blocked by IP filtering, it returns lmPayload so the browser
