@@ -7,7 +7,10 @@
 //   RESEND_API_KEY — Resend API key for sending emails
 //   (also accepts RE_worksheet as an alternative name)
 
-import { handleLeadEmail } from "../../_lib/leadEmail";
+import { log } from "../../_lib/log";
+import { normalizeEmail, normalizeName, normalizePhoneE164US } from "../../_lib/normalize";
+import { processLead } from "../../_lib/orchestrate";
+import { verifyTurnstile } from "../../_lib/turnstile";
 
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
@@ -319,69 +322,99 @@ export async function onRequest(context) {
     return jsonResponse({ success: true, emailOk: emailResult.ok, emailError: emailResult.error }, 200, cors);
   }
 
-  // ─── Public path: lead capture (no PDF email — used by Download PDF action) ──
+  // ─── Public path: worksheet unlock-lead — routed through processLead ─────
+  // GHL workflows now own advisor notification + nurture; D1 owns the
+  // backup audit row. The legacy advisor email + Formspree POST that
+  // used to live here are intentionally gone.
   const missing = ["firstName", "lastName", "email"].filter((f) => !body[f]?.trim());
   if (missing.length > 0) {
     return jsonResponse({ success: false, error: `Missing: ${missing.join(", ")}` }, 400, cors);
   }
 
-  console.log(`[worksheet] public lead — ${body.firstName} ${body.lastName} <${body.email}> state=${body.state ?? "—"}`);
-
-  const lmPayload = {
-    FirstName: body.firstName,
-    LastName: body.lastName,
-    Email: body.email,
-    MobilePhone: (body.phone ?? "").replace(/\D/g, ""),
-    Phys_State: body.state ?? "",
-    Loan_Request: "Worksheet Lead",
-    Notes: [
-      "Funnel: worksheet",
-      `Submitted: ${body.submittedAt ?? new Date().toISOString()}`,
-      `Source: smartr8.com/worksheet`,
-      body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
-      body.trackingId ? `\nTracking ID: ${body.trackingId}` : "",
-    ].filter(Boolean).join("\n"),
-  };
-
-  const lmSuccess = await submitToLeadMailbox(lmPayload, ip);
-
-  // "Thanks for starting" email to the lead (this branch is the only worksheet
-  // path that doesn't already email the client a worksheet PDF). Non-blocking.
-  waitUntil(
-    handleLeadEmail(env, {
-      firstName: body.firstName,
-      email: body.email,
-      phone: body.phone,
-      funnel: "other",
-      leadId: body.trackingId,
-    }).catch((e) => console.error("[leadEmail] worksheet lead trigger error:", e)),
-  );
-
-  if (resendKey) {
-    waitUntil(
-      sendResendEmail({
-        apiKey: resendKey,
-        to: "mykoal@adaxahome.com",
-        subject: `New Worksheet Lead — ${body.firstName} ${body.lastName}`,
-        html: buildAdvisorNotificationHtml({ ...body, source: "worksheet" }),
-      }).then(r => { if (!r.ok) console.error("[resend] advisor lead notification failed:", r.error); })
-    );
+  // Turnstile: verify only when the client sent a token. Matches the
+  // /api/submit-lead behavior so older cached clients without the
+  // <TcpaConsent /> widget still pass through (and are flagged via the
+  // structured warn log below).
+  if (body.turnstile_token) {
+    const ts = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, body.turnstile_token, ip);
+    if (!ts.ok) {
+      return jsonResponse({ success: false, error: `turnstile: ${ts.error}` }, 403, cors);
+    }
   }
 
-  waitUntil(
-    fetch(FORMSPREE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        _subject: `New Worksheet Lead — ${body.firstName} ${body.lastName}`,
-        firstName: body.firstName, lastName: body.lastName,
-        email: body.email, phone: body.phone ?? "", state: body.state ?? "",
-        source: "worksheet",
-        worksheetSummary: body.worksheetSummary ?? "",
-        lmSuccess,
-      }),
-    }).catch((e) => console.error("[worksheet] Formspree error:", e))
-  );
+  const userAgent = request.headers.get("User-Agent") ?? "";
+  const firstName = normalizeName(body.firstName);
+  const lastName = normalizeName(body.lastName);
+  const email = normalizeEmail(body.email);
+  const phoneE164 = normalizePhoneE164US(body.phone);
+  if (body.phone && !phoneE164) {
+    return jsonResponse({ success: false, errors: { phone: "Phone must be a valid US number" } }, 400, cors);
+  }
 
-  return jsonResponse({ success: true, lmPayload: lmSuccess ? null : lmPayload }, 200, cors);
+  const propertyState = (body.state ?? "").trim();
+
+  const lead = {
+    lead_id: crypto.randomUUID(),
+    created_at: Date.now(),
+    funnel: "worksheet",
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    phone_e164: phoneE164,
+    property_state: propertyState,
+    loan_request: "Worksheet Lead",
+    notes: [
+      body.worksheetSummary ? `Worksheet summary:\n${body.worksheetSummary}` : "",
+      body.trackingId ? `Tracking ID: ${body.trackingId}` : "",
+    ].filter(Boolean).join("\n\n"),
+    source: "smartr8.com",
+    landing_page: body.page_url || "smartr8.com/worksheet",
+    ip,
+    user_agent: userAgent,
+  };
+
+  const hasTurnstile = Boolean(body.turnstile_token);
+  const hasConsentText = Boolean(body.consent_text);
+  const hasConsentVersion = Boolean(body.consent_version);
+  let consent = null;
+  if (hasTurnstile && hasConsentText && hasConsentVersion) {
+    consent = {
+      consent_id: crypto.randomUUID(),
+      lead_id: lead.lead_id,
+      consent_version: body.consent_version,
+      consent_text: body.consent_text,
+      ip,
+      user_agent: userAgent,
+      page_url: body.page_url || "smartr8.com/worksheet",
+      created_at: lead.created_at,
+    };
+  } else {
+    // Surfaces stale frontend caches that haven't picked up PR #16's
+    // <TcpaConsent /> widget yet. Lead still flows; consent row skipped.
+    log("warn", "worksheet.branch3.missing_tcpa_fields", {
+      lead_id: lead.lead_id,
+      has_turnstile: hasTurnstile,
+      has_consent_text: hasConsentText,
+      has_consent_version: hasConsentVersion,
+    });
+  }
+
+  console.log(`[worksheet] public lead — ${firstName} ${lastName} <${email}> state=${propertyState || "—"} lead_id=${lead.lead_id}`);
+
+  const result = await processLead(lead, consent, env, { waitUntil });
+
+  const lmPayload = !result.leadmailbox.ok && result.leadmailbox.fallbackPayload
+    ? result.leadmailbox.fallbackPayload
+    : null;
+
+  return jsonResponse(
+    {
+      success: true,
+      lead_id: result.lead_id,
+      duplicate: result.duplicate === true,
+      lmPayload,
+    },
+    200,
+    cors,
+  );
 }

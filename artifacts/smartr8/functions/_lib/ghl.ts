@@ -37,12 +37,14 @@ function funnelLabel(funnel: string): string {
   return "mortgage";
 }
 
-/** Property-state lookup from a Lead. The schema only carries address1
- *  today; if a future ingest path captures state separately, plumb it
- *  through and surface it here. */
+/** Property-state lookup from a Lead. Prefer the explicit
+ *  property_state field (worksheet captures state directly); fall back
+ *  to a trailing ", XX" parse of address1 for funnels that only carry
+ *  a full address. */
 function propertyStateFor(lead: Lead): string {
-  // Heuristic: parse a trailing ", XX" two-letter state code out of
-  // address1. Returns "" if not found; the customField is filtered out.
+  if (lead.property_state && lead.property_state.trim()) {
+    return lead.property_state.trim().toUpperCase();
+  }
   const m = (lead.address1 || "").match(/,\s*([A-Z]{2})(?:\s+\d{5}(?:-\d{4})?)?\s*$/);
   return m ? m[1] : "";
 }
@@ -86,9 +88,7 @@ export async function ghlUpsert(env: Env, lead: Lead): Promise<GhlResult> {
   const customFields = [
     { id: env.GHL_CF_LOAN_TYPE, value: "HELOC" },
     { id: env.GHL_CF_PROPERTY_STATE, value: propertyState || "" },
-    // TODO: replace TBD_PLACEHOLDER once the user confirms the
-    // TCPA Consent dropdown options in GHL.
-    { id: env.GHL_CF_TCPA_CONSENT, value: "TBD_PLACEHOLDER" },
+    { id: env.GHL_CF_TCPA_CONSENT, value: "yes" },
     { id: env.GHL_CF_CONVERSATION_SUMMARY, value: lead.notes || "" },
   ].filter((cf): cf is { id: string; value: string } => Boolean(cf.id && cf.value));
 
