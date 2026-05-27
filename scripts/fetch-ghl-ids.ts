@@ -35,8 +35,10 @@ const DEV_VARS_PATHS = [
 ];
 
 const CUSTOM_FIELDS_WANTED: Array<{ envVar: string; label: string }> = [
-  { envVar: "GHL_CF_LOAN_REQUEST", label: "Loan Request" },
-  { envVar: "GHL_CF_NOTES", label: "Lead Notes" },
+  { envVar: "GHL_CF_LOAN_TYPE", label: "Loan Type" },
+  { envVar: "GHL_CF_PROPERTY_STATE", label: "Property State" },
+  { envVar: "GHL_CF_TCPA_CONSENT", label: "TCPA Consent" },
+  { envVar: "GHL_CF_CONVERSATION_SUMMARY", label: "Conversation Summary" },
 ];
 
 const PIPELINE_NAME = "Web Leads";

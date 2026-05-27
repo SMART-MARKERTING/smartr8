@@ -78,12 +78,6 @@ export interface GhlResult extends DestinationResult {
   scopeError?: boolean;
 }
 
-export interface SendblueResult extends DestinationResult {
-  messageHandle?: string;
-  /** "iMessage" | "SMS" | "RCS" (Sendblue values). */
-  service?: string;
-}
-
 /** Cloudflare Pages Functions environment shape used across this codebase.
  *  LEADS_DB and LEAD_DEDUP are optional so the new endpoint deploys cleanly
  *  before the D1 + KV resources are provisioned (see
@@ -102,18 +96,18 @@ export interface Env {
 
   // LeadMailbox has no secret; the URL is hardcoded in the helper.
 
-  // GoHighLevel
+  // GoHighLevel.
+  // GHL workflows own all outbound messaging (SMS via send_blue connector,
+  // email nurture, etc.). The Worker upserts the contact and creates the
+  // opportunity; everything downstream is GHL's job.
   SMARTR8_LEAD_CAPTURE_PROD?: string; // PIT (labeled smartr8-lead-capture-prod in GHL)
   GHL_LOCATION_ID?: string;
-  GHL_CF_LOAN_REQUEST?: string;
-  GHL_CF_NOTES?: string;
+  GHL_CF_LOAN_TYPE?: string;
+  GHL_CF_PROPERTY_STATE?: string;
+  GHL_CF_TCPA_CONSENT?: string;
+  GHL_CF_CONVERSATION_SUMMARY?: string;
   GHL_PIPELINE_ID?: string;
   GHL_PIPELINE_STAGE_NEW?: string;
-
-  // Sendblue
-  SENDBLUE_API_KEY_ID?: string;
-  SENDBLUE_API_SECRET_KEY?: string;
-  SENDBLUE_FROM_NUMBER?: string;
 
   // Turnstile
   TURNSTILE_SECRET_KEY?: string;

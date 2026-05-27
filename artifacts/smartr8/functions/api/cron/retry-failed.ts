@@ -1,20 +1,19 @@
 // @ts-nocheck
 // POST /api/cron/retry-failed
 //
-// Replays failed destinations for D1 rows that:
-//   - have any of {ghl, resend, sendblue, leadmailbox} status = 'failed'
-//   - have attempts < 5 for that destination
-//   - haven't been attempted in the last 60 seconds
-// Caps at 5 attempts: rows that hit the cap are marked 'dead_letter'.
+// Replays failed destinations for D1 rows where:
+//   - leadmailbox_status / ghl_upsert_status / ghl_status / resend_status = 'failed'
+//   - attempts < 5 for that destination
+//   - the row is older than 60 seconds (avoid retrying mid-flight rows)
+// Caps at 5 attempts: rows hitting the cap are marked 'dead_letter'.
 //
 // Triggered by the companion Worker at cloudflare-workers/retry-cron/
 // every 5 minutes. Authenticated via the shared X-Cron-Secret header.
 
-import { sendToGhl, tagContact } from "../../_lib/ghl";
+import { ghlCreateOpportunity, ghlUpsert } from "../../_lib/ghl";
 import { submitToLeadMailbox } from "../../_lib/leadmailbox";
 import { log } from "../../_lib/log";
 import { sendResendConfirmation } from "../../_lib/resend";
-import { sendToSendblue } from "../../_lib/sendblue";
 import type { Env, Lead } from "../../_lib/types";
 
 const MAX_ATTEMPTS = 5;
@@ -28,13 +27,13 @@ function jsonResponse(data, status = 200) {
 interface FailedRow extends Lead {
   leadmailbox_status: string;
   leadmailbox_attempts: number;
+  ghl_upsert_status: string;
+  ghl_upsert_attempts: number;
+  ghl_contact_id: string | null;
   ghl_status: string;
   ghl_attempts: number;
-  ghl_contact_id: string | null;
   resend_status: string;
   resend_attempts: number;
-  sendblue_status: string;
-  sendblue_attempts: number;
 }
 
 export async function onRequestPost(context) {
@@ -47,18 +46,16 @@ export async function onRequestPost(context) {
     return jsonResponse({ ok: false, error: "LEADS_DB not bound" }, 500);
   }
 
-  // Find rows with any failed destination, capped to a batch.
-  // `created_at` is epoch ms; require it to be older than 60s ago.
   const cutoff = Date.now() - MIN_AGE_SECONDS * 1000;
   const rows = await env.LEADS_DB
     .prepare(
       `SELECT * FROM leads
         WHERE created_at < ?
           AND (
-            (leadmailbox_status = 'failed' AND leadmailbox_attempts < ?)
-            OR (ghl_status         = 'failed' AND ghl_attempts         < ?)
-            OR (resend_status      = 'failed' AND resend_attempts      < ?)
-            OR (sendblue_status    = 'failed' AND sendblue_attempts    < ?)
+            (leadmailbox_status  = 'failed' AND leadmailbox_attempts  < ?)
+            OR (ghl_upsert_status = 'failed' AND ghl_upsert_attempts < ?)
+            OR (ghl_status        = 'failed' AND ghl_attempts        < ?)
+            OR (resend_status     = 'failed' AND resend_attempts     < ?)
           )
         ORDER BY created_at ASC
         LIMIT ?`,
@@ -79,9 +76,7 @@ export async function onRequestPost(context) {
     if (row.leadmailbox_status === "failed" && row.leadmailbox_attempts < MAX_ATTEMPTS) {
       const r = await submitToLeadMailbox(lead);
       const nextAttempts = row.leadmailbox_attempts + 1;
-      const status = r.ok
-        ? "sent"
-        : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
+      const status = r.ok ? "sent" : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
       await env.LEADS_DB
         .prepare("UPDATE leads SET leadmailbox_status = ?, leadmailbox_attempts = ?, leadmailbox_last_error = ? WHERE lead_id = ?")
         .bind(status, nextAttempts, r.error ?? null, lead.lead_id)
@@ -89,16 +84,32 @@ export async function onRequestPost(context) {
       retried++;
     }
 
-    // GHL retry
-    if (row.ghl_status === "failed" && row.ghl_attempts < MAX_ATTEMPTS) {
-      const r = await sendToGhl(env, lead);
-      const nextAttempts = row.ghl_attempts + 1;
-      const status = r.ok
-        ? "sent"
-        : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
+    // GHL upsert retry (drives the "Contact Created with web lead tag" workflow)
+    let contactIdForOpportunity: string | null = row.ghl_contact_id;
+    if (row.ghl_upsert_status === "failed" && row.ghl_upsert_attempts < MAX_ATTEMPTS) {
+      const r = await ghlUpsert(env, lead);
+      const nextAttempts = row.ghl_upsert_attempts + 1;
+      const status = r.ok ? "sent" : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
       await env.LEADS_DB
-        .prepare("UPDATE leads SET ghl_status = ?, ghl_contact_id = ?, ghl_attempts = ?, ghl_last_error = ? WHERE lead_id = ?")
-        .bind(status, r.contactId ?? row.ghl_contact_id, nextAttempts, r.error ?? null, lead.lead_id)
+        .prepare("UPDATE leads SET ghl_upsert_status = ?, ghl_contact_id = COALESCE(?, ghl_contact_id), ghl_upsert_attempts = ?, ghl_upsert_last_error = ? WHERE lead_id = ?")
+        .bind(status, r.contactId ?? null, nextAttempts, r.error ?? null, lead.lead_id)
+        .run();
+      if (r.ok && r.contactId) contactIdForOpportunity = r.contactId;
+      retried++;
+    }
+
+    // GHL opportunity retry (only possible if a contactId exists)
+    if (
+      row.ghl_status === "failed" &&
+      row.ghl_attempts < MAX_ATTEMPTS &&
+      contactIdForOpportunity
+    ) {
+      const r = await ghlCreateOpportunity(env, lead, contactIdForOpportunity);
+      const nextAttempts = row.ghl_attempts + 1;
+      const status = r.ok ? "sent" : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
+      await env.LEADS_DB
+        .prepare("UPDATE leads SET ghl_status = ?, ghl_attempts = ?, ghl_last_error = ? WHERE lead_id = ?")
+        .bind(status, nextAttempts, r.error ?? null, lead.lead_id)
         .run();
       retried++;
     }
@@ -107,32 +118,12 @@ export async function onRequestPost(context) {
     if (row.resend_status === "failed" && row.resend_attempts < MAX_ATTEMPTS) {
       const r = await sendResendConfirmation(env, lead);
       const nextAttempts = row.resend_attempts + 1;
-      const status = r.ok
-        ? "sent"
-        : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
+      const status = r.ok ? "sent" : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
       await env.LEADS_DB
         .prepare("UPDATE leads SET resend_status = ?, resend_attempts = ?, resend_last_error = ? WHERE lead_id = ?")
         .bind(status, nextAttempts, r.error ?? null, lead.lead_id)
         .run();
       retried++;
-    }
-
-    // Sendblue retry
-    if (row.sendblue_status === "failed" && row.sendblue_attempts < MAX_ATTEMPTS) {
-      const r = await sendToSendblue(env, lead);
-      const nextAttempts = row.sendblue_attempts + 1;
-      const status = r.ok
-        ? "sent"
-        : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
-      await env.LEADS_DB
-        .prepare("UPDATE leads SET sendblue_status = ?, sendblue_message_handle = ?, sendblue_service = ?, sendblue_attempts = ?, sendblue_last_error = ? WHERE lead_id = ?")
-        .bind(status, r.messageHandle ?? null, r.service ?? null, nextAttempts, r.error ?? null, lead.lead_id)
-        .run();
-      retried++;
-      if (r.ok && row.ghl_contact_id) {
-        // tag-after-text side effect on successful retry too
-        await tagContact(env, row.ghl_contact_id, ["first_text_sent"]);
-      }
     }
   }
 

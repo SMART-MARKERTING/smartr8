@@ -5,8 +5,10 @@
 # GoHighLevel Private Integration Token (labeled "smartr8-lead-capture-prod" in GHL).
 SMARTR8_LEAD_CAPTURE_PROD=
 GHL_LOCATION_ID=
-GHL_CF_LOAN_REQUEST=
-GHL_CF_NOTES=
+GHL_CF_LOAN_TYPE=
+GHL_CF_PROPERTY_STATE=
+GHL_CF_TCPA_CONSENT=
+GHL_CF_CONVERSATION_SUMMARY=
 GHL_PIPELINE_ID=
 GHL_PIPELINE_STAGE_NEW=
 
@@ -15,11 +17,6 @@ TURNSTILE_SECRET_KEY=
 # Note: VITE_TURNSTILE_SITE_KEY is a Vite client-side env var. Put it in
 # artifacts/smartr8/.env.local (not here) so it's inlined into the bundle
 # at build time.
-
-# Sendblue (iMessage / SMS)
-SENDBLUE_API_KEY_ID=
-SENDBLUE_API_SECRET_KEY=
-SENDBLUE_FROM_NUMBER=
 
 # Resend (already in production; populate locally for full dev parity)
 RESEND_API_KEY=

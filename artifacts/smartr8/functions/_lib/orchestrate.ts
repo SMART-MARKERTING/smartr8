@@ -1,21 +1,27 @@
 // Lead-capture orchestrator.
 //
 // Sync: LeadMailbox (the LO actively watches that inbox).
-// Async (ctx.waitUntil): GHL upsert+opportunity, Resend confirmation,
-// Sendblue evaluate+send. Each updates its own D1 status columns.
-// On Sendblue ok=true, fire-and-forget tag "first_text_sent" on the
-// GHL contact (gates downstream GHL nurture without double-texting).
+// Async (ctx.waitUntil):
+//   - GHL chain: contact upsert (with tags + custom fields in body)
+//     -> sequentially, opportunity create on the Web Leads pipeline.
+//     Tags ride with the upsert; no separate /contacts/{id}/tags call.
+//     The upsert triggers GHL's "Contact Created with web lead tag"
+//     workflow, which routes by loan-type tags, assigns by timezone,
+//     and handles all SMS and nurture downstream.
+//   - Resend confirmation (parallel to the GHL chain; independent).
 //
-// D1 row written before any side-effect fires so the audit row exists
+// The Worker does NOT send SMS. The Sendblue API is integrated only
+// inside GHL's send_blue connector and is never called from this codebase.
+//
+// D1 row is written before any side-effect fires so the audit row exists
 // even if every destination fails. KV dedup runs first; a hit within 10
 // minutes is recorded as 'deduped' and returns early.
 
-import { sendToGhl, tagContact } from "./ghl";
+import { ghlCreateOpportunity, ghlUpsert } from "./ghl";
 import { submitToLeadMailbox } from "./leadmailbox";
 import { log } from "./log";
 import { sendResendConfirmation } from "./resend";
-import { sendToSendblue } from "./sendblue";
-import type { Env, Lead, LeadMailboxResult, TcpaConsent } from "./types";
+import type { Env, GhlResult, Lead, LeadMailboxResult, TcpaConsent } from "./types";
 
 const DEDUP_TTL_SECONDS = 600; // 10 minutes
 
@@ -44,7 +50,6 @@ export interface OrchestrateResult {
 
 /**
  * Process a validated, normalized Lead.
- * Caller has already verified Turnstile and inserted the canonical Lead.
  */
 export async function processLead(
   lead: Lead,
@@ -62,8 +67,6 @@ export async function processLead(
       const seen = await kv.get(key);
       if (seen) {
         log("info", "orchestrate.deduped", { lead_id: lead.lead_id, key });
-        // Best-effort: write a minimal D1 row reflecting the dedup so
-        // the audit trail still captures the attempt.
         await safeInsertLead(db, { ...lead, lead_id: lead.lead_id }).catch(() => {});
         if (db) {
           await db
@@ -81,11 +84,10 @@ export async function processLead(
       }
     } catch (e) {
       log("warn", "orchestrate.kv_read_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
-      // Fall through; do not block lead capture on KV failure.
     }
   }
 
-  // ── Audit row + consent row + dedup mark (in parallel best-effort) ──
+  // ── Audit row + consent row + dedup mark ────────────────────────────
   await safeInsertLead(db, lead);
   if (consent) await safeInsertConsent(db, consent);
   if (kv) {
@@ -100,10 +102,9 @@ export async function processLead(
   const lmResult = await submitToLeadMailbox(lead);
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
-  // ── Async: GHL, Resend, Sendblue ────────────────────────────────────
-  ctx.waitUntil(runGhl(env, db, lead));
+  // ── Async: GHL chain (upsert -> opportunity) + Resend in parallel ───
+  ctx.waitUntil(runGhlChain(env, db, lead));
   ctx.waitUntil(runResend(env, db, lead));
-  ctx.waitUntil(runSendblue(env, db, lead));
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
 }
@@ -186,25 +187,67 @@ async function updateLeadmailboxStatus(db: Env["LEADS_DB"], lead_id: string, r: 
   }
 }
 
-// ───────────────────────────────────────────────────────────────────────
-// Async destination runners (each updates its own status columns)
-// ───────────────────────────────────────────────────────────────────────
-
-async function runGhl(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
-  const r = await sendToGhl(env, lead);
+async function updateGhlUpsertStatus(
+  db: Env["LEADS_DB"],
+  lead_id: string,
+  r: GhlResult,
+): Promise<void> {
   if (!db) return;
   try {
     await db
       .prepare(
         `UPDATE leads
-           SET ghl_status = ?, ghl_contact_id = ?, ghl_attempts = ghl_attempts + 1, ghl_last_error = ?
+           SET ghl_upsert_status = ?,
+               ghl_contact_id = COALESCE(?, ghl_contact_id),
+               ghl_upsert_attempts = ghl_upsert_attempts + 1,
+               ghl_upsert_last_error = ?
          WHERE lead_id = ?`,
       )
-      .bind(r.ok ? "sent" : "failed", r.contactId ?? null, r.error ?? null, lead.lead_id)
+      .bind(r.ok ? "sent" : "failed", r.contactId ?? null, r.error ?? null, lead_id)
       .run();
   } catch (e) {
-    log("error", "orchestrate.d1_update_ghl_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
+    log("error", "orchestrate.d1_update_ghl_upsert_error", { lead_id, err: e instanceof Error ? e.message : String(e) });
   }
+}
+
+async function updateGhlOpportunityStatus(
+  db: Env["LEADS_DB"],
+  lead_id: string,
+  r: GhlResult,
+): Promise<void> {
+  if (!db) return;
+  try {
+    await db
+      .prepare(
+        `UPDATE leads
+           SET ghl_status = ?,
+               ghl_attempts = ghl_attempts + 1,
+               ghl_last_error = ?
+         WHERE lead_id = ?`,
+      )
+      .bind(r.ok ? "sent" : "failed", r.error ?? null, lead_id)
+      .run();
+  } catch (e) {
+    log("error", "orchestrate.d1_update_ghl_opp_error", { lead_id, err: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Async destination runners
+// ───────────────────────────────────────────────────────────────────────
+
+/** Upsert -> sequentially opportunity create. Each step writes its own status. */
+async function runGhlChain(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
+  const upsert = await ghlUpsert(env, lead);
+  await updateGhlUpsertStatus(db, lead.lead_id, upsert);
+  if (!upsert.ok || !upsert.contactId) {
+    // Cannot create an opportunity without a contactId. Leave ghl_status
+    // at 'pending' so the retry cron can re-attempt after the upsert
+    // succeeds on a future retry.
+    return;
+  }
+  const opp = await ghlCreateOpportunity(env, lead, upsert.contactId);
+  await updateGhlOpportunityStatus(db, lead.lead_id, opp);
 }
 
 async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
@@ -221,54 +264,5 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
       .run();
   } catch (e) {
     log("error", "orchestrate.d1_update_resend_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
-  }
-}
-
-async function runSendblue(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
-  const r = await sendToSendblue(env, lead);
-  if (!db) {
-    if (r.ok) {
-      log("info", "orchestrate.sendblue_ok_no_db_skip_tag", { lead_id: lead.lead_id });
-    }
-    return;
-  }
-  try {
-    await db
-      .prepare(
-        `UPDATE leads
-           SET sendblue_status = ?,
-               sendblue_message_handle = ?,
-               sendblue_service = ?,
-               sendblue_attempts = sendblue_attempts + 1,
-               sendblue_last_error = ?
-         WHERE lead_id = ?`,
-      )
-      .bind(
-        r.ok ? "sent" : "failed",
-        r.messageHandle ?? null,
-        r.service ?? null,
-        r.error ?? null,
-        lead.lead_id,
-      )
-      .run();
-  } catch (e) {
-    log("error", "orchestrate.d1_update_sendblue_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
-  }
-
-  if (r.ok) {
-    // Tag the contact so future GHL nurture workflows can branch off
-    // "first_text_sent" instead of "Contact Created" (avoids double-text
-    // races with any existing GHL send_blue workflow).
-    try {
-      const row = await db
-        .prepare("SELECT ghl_contact_id FROM leads WHERE lead_id = ?")
-        .bind(lead.lead_id)
-        .first<{ ghl_contact_id: string | null }>();
-      if (row && row.ghl_contact_id) {
-        await tagContact(env, row.ghl_contact_id, ["first_text_sent"]);
-      }
-    } catch (e) {
-      log("warn", "orchestrate.tag_contact_lookup_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
-    }
   }
 }

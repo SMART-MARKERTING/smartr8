@@ -27,27 +27,25 @@ CREATE TABLE IF NOT EXISTS leads (
   leadmailbox_status       TEXT DEFAULT 'pending',
   leadmailbox_attempts     INTEGER DEFAULT 0,
   leadmailbox_last_error   TEXT,
+  ghl_upsert_status        TEXT DEFAULT 'pending',
+  ghl_upsert_attempts      INTEGER DEFAULT 0,
+  ghl_upsert_last_error    TEXT,
   ghl_status               TEXT DEFAULT 'pending',
   ghl_contact_id           TEXT,
   ghl_attempts             INTEGER DEFAULT 0,
   ghl_last_error           TEXT,
   resend_status            TEXT DEFAULT 'pending',
   resend_attempts          INTEGER DEFAULT 0,
-  resend_last_error        TEXT,
-  sendblue_status          TEXT DEFAULT 'pending',
-  sendblue_message_handle  TEXT,
-  sendblue_service         TEXT,
-  sendblue_attempts        INTEGER DEFAULT 0,
-  sendblue_last_error      TEXT
+  resend_last_error        TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_leads_created_at         ON leads(created_at);
 CREATE INDEX IF NOT EXISTS idx_leads_email              ON leads(email);
 CREATE INDEX IF NOT EXISTS idx_leads_phone_e164         ON leads(phone_e164);
 CREATE INDEX IF NOT EXISTS idx_leads_leadmailbox_status ON leads(leadmailbox_status);
+CREATE INDEX IF NOT EXISTS idx_leads_ghl_upsert_status  ON leads(ghl_upsert_status);
 CREATE INDEX IF NOT EXISTS idx_leads_ghl_status         ON leads(ghl_status);
 CREATE INDEX IF NOT EXISTS idx_leads_resend_status      ON leads(resend_status);
-CREATE INDEX IF NOT EXISTS idx_leads_sendblue_status    ON leads(sendblue_status);
 
 CREATE TABLE IF NOT EXISTS tcpa_consents (
   consent_id        TEXT PRIMARY KEY,

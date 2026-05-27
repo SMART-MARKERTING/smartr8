@@ -82,17 +82,12 @@ Click **Save and Deploy**.
 
 ## Lead-capture pipeline (production)
 
-Lead submissions flow through one canonical pipeline:
+Website lead capture: Worker validates form input (zod + Turnstile + honeypot + rate limit), writes to LeadMailbox synchronously, then via `ctx.waitUntil` upserts the contact to GHL with tags `['web lead', 'heloc']` plus `loan_type`, `property_state`, `tcpa_consent`, and `conversation_summary` custom fields, creates an opportunity in the Web Leads pipeline, and sends a Resend confirmation to the lead. The upsert triggers GHL's existing "Contact Created with web lead tag" workflow, which routes by loan-type tags, assigns by timezone, and handles all SMS and nurture downstream. The Worker does NOT send SMS directly. The Sendblue API is integrated only inside GHL's send_blue connector and is never called from this codebase.
 
-1. Form POSTs to `/api/submit-lead` (Cloudflare Pages Function).
-2. The endpoint validates with zod, verifies Cloudflare Turnstile (when the form sends a token), normalizes phone to E.164, builds a canonical `Lead`, and calls the orchestrator (`functions/_lib/orchestrate.ts`).
-3. The orchestrator:
-   - dedups for 10 minutes against `sha256(email|phone|funnel)` in the `LEAD_DEDUP` KV namespace
-   - writes the lead row to the D1 database `LEADS_DB` plus a TCPA consent row when consent is present
-   - synchronously POSTs to **LeadMailbox** (the LO actively monitors that inbox), forwarding the user's real IP via `X-Forwarded-For`
-   - in the background fires **GoHighLevel** (contact upsert + opportunity create on the "Web Leads" / "New Lead" pipeline), the **Resend** confirmation email, and **Sendblue** (iMessage when available, SMS fallback)
-   - on Sendblue success, fire-and-forgets a `first_text_sent` tag on the GHL contact so downstream GHL nurture workflows can branch off the tag instead of "Contact Created"
-4. A companion Worker at `cloudflare-workers/retry-cron/` runs every 5 minutes and POSTs to `/api/cron/retry-failed`. The Pages endpoint replays only the failed destinations (max 5 attempts; rows hitting the cap are marked `dead_letter`).
+D1 audit + KV dedup details:
+- 10-minute dedup against `sha256(email|phone|funnel)` in `LEAD_DEDUP`
+- audit row in `LEADS_DB.leads` with per-destination status columns (`leadmailbox_status`, `ghl_upsert_status`, `ghl_status` for opportunity, `resend_status`) and a `tcpa_consents` row when consent fields are present
+- a companion Worker at `cloudflare-workers/retry-cron/` runs every 5 minutes and POSTs to `/api/cron/retry-failed`, which replays only failed destinations (max 5 attempts; rows hitting the cap are marked `dead_letter`)
 
 ## Required Pages env vars
 
@@ -102,15 +97,14 @@ Set these in **Cloudflare Pages → Settings → Environment variables** for bot
 |---|---|
 | `SMARTR8_LEAD_CAPTURE_PROD` | GoHighLevel Private Integration Token (PIT labeled `smartr8-lead-capture-prod` in GHL) |
 | `GHL_LOCATION_ID` | GoHighLevel location ID |
-| `GHL_CF_LOAN_REQUEST` | GHL custom field ID for "Loan Request" (use `scripts/fetch-ghl-ids.ts`) |
-| `GHL_CF_NOTES` | GHL custom field ID for "Lead Notes" |
+| `GHL_CF_LOAN_TYPE` | GHL custom field ID for "Loan Type" (use `scripts/fetch-ghl-ids.ts`) |
+| `GHL_CF_PROPERTY_STATE` | GHL custom field ID for "Property State" |
+| `GHL_CF_TCPA_CONSENT` | GHL custom field ID for "TCPA Consent" |
+| `GHL_CF_CONVERSATION_SUMMARY` | GHL custom field ID for "Conversation Summary" |
 | `GHL_PIPELINE_ID` | GHL pipeline ID for "Web Leads" |
 | `GHL_PIPELINE_STAGE_NEW` | GHL stage ID for "New Lead" inside that pipeline |
 | `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile server-side secret |
 | `VITE_TURNSTILE_SITE_KEY` | Turnstile site key (exposed to the browser) |
-| `SENDBLUE_API_KEY_ID` | Sendblue API key ID |
-| `SENDBLUE_API_SECRET_KEY` | Sendblue API secret |
-| `SENDBLUE_FROM_NUMBER` | Sendblue verified sender number (E.164) |
 | `VITE_TCPA_CONSENT_VERSION` | Optional client-side override for the consent version (defaults to the value in `src/lib/tcpa.ts`) |
 | `CRON_SECRET` | Shared secret between the companion retry Worker and `/api/cron/retry-failed` |
 | `RESEND_API_KEY` | Resend API key (already in place; powers the confirmation email and worksheet PDFs) |
@@ -155,6 +149,15 @@ wrangler secret put CRON_SECRET           # paste the same value you set in Page
 wrangler secret put PAGES_BASE_URL        # https://smartr8.com
 wrangler deploy
 ```
+
+## Post-merge verification
+
+After the first production deploy that depends on the pipeline:
+- Submit a test lead on smartr8.com and confirm a row appears in the `leads` D1 table with `leadmailbox_status = 'sent'`, `ghl_upsert_status = 'sent'`, `ghl_status = 'sent'`, `resend_status = 'sent'`.
+- Confirm the Resend confirmation arrives from `mykoal@mykoal.com`.
+- Confirm the GHL contact appears with the `web lead` and `heloc` tags and the four custom fields populated.
+- Confirm the GHL workflow fires the first SMS via send_blue within 1 to 3 minutes of submit.
+- Hit `POST /api/cron/retry-failed` with the `X-Cron-Secret` header and confirm `{ ok: true, retried: 0 }` when there's nothing failed.
 
 ---
 
