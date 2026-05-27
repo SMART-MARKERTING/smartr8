@@ -27,6 +27,9 @@ export interface Lead {
   /** E.164 formatted, e.g. "+15555551234". May be empty if phone not collected. */
   phone_e164?: string;
   address1?: string;
+  /** Explicit two-letter US state code. When set, takes precedence over
+   *  the trailing-", XX" parse of address1 in the GHL helper. */
+  property_state?: string;
 
   /** Human-readable product label fed to LeadMailbox Loan_Request. */
   loan_request?: string;
