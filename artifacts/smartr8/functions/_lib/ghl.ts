@@ -49,6 +49,33 @@ function propertyStateFor(lead: Lead): string {
   return m ? m[1] : "";
 }
 
+// Maps URL pathname -> GHL loan-type tag. Add new entries when
+// launching new ad campaigns. The GHL workflow's "Tag by Loan Type"
+// router branches off these tags. Untagged leads fall to the
+// "Unknown" None Branch and are not auto-routed/assigned/texted -
+// they require manual handling in GHL.
+const FUNNEL_TAG_MAP: Record<string, string> = {
+  "/heloc-v2": "heloc",
+  "/heloc/quick-v2": "heloc",
+};
+
+/** Build the GHL contact tag set from a Lead. Always includes
+ *  "web lead"; appends a loan-type tag only when the landing page
+ *  matches an active ad-campaign URL in FUNNEL_TAG_MAP. v1 funnels
+ *  and worksheet leads intentionally land untagged. */
+function tagsFor(lead: Lead): string[] {
+  const tags = ["web lead"];
+  try {
+    const url = new URL(lead.landing_page ?? "");
+    const pathname = url.pathname.replace(/\/$/, "") || url.pathname;
+    const mapped = FUNNEL_TAG_MAP[pathname];
+    if (mapped) tags.push(mapped);
+  } catch {
+    // Missing or malformed landing_page — leave tags as ["web lead"].
+  }
+  return tags;
+}
+
 /** Log 401/403 as scope errors distinctly so dev catches them quickly. */
 function logScopeError(stage: string, lead_id: string, status: number, body: string): void {
   log("error", "ghl.scope_error", {
@@ -80,10 +107,7 @@ export async function ghlUpsert(env: Env, lead: Lead): Promise<GhlResult> {
 
   const propertyState = propertyStateFor(lead);
 
-  // TODO: "heloc" hardcoded because all current smartr8.com funnels
-  // are HELOC. When non-HELOC funnels launch (purchase, refi, VA),
-  // pass funnel through and pick the right tag.
-  const tags = ["web lead", "heloc"];
+  const tags = tagsFor(lead);
 
   const customFields = [
     { id: env.GHL_CF_LOAN_TYPE, value: "HELOC" },
