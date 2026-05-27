@@ -1,0 +1,19 @@
+# Companion Cloudflare Worker for the lead-capture retry cron.
+#
+# Pages Functions don't support cron triggers, so this small Worker runs
+# on a schedule and POSTs to the Pages endpoint /api/cron/retry-failed
+# with the shared X-Cron-Secret header. The Pages endpoint does the real
+# work (D1 lookup + helper replays).
+#
+# Deploy:
+#   cd cloudflare-workers/retry-cron
+#   wrangler secret put CRON_SECRET           # paste the same value used in Pages env
+#   wrangler secret put PAGES_BASE_URL        # e.g. https://smartr8.com
+#   wrangler deploy
+
+name = "smartr8-retry-cron"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[triggers]
+crons = ["*/5 * * * *"]

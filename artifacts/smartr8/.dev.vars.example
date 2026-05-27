@@ -1,0 +1,25 @@
+# Cloudflare Pages local-dev secrets. Copy to .dev.vars (gitignored)
+# for `wrangler pages dev` runs. Production + Preview values live in the
+# Pages dashboard.
+
+# GoHighLevel Private Integration Token (labeled "smartr8-lead-capture-prod" in GHL).
+SMARTR8_LEAD_CAPTURE_PROD=
+GHL_LOCATION_ID=
+GHL_CF_LOAN_TYPE=
+GHL_CF_PROPERTY_STATE=
+GHL_CF_TCPA_CONSENT=
+GHL_CF_CONVERSATION_SUMMARY=
+GHL_PIPELINE_ID=
+GHL_PIPELINE_STAGE_NEW=
+
+# Cloudflare Turnstile
+TURNSTILE_SECRET_KEY=
+# Note: VITE_TURNSTILE_SITE_KEY is a Vite client-side env var. Put it in
+# artifacts/smartr8/.env.local (not here) so it's inlined into the bundle
+# at build time.
+
+# Resend (already in production; populate locally for full dev parity)
+RESEND_API_KEY=
+
+# Shared secret between the companion retry Worker and /api/cron/retry-failed.
+CRON_SECRET=

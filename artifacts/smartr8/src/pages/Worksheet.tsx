@@ -10,7 +10,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
+import { TcpaConsent } from "@/components/TcpaConsent";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getWorksheetPdfBase64 } from "@/lib/generatePdf";
@@ -46,11 +46,10 @@ interface ContactInfo {
   lastName: string;
   email: string;
   mobile: string;
-  tcpa: boolean;
 }
 
 function emptyContact(): ContactInfo {
-  return { firstName: "", lastName: "", email: "", mobile: "", tcpa: false };
+  return { firstName: "", lastName: "", email: "", mobile: "" };
 }
 
 function loadContact(): ContactInfo {
@@ -385,6 +384,10 @@ export default function Worksheet() {
     () => parseEntryFromUrl(search) ?? loadEntry(),
   );
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
+  const [consentState, setConsentState] = useState({
+    ready: false, consent: false, consent_version: "",
+    consent_text: "", turnstile_token: "",
+  });
   const { toast } = useToast();
   const initialPrefillRef = useRef(false);
 
@@ -621,10 +624,11 @@ export default function Worksheet() {
       email,
       phone: mobile,
       entryButton: entryButton ?? "cash-out",
-      funnelAnswers: {
-        ...funnelAnswers,
-        "Consent-Box-Checked": contact.tcpa ? "Yes" : "No",
-      },
+      turnstile_token: consentState.turnstile_token,
+      consent: consentState.consent,
+      consent_version: consentState.consent_version,
+      consent_text: consentState.consent_text,
+      funnelAnswers,
     });
 
     if (!result.success) {
@@ -638,7 +642,7 @@ export default function Worksheet() {
     }
 
     // Persist trimmed contact (so /whats-next can read the firstName for personal banner)
-    setContact({ firstName: first, lastName: last, email, mobile, tcpa: contact.tcpa });
+    setContact({ firstName: first, lastName: last, email, mobile });
 
     // For calc products, auto-generate the worksheet PDF and email it to the
     // address they just entered. We await this before redirecting so the email
@@ -669,7 +673,7 @@ export default function Worksheet() {
             fileName: `Loan-Benefits-Worksheet-${clientName.replace(/\s+/g, "-")}.pdf`,
             worksheetSummary,
             trackingId: getOrCreateTrackingId(),
-            consentBoxChecked: contact.tcpa,
+            consentBoxChecked: consentState.consent,
           }),
         });
       } catch (err) {
@@ -1317,22 +1321,7 @@ export default function Worksheet() {
             data-testid="contact-mobile"
           />
         </div>
-        <div className="flex items-start gap-3 rounded-lg bg-muted/40 border p-4">
-          <Checkbox
-            id="cf-tcpa"
-            checked={contact.tcpa}
-            onCheckedChange={(v) => updateContact({ tcpa: v === true })}
-            className="mt-0.5"
-            data-testid="contact-tcpa"
-          />
-          <Label htmlFor="cf-tcpa" className="text-xs leading-snug font-normal cursor-pointer">
-            By submitting this form, I agree to receive calls, texts, and emails from Mykoal DeShazo
-            at Adaxa Home, LLC regarding my mortgage inquiry, including via automated dialer.
-            Checking the box above is optional and confirms my consent. Consent is not a condition
-            of any purchase and I can opt out at any time. Standard message and data rates may
-            apply.
-          </Label>
-        </div>
+        <TcpaConsent onChange={setConsentState} />
         <p className="text-[11px] text-muted-foreground">
           Mykoal DeShazo · NMLS #1912347 · Adaxa Home, LLC · NMLS #2380533 · Equal Housing Opportunity
         </p>
@@ -1384,7 +1373,7 @@ export default function Worksheet() {
                 </Button>
                 <Button
                   onClick={submitContact}
-                  disabled={isSubmittingContact}
+                  disabled={isSubmittingContact || !consentState.ready}
                   className="bg-accent hover:bg-accent/90 text-white"
                   data-testid="submit-contact"
                 >

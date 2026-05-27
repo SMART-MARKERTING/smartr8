@@ -1,0 +1,29 @@
+# Cloudflare Pages config for the smartr8 site.
+#
+# Bindings are NOT declared here yet because their real IDs only exist
+# after `wrangler d1 create` and `wrangler kv:namespace create` run.
+# See scripts/setup-cloudflare.sh for the ordered one-time setup, then
+# uncomment + populate the blocks at the bottom of this file with the
+# IDs that those commands print.
+#
+# Env vars (secrets) are managed in Cloudflare Pages -> Settings ->
+# Environment variables (Production + Preview). See README.md.
+
+name = "smartr8"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ─── Add these blocks after running scripts/setup-cloudflare.sh ────────
+#
+# [[d1_databases]]
+# binding = "LEADS_DB"
+# database_name = "smartr8-leads"
+# database_id = "<paste the database_id returned by `wrangler d1 create smartr8-leads`>"
+#
+# [[kv_namespaces]]
+# binding = "LEAD_DEDUP"
+# id = "<paste the id returned by `wrangler kv:namespace create LEAD_DEDUP`>"
+#
+# [[kv_namespaces]]
+# binding = "CF_KV_NAMESPACE"
+# id = "<existing CF_KV_NAMESPACE id (look it up in the Cloudflare dashboard)>"

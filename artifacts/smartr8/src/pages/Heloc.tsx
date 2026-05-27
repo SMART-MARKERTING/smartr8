@@ -8,8 +8,8 @@ import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { submitLead } from "@/lib/submitLead";
+import { TcpaConsent } from "@/components/TcpaConsent";
 import { saveRateContext } from "@/lib/rateEstimate";
 import { useGA4 } from "@/hooks/useGA4";
 import { trackFbEvent } from "@/lib/fbq";
@@ -30,10 +30,10 @@ type FS = {
   homeValue: string; homeValueDraft: string;
   mortgageBalance: string; mortgageBalanceDraft: string;
   helocPurposes: string[]; timeline: string; creditScore: string;
-  dob: string; email: string; phone: string; consent: boolean;
+  dob: string; email: string; phone: string;
   honeypot: string; pageLoadTime: number;
 };
-const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",helocPurposes:[],timeline:"",creditScore:"",dob:"",email:"",phone:"",consent:false,honeypot:"",pageLoadTime:0 };
+const DEFAULT: FS = { step:1,firstName:"",lastName:"",address:"",city:"",stateCode:"",zip:"",homeValue:"",homeValueDraft:"",mortgageBalance:"",mortgageBalanceDraft:"",helocPurposes:[],timeline:"",creditScore:"",dob:"",email:"",phone:"",honeypot:"",pageLoadTime:0 };
 
 export default function HelocFunnel() {
   const [, setLocation] = useLocation();
@@ -44,6 +44,10 @@ export default function HelocFunnel() {
   }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [consentState, setConsentState] = useState({
+    ready: false, consent: false, consent_version: "",
+    consent_text: "", turnstile_token: "",
+  });
   const [st, setSt] = useState<FS>(() => {
     try { const s = sessionStorage.getItem(SESSION_KEY); return s ? (JSON.parse(s) as FS) : { ...DEFAULT, pageLoadTime: Date.now() }; }
     catch { return { ...DEFAULT, pageLoadTime: Date.now() }; }
@@ -68,7 +72,7 @@ export default function HelocFunnel() {
     if (!st.email) { setSubmitError("Please enter your email."); return; }
     setIsSubmitting(true); setSubmitError("");
     try {
-      const result = await submitLead({ funnel:"heloc", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline, consent_box_checked: st.consent ? "yes" : "no" } });
+      const result = await submitLead({ funnel:"heloc", firstName:st.firstName, lastName:st.lastName, email:st.email, phone:st.phone, address:st.address, city:st.city, state:st.stateCode, zip:st.zip, homeValue:st.homeValue, mortgageBalance:st.mortgageBalance, creditScore:st.creditScore, dob:st.dob, honeypot:st.honeypot, pageLoadTime:st.pageLoadTime, turnstile_token: consentState.turnstile_token, consent: consentState.consent, consent_version: consentState.consent_version, consent_text: consentState.consent_text, additionalFields:{ helocPurposes:st.helocPurposes, timeline:st.timeline } });
       if (result.success) { ga4.trackLead(); saveRateContext({ creditScore: st.creditScore, funnel: "heloc" }); sessionStorage.removeItem(SESSION_KEY); setLocation(`/heloc/whats-next?name=${encodeURIComponent(st.firstName)}&credit=${encodeURIComponent(st.creditScore)}&funnel=heloc`); }
       else { setSubmitError(result.error || SUBMIT_ERR); setIsSubmitting(false); }
     } catch { setSubmitError(SUBMIT_ERR); setIsSubmitting(false); }
@@ -209,12 +213,9 @@ export default function HelocFunnel() {
             <input type="text" name="website" value={st.honeypot} onChange={(e) => p({ honeypot:e.target.value })} tabIndex={-1} aria-hidden="true" autoComplete="off" style={{ position:"absolute", left:"-9999px", opacity:0, height:0, width:0 }} />
             <div className="space-y-1.5"><Label htmlFor="email">Email</Label><Input id="email" type="email" placeholder="jane@example.com" value={st.email} onChange={(e) => p({ email:e.target.value })} className="text-base py-5" required /></div>
             <div className="space-y-1.5"><Label htmlFor="phone">Mobile Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span></Label><Input id="phone" type="tel" placeholder="(555) 555-5555" value={st.phone} onChange={(e) => p({ phone:e.target.value })} className="text-base py-5" /></div>
-            <div className="flex items-start gap-3 bg-secondary/50 p-4 rounded-xl mt-1">
-              <Checkbox id="consent" checked={st.consent} onCheckedChange={(c) => p({ consent:!!c })} className="mt-0.5" />
-              <label htmlFor="consent" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">By submitting this form, you agree to be contacted by Mykoal DeShazo at Adaxa Home regarding your inquiry. Checking the box is optional and your form will still be submitted if you leave it unchecked. Consent is not a condition of any service. Standard rates may apply. You can opt out at any time.</label>
-            </div>
+            <TcpaConsent onChange={setConsentState} />
             {submitError && <p className="text-sm text-destructive bg-destructive/10 p-3 rounded-lg">{submitError}</p>}
-            <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email}>
+            <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !consentState.ready}>
               {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My HELOC Options"}
             </Button>
           </form>
