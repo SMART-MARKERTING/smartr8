@@ -22,6 +22,7 @@ const HelocQuick = lazy(() => import("@/pages/HelocQuick"));
 const HelocQuickV2 = lazy(() => import("@/pages/HelocQuickV2"));
 const HelocInstantOptionsV2 = lazy(() => import("@/pages/HelocInstantOptionsV2"));
 const HelocV2 = lazy(() => import("@/pages/HelocV2"));
+const HelocNextStepV2 = lazy(() => import("@/pages/HelocNextStepV2"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
 const WhatsNext = lazy(() => import("@/pages/WhatsNext"));
@@ -167,6 +168,7 @@ function Router() {
         <Route path="/heloc/whats-next" component={HelocWhatsnext} />
         <Route path="/heloc/instant-options" component={HelocInstantOptions} />
         <Route path="/heloc/instant-options-v2" component={HelocInstantOptionsV2} />
+        <Route path="/heloc/next-step-v2" component={HelocNextStepV2} />
         <Route path="/heloc/quick" component={HelocQuick} />
         <Route path="/heloc/quick-v2" component={HelocQuickV2} />
         {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}

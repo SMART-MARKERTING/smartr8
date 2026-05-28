@@ -148,7 +148,7 @@ export default function HelocV2() {
           timeline: st.timeline,
           v: "A",
         });
-        setLocation(`/heloc/instant-options-v2?${params.toString()}`);
+        setLocation(`/heloc/next-step-v2?${params.toString()}`);
       }
       else { setSubmitError(result.error || SUBMIT_ERR); setIsSubmitting(false); }
     } catch { setSubmitError(SUBMIT_ERR); setIsSubmitting(false); }

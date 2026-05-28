@@ -123,7 +123,7 @@ export default function HelocQuickV2() {
         });
         ga4.trackLead({ variant: "B", funnel_version: FUNNEL_VERSION, funnel_length: "short" });
         setLocation(
-          `/heloc/instant-options-v2?name=${encodeURIComponent(firstName.trim())}&v=B`,
+          `/heloc/next-step-v2?name=${encodeURIComponent(firstName.trim())}&v=B`,
         );
       } else {
         setError(result.error || SUBMIT_ERR);
