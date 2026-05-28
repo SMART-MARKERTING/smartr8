@@ -130,7 +130,11 @@ export async function onRequest(context) {
     user_agent: userAgent,
   };
 
-  const consent: TcpaConsent | null = v.data.consent_text && v.data.consent_version
+  // Build the TCPA consent record only when the user actively checked the
+  // optional consent box (consent === true). The text + version fields are
+  // sent on every submission regardless of the checkbox so we know which
+  // disclosure was SHOWN — the boolean tells us whether they agreed to it.
+  const consent: TcpaConsent | null = v.data.consent === true && v.data.consent_text && v.data.consent_version
     ? {
         consent_id: crypto.randomUUID(),
         lead_id: lead.lead_id,

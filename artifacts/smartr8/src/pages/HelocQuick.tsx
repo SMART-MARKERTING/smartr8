@@ -8,7 +8,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TcpaConsent } from "@/components/TcpaConsent";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import {
   Select,
   SelectContent,
@@ -268,6 +268,7 @@ export default function HelocQuick() {
               <p className="text-center text-xs text-muted-foreground">
                 No credit pull. No commitment.
               </p>
+              <TcpaSubmitNotice />
             </form>
           </div>
         </div>

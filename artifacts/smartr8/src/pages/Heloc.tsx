@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitLead } from "@/lib/submitLead";
-import { TcpaConsent } from "@/components/TcpaConsent";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { saveRateContext } from "@/lib/rateEstimate";
 import { useGA4 } from "@/hooks/useGA4";
 import { trackFbEvent } from "@/lib/fbq";
@@ -218,6 +218,7 @@ export default function HelocFunnel() {
             <Button type="submit" className="w-full h-14 mt-2 bg-accent hover:bg-accent/90 text-white text-base font-semibold shadow-lg" disabled={isSubmitting || !st.email || !consentState.ready}>
               {isSubmitting ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : "Get My HELOC Options"}
             </Button>
+            <TcpaSubmitNotice />
           </form>
         </div>
       )}

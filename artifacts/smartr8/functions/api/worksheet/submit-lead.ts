@@ -376,20 +376,26 @@ export async function onRequest(context) {
   const hasTurnstile = Boolean(body.turnstile_token);
   const hasConsentText = Boolean(body.consent_text);
   const hasConsentVersion = Boolean(body.consent_version);
+  const hasConsentChecked = body.consent === true;
   let consent = null;
   if (hasTurnstile && hasConsentText && hasConsentVersion) {
-    consent = {
-      consent_id: crypto.randomUUID(),
-      lead_id: lead.lead_id,
-      consent_version: body.consent_version,
-      consent_text: body.consent_text,
-      ip,
-      user_agent: userAgent,
-      page_url: body.page_url || "smartr8.com/worksheet",
-      created_at: lead.created_at,
-    };
+    // Fields are present (form rendered the widget). Only record consent
+    // when the user actively checked the optional box; an unchecked submit
+    // is an explicit opt-out and we must NOT write a tcpa_consents row.
+    if (hasConsentChecked) {
+      consent = {
+        consent_id: crypto.randomUUID(),
+        lead_id: lead.lead_id,
+        consent_version: body.consent_version,
+        consent_text: body.consent_text,
+        ip,
+        user_agent: userAgent,
+        page_url: body.page_url || "smartr8.com/worksheet",
+        created_at: lead.created_at,
+      };
+    }
   } else {
-    // Surfaces stale frontend caches that haven't picked up PR #16's
+    // Surfaces stale frontend caches that haven't picked up the
     // <TcpaConsent /> widget yet. Lead still flows; consent row skipped.
     log("warn", "worksheet.branch3.missing_tcpa_fields", {
       lead_id: lead.lead_id,

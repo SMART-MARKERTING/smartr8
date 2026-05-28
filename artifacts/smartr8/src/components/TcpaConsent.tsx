@@ -19,7 +19,11 @@ declare global {
 
 interface TcpaConsentProps {
   /** Receives ({ consent, consent_version, consent_text, turnstile_token }).
-   *  Submit should be disabled until ready === true. */
+   *  As of 2026-05-28.v2 the consent checkbox is OPTIONAL — `ready` reports
+   *  Turnstile-token-only, so forms gating Submit on `ready` will allow
+   *  unchecked submissions through. The `consent` boolean still reflects
+   *  the checkbox state so the backend can decide whether to write a
+   *  tcpa_consents row. */
   onChange: (state: {
     ready: boolean;
     consent: boolean;
@@ -65,8 +69,11 @@ export function TcpaConsent({ onChange }: TcpaConsentProps) {
   const widgetId = useRef<string | null>(null);
 
   useEffect(() => {
+    // The checkbox is optional now. `ready` gates only on Turnstile token
+    // presence so the form can be submitted with the checkbox unchecked.
+    // Bot-check still required (otherwise spam would flood the funnel).
     onChange({
-      ready: consent && token.length > 0,
+      ready: token.length > 0,
       consent,
       consent_version: CONSENT_VERSION,
       consent_text: CONSENT_TEXT,
@@ -114,17 +121,16 @@ export function TcpaConsent({ onChange }: TcpaConsentProps) {
           className="mt-1 h-4 w-4 shrink-0 cursor-pointer"
         />
         <label htmlFor="tcpa-consent" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-          By checking this box and submitting this form, I agree that Mykoal DeShazo
-          {" "}(NMLS #1912347) and Adaxa Home (NMLS #2380533) may contact me at the email
-          and phone number provided, including by autodialed calls, prerecorded
-          messages, SMS and MMS texts, and email regarding mortgage loan options,
-          even if my number is on a Do Not Call list. Message and data rates may
-          apply. Consent is not a condition of any purchase. I may revoke consent
-          at any time by replying STOP to any text or contacting Mykoal directly.
-          I also acknowledge the{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>
-          {" "}and{" "}
-          <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms of Service</a>.
+          <span className="font-semibold text-foreground">Optional:</span>{" "}
+          By checking this box, I consent to receive calls, SMS/MMS texts, and
+          emails from Mykoal DeShazo (NMLS #1912347) and Adaxa Home
+          (NMLS #2380533) at the phone number and email I provided regarding
+          mortgage and home-equity loan options. Calls and texts may use an
+          autodialer, automated technology, or artificial/prerecorded voice.
+          Consent is not required to submit this form or purchase goods or
+          services. Message and data rates may apply. Message frequency may
+          vary. Reply STOP to opt out or HELP for help. I may also revoke
+          consent by contacting Mykoal directly.
         </label>
       </div>
       <div ref={widgetEl} aria-label="Turnstile challenge" />
@@ -135,5 +141,26 @@ export function TcpaConsent({ onChange }: TcpaConsentProps) {
         </p>
       )}
     </div>
+  );
+}
+
+/** Transactional notice rendered directly below the Submit button on every
+ *  contact form. Conveys implied consent for THIS specific inquiry (required
+ *  to submit) and acknowledges the Privacy Policy + Terms of Service. The
+ *  separate OPTIONAL marketing consent lives in <TcpaConsent /> above. */
+export function TcpaSubmitNotice() {
+  return (
+    <p className="text-xs text-muted-foreground leading-relaxed mt-3">
+      By clicking Submit, I request that Mykoal DeShazo and Adaxa Home contact
+      me about my inquiry using the contact information I provided. I
+      acknowledge the{" "}
+      <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+        Privacy Policy
+      </a>{" "}
+      and{" "}
+      <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+        Terms of Service
+      </a>.
+    </p>
   );
 }

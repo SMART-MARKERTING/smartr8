@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, CheckCircle2, Loader2, Shield, Clock, TrendingUp } from "lucide-react";
 import { submitLead } from "@/lib/submitLead";
-import { TcpaConsent } from "@/components/TcpaConsent";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { saveRateContext } from "@/lib/rateEstimate";
 import { useGA4 } from "@/hooks/useGA4";
 import { trackFbEvent } from "@/lib/fbq";
@@ -353,6 +353,7 @@ export default function HelocV2() {
                 {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
               </Button>
               {st.step === 9 && <p className="text-center text-xs text-muted-foreground mt-3">No credit pull. No commitment.</p>}
+              {st.step === 9 && <TcpaSubmitNotice />}
             </div>
           )}
         </div>
@@ -372,6 +373,7 @@ export default function HelocV2() {
               {isSubmitting && st.step === 9 ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Submitting...</> : cta.label}
             </Button>
             {st.step === 9 && <p className="text-center text-xs text-muted-foreground mt-1.5">No credit pull. No commitment.</p>}
+            {st.step === 9 && <TcpaSubmitNotice />}
           </div>
         </div>
       )}

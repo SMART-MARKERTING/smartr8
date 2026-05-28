@@ -10,7 +10,7 @@ import { PageMeta } from "@/components/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { TcpaConsent } from "@/components/TcpaConsent";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getWorksheetPdfBase64 } from "@/lib/generatePdf";
@@ -1385,6 +1385,7 @@ export default function Worksheet() {
                 </Button>
               </div>
             )}
+            {step === 5 && <TcpaSubmitNotice />}
           </div>
         </main>
 

@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, Loader2, Zap, Shield, Clock, TrendingUp } from "lucide-react";
-import { TcpaConsent } from "@/components/TcpaConsent";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 
 const LICENSED_STATES = [
   { value: "AZ", label: "Arizona" },
@@ -291,6 +291,7 @@ export default function HelocQuickV2() {
                 <p className="text-center text-xs text-muted-foreground mt-3">
                   No credit pull. No commitment.
                 </p>
+                <TcpaSubmitNotice />
               </div>
             </form>
           </div>
@@ -327,6 +328,7 @@ export default function HelocQuickV2() {
           <p className="text-center text-xs text-muted-foreground mt-1.5">
             No credit pull. No commitment.
           </p>
+          <TcpaSubmitNotice />
         </div>
       </div>
 
