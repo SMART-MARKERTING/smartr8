@@ -234,7 +234,7 @@ export default function HelocQuickV2() {
 
               <div className="space-y-1.5">
                 <Label htmlFor="hqv2-phone" className="text-sm">
-                  Mobile Phone <span className="text-muted-foreground font-normal text-xs">(optional)</span>
+                  Mobile Phone
                 </Label>
                 <Input
                   id="hqv2-phone"
