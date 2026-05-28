@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const FUNNEL_VERSION = "v2";
-const COUNTDOWN_SECONDS = 30;
+const COUNTDOWN_SECONDS = 5;
 
 // Destination preserved from the prior /heloc/instant-options-v2 Option 1
 // "Continue" button. Change here to retarget the Fast Digital Path without
