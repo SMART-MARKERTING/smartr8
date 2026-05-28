@@ -123,6 +123,22 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     target: "es2020",
+    rollupOptions: {
+      output: {
+        // Group the four ad-traffic HELOC funnels into a single chunk so
+        // visitors bouncing between /heloc-v2 and /heloc/quick-v2 (A/B
+        // navigation) don't pay for a second round trip. Worksheet and
+        // Home stay in their own auto-split chunks so ad-traffic visitors
+        // never download them. Everything else uses Vite's default
+        // splitting (one chunk per dynamic import).
+        manualChunks(id: string) {
+          if (/\/src\/pages\/(Heloc|HelocV2|HelocQuick|HelocQuickV2)\.tsx?$/.test(id)) {
+            return "heloc-ads";
+          }
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port: port ?? 5173,

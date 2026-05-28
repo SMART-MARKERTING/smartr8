@@ -8,21 +8,9 @@
     <meta name="robots" content="index, follow" />
     <meta name="impact-site-verification" value="94dadf06-9de6-4e24-a059-c31bda2b1138" />
 
-    <!-- Google Tag Manager (GTM-TNNCPJMV) -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-TNNCPJMV');</script>
-    <!-- End Google Tag Manager -->
-
-    <!-- Google Tag Manager (GTM-PNB42GPW) -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-PNB42GPW');</script>
-    <!-- End Google Tag Manager -->
+    <!-- GTM containers (TNNCPJMV, PNB42GPW, 5D9892QJ) and the Meta Pixel
+         load via requestIdleCallback at the end of <body>. See the eager
+         stub + deferred-load blocks there. -->
     <meta property="og:title" content="Mykoal DeShazo | VP &amp; Senior Loan Officer at Adaxa Home" />
     <meta property="og:description" content="Real mortgage options from a Senior Loan Officer at Adaxa Home in Scottsdale. Cash out, refi, HELOC and more from 99+ lenders. No credit pull, no pressure. NMLS #1912347. Equal Housing Opportunity." />
     <meta property="og:type" content="website" />
@@ -150,40 +138,72 @@
          in parallel with analytics requests. -->
     <script type="module" src="/src/main.tsx"></script>
 
-    <!-- Analytics moved to end of body so they no longer parse-block <head>.
-         The inline IIFEs still fire PageView promptly; the external script
-         loads (gtm.js, fbevents.js) remain async. Order matters: define the
-         fbq/gtag stubs BEFORE any React code that calls them. The module
-         script above is deferred, so these inline scripts run first. -->
-
-    <!-- Google Tag Manager (first-party subdomain sig.smartr8.com via Stape sGTM) -->
-    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-    'https://sig.smartr8.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-    })(window,document,'script','dataLayer','GTM-5D9892QJ');</script>
-
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VBE2PV8VV5"></script>
+    <!-- Eager stubs: dataLayer + fbq must exist immediately so any client
+         code (React useEffect-fired ViewContent, useGA4 dataLayer pushes,
+         etc.) that runs before external scripts load still queues correctly.
+         fbq('init') + initial PageView are queued here so they fire in
+         order when fbevents.js eventually drains the queue. -->
     <script>
       window.dataLayer = window.dataLayer || [];
+      (function(f) {
+        if (f.fbq) return;
+        var n = f.fbq = function() {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n; n.loaded = true; n.version = '2.0'; n.queue = [];
+      })(window);
+      fbq('init', '723066527555884');
+      fbq('track', 'PageView');
+    </script>
+
+    <!-- Google Analytics (gtag). Kept eagerly loaded because attribution
+         for the first page view needs gtag initialized before any
+         client-side route navigation. Small library (~50KB gz). -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VBE2PV8VV5"></script>
+    <script>
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-VBE2PV8VV5');
     </script>
 
-    <!-- Meta Pixel -->
+    <!-- Deferred: load the three GTM containers (TNNCPJMV, PNB42GPW, and
+         5D9892QJ via Stape's first-party sig.smartr8.com subdomain) plus
+         the Meta Pixel external fbevents.js after the critical render
+         path settles. requestIdleCallback where supported (Chrome / Edge /
+         Firefox), setTimeout(0) fallback for Safari. A 3-second rIC
+         timeout guarantees the load even on a busy main thread. Events
+         queued against the eager fbq stub above drain in order once
+         fbevents.js arrives. -->
     <script>
-    !function(f,b,e,v,n,t,s)
-    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-    n.queue=[];t=b.createElement(e);t.async=!0;
-    t.src=v;s=b.getElementsByTagName(e)[0];
-    s.parentNode.insertBefore(t,s)}(window, document,'script',
-    'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '723066527555884');
-    fbq('track', 'PageView');
+      (function() {
+        function loadGTM(id, customSrc) {
+          window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
+          var s = document.getElementsByTagName('script')[0];
+          var j = document.createElement('script');
+          j.async = true;
+          j.src = customSrc || 'https://www.googletagmanager.com/gtm.js?id=' + id;
+          s.parentNode.insertBefore(j, s);
+        }
+        function loadMetaPixel() {
+          var s = document.getElementsByTagName('script')[0];
+          var t = document.createElement('script');
+          t.async = true;
+          t.src = 'https://connect.facebook.net/en_US/fbevents.js';
+          s.parentNode.insertBefore(t, s);
+        }
+        function loadAll() {
+          loadGTM('GTM-TNNCPJMV');
+          loadGTM('GTM-PNB42GPW');
+          loadGTM('GTM-5D9892QJ', 'https://sig.smartr8.com/gtm.js?id=GTM-5D9892QJ');
+          loadMetaPixel();
+        }
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(loadAll, { timeout: 3000 });
+        } else {
+          setTimeout(loadAll, 0);
+        }
+      })();
     </script>
     <noscript><img height="1" width="1" style="display:none"
     src="https://www.facebook.com/tr?id=723066527555884&ev=PageView&noscript=1"
