@@ -1,5 +1,5 @@
 import { useEffect, useRef, Suspense, lazy } from "react";
-import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation, useSearch } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -125,15 +125,23 @@ function PixelLinkTracker() {
 }
 
 /**
- * Redirects legacy /apply/* funnel routes into the unified /worksheet funnel.
- * The per-product funnels were superseded by the shared funnel; these
- * redirects keep old links and ad destinations working.
+ * Client-side redirect used both for the legacy /apply/* routes that fan
+ * into the unified /worksheet funnel and for the v1 HELOC routes that now
+ * point at the v2 funnel. Pass `preserveSearch` when inbound query params
+ * (utm_*, name, credit, etc.) need to ride through to the destination —
+ * the legacy /apply/* redirects hardcode their own `?product=` so they
+ * leave it off.
  */
-function RedirectTo({ to }: { to: string }) {
+function RedirectTo({ to, preserveSearch = false }: { to: string; preserveSearch?: boolean }) {
   const [, navigate] = useLocation();
+  const search = useSearch();
   useEffect(() => {
-    navigate(to, { replace: true });
-  }, [navigate, to]);
+    const target =
+      preserveSearch && search
+        ? `${to}${to.includes("?") ? "&" : "?"}${search}`
+        : to;
+    navigate(target, { replace: true });
+  }, [navigate, to, search, preserveSearch]);
   return null;
 }
 
@@ -162,14 +170,17 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/thank-you" component={ThankYou} />
-        <Route path="/heloc" component={Heloc} />
+        {/* v1 HELOC routes redirect to their v2 equivalents — see RedirectTo.
+            All preserve query params so utm_*, ad attribution, and any
+            personalization params (name, credit, etc.) survive the hop. */}
+        <Route path="/heloc">{() => <RedirectTo to="/heloc-v2" preserveSearch />}</Route>
         <Route path="/heloc-v2" component={HelocV2} />
-        <Route path="/heloc/next-steps" component={HelocNextSteps} />
-        <Route path="/heloc/whats-next" component={HelocWhatsnext} />
-        <Route path="/heloc/instant-options" component={HelocInstantOptions} />
+        <Route path="/heloc/next-steps">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
+        <Route path="/heloc/whats-next">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
+        <Route path="/heloc/instant-options">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
         <Route path="/heloc/instant-options-v2" component={HelocInstantOptionsV2} />
         <Route path="/heloc/next-step-v2" component={HelocNextStepV2} />
-        <Route path="/heloc/quick" component={HelocQuick} />
+        <Route path="/heloc/quick">{() => <RedirectTo to="/heloc/quick-v2" preserveSearch />}</Route>
         <Route path="/heloc/quick-v2" component={HelocQuickV2} />
         {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}
         <Route path="/apply/cash-out">{() => <RedirectTo to="/worksheet?product=cash-out" />}</Route>
