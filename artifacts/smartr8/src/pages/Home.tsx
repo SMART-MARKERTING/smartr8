@@ -40,7 +40,7 @@ export default function Home() {
           "name": "Adaxa Home LLC",
           "url": "https://smartr8.com/"
         },
-        "telephone": "+19494185486",
+        "telephone": "+16232808351",
         "email": "mykoal@adaxahome.com",
         "url": "https://smartr8.com/",
         "sameAs": ["https://www.nmlsconsumeraccess.org/EntityDetails.aspx/INDIVIDUAL/1912347"],
@@ -51,7 +51,7 @@ export default function Home() {
         "@type": "FinancialService",
         "name": "Adaxa Home LLC",
         "url": "https://smartr8.com/",
-        "telephone": "+19494185486",
+        "telephone": "+16232808351",
         "description": "Mortgage broker offering HELOC, cash-out refinance, rate-and-term refinance, and purchase loans through 99+ wholesale lenders. NMLS #2380533.",
         "areaServed": STATES_11,
         "hasOfferCatalog": {
@@ -97,7 +97,7 @@ export default function Home() {
                   asChild
                   data-testid="hero-secondary-cta"
                 >
-                  <a href="sms:9494185486">
+                  <a href="sms:6232808351">
                     <Phone className="mr-2 h-5 w-5" />
                     Text Me
                   </a>
@@ -349,7 +349,7 @@ export default function Home() {
             <div className="inline-block border border-border rounded-lg p-6 bg-card shadow-sm text-left">
               <div className="font-semibold text-foreground mb-1">Mykoal DeShazo</div>
               <div className="space-y-1 text-sm">
-                <div><a href="tel:9494185486" className="hover:text-primary transition-colors">(949) 418-5486</a></div>
+                <div><a href="tel:6232808351" className="hover:text-primary transition-colors">(623) 280-8351</a></div>
                 <div><a href="mailto:mykoal@adaxahome.com" className="hover:text-primary transition-colors">mykoal@adaxahome.com</a></div>
                 <div className="text-muted-foreground pt-2">NMLS #1912347</div>
               </div>
@@ -374,7 +374,7 @@ export default function Home() {
               </Link>
             </Button>
             <p className="text-primary-foreground/70">
-              Or text me directly at <a href="sms:9494185486" className="font-semibold hover:underline">(949) 418-5486</a>
+              Or text me directly at <a href="sms:6232808351" className="font-semibold hover:underline">(623) 280-8351</a>
             </p>
           </div>
         </section>
