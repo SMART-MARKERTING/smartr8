@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ArrowLeft, Check, Loader2, Shield, Clock, TrendingUp } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, Loader2, Shield, Clock, TrendingUp } from "lucide-react";
 import { submitLead } from "@/lib/submitLead";
 import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { saveRateContext } from "@/lib/rateEstimate";
@@ -586,42 +579,54 @@ export default function HelocV2() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="dob-month" className="text-sm">Month</Label>
-                  <Select value={st.dobMonth} onValueChange={(v) => p({ dobMonth: v })}>
-                    <SelectTrigger id="dob-month" className="h-12 text-base">
-                      <SelectValue placeholder="Month" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <div className="relative">
+                    <select
+                      id="dob-month"
+                      value={st.dobMonth}
+                      onChange={(e) => p({ dobMonth: e.target.value })}
+                      className="h-12 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="" disabled>Month</option>
                       {DOB_MONTHS.map(({ value, label }) => (
-                        <SelectItem key={value} value={String(value)}>{label}</SelectItem>
+                        <option key={value} value={String(value)}>{label}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dob-day" className="text-sm">Day</Label>
-                  <Select value={st.dobDay} onValueChange={(v) => p({ dobDay: v })}>
-                    <SelectTrigger id="dob-day" className="h-12 text-base">
-                      <SelectValue placeholder="Day" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <div className="relative">
+                    <select
+                      id="dob-day"
+                      value={st.dobDay}
+                      onChange={(e) => p({ dobDay: e.target.value })}
+                      className="h-12 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="" disabled>Day</option>
                       {DOB_DAY_OPTIONS.map((d) => (
-                        <SelectItem key={d} value={String(d)}>{d}</SelectItem>
+                        <option key={d} value={String(d)}>{d}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="dob-year" className="text-sm">Year</Label>
-                  <Select value={st.dobYear} onValueChange={(v) => p({ dobYear: v })}>
-                    <SelectTrigger id="dob-year" className="h-12 text-base">
-                      <SelectValue placeholder="Year" />
-                    </SelectTrigger>
-                    <SelectContent>
+                  <div className="relative">
+                    <select
+                      id="dob-year"
+                      value={st.dobYear}
+                      onChange={(e) => p({ dobYear: e.target.value })}
+                      className="h-12 w-full appearance-none rounded-md border border-input bg-background pl-3 pr-9 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    >
+                      <option value="" disabled>Year</option>
                       {DOB_YEAR_OPTIONS.map((y) => (
-                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                        <option key={y} value={String(y)}>{y}</option>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  </div>
                 </div>
               </div>
               {dobError && (
