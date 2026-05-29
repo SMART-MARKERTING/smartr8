@@ -592,8 +592,11 @@ export default function Worksheet() {
       toast({ title: "Valid email required", description: "Please enter a valid email address.", variant: "destructive" });
       return;
     }
-    if (mobile.replace(/\D/g, "").length < 10) {
-      toast({ title: "Mobile required", description: "Please enter a 10-digit mobile number so Mykoal can reach you.", variant: "destructive" });
+    // Mobile is optional, matching the other 4 contact forms. Only validate
+    // the format when something was typed — empty submits cleanly through.
+    const mobileDigits = mobile.replace(/\D/g, "").length;
+    if (mobileDigits > 0 && mobileDigits < 10) {
+      toast({ title: "Valid mobile required", description: "Please enter a 10-digit mobile number or leave it blank.", variant: "destructive" });
       return;
     }
     setIsSubmittingContact(true);
