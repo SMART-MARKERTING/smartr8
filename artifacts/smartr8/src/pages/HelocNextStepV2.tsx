@@ -302,15 +302,15 @@ export default function HelocNextStepV2() {
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
                 <a
-                  href="tel:9494185486"
+                  href="tel:6232808351"
                   className="flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-semibold text-sm text-white transition-opacity hover:opacity-90"
                   style={{ backgroundColor: "#E31B23" }}
                 >
                   <Phone className="h-4 w-4" />
-                  Call (949) 418-5486
+                  Call (623) 280-8351
                 </a>
                 <a
-                  href="sms:9494185486"
+                  href="sms:6232808351"
                   className="flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-semibold text-sm border border-white/30 hover:bg-white/10 text-white"
                 >
                   Text Me
