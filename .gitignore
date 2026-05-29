@@ -44,6 +44,11 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
+# Local secrets — never commit. Scripts like scripts/fetch-ghl-ids.ts read
+# .dev.vars for the GHL PIT + location ID; without this rule a stray
+# `git add -A` could stage the token file.
+.dev.vars
+
 # Replit
 .cache/
 .local/
