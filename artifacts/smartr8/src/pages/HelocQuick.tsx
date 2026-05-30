@@ -45,7 +45,7 @@ function isValidEmail(email: string): boolean {
 }
 
 const SUBMIT_ERR =
-  "Something went wrong with your submission. Please text or call Myke directly at (623) 280-8351 and he will get back to you within minutes.";
+  "Something went wrong with your submission. Please text or call Myke directly at (480) 206-9290 and he will get back to you within minutes.";
 
 /**
  * /heloc/quick — Variant B of the HELOC split test.

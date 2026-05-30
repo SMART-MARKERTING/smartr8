@@ -66,7 +66,7 @@ export default function HelocFunnel() {
   const advanceWithPatch = (patch: Partial<FS>) => setSt((prev) => { ga4.trackStepCompleted(prev.step, STEP_NAMES[prev.step-1]); return { ...prev, ...patch, step: prev.step+1 }; });
   const togglePurpose = (val: string) => p({ helocPurposes: st.helocPurposes.includes(val) ? st.helocPurposes.filter((x) => x !== val) : [...st.helocPurposes, val] });
 
-  const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (623) 280-8351 and he will get back to you within minutes.";
+  const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (480) 206-9290 and he will get back to you within minutes.";
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!st.email) { setSubmitError("Please enter your email."); return; }

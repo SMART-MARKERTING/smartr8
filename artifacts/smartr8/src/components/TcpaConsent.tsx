@@ -154,7 +154,7 @@ export function TcpaSubmitNotice() {
         Privacy Policy
       </a>{" "}
       and{" "}
-      <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">
+      <a href="/terms-of-use" target="_blank" rel="noopener noreferrer" className="underline">
         Terms of Service
       </a>.
     </p>

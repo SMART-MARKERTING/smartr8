@@ -26,6 +26,8 @@ const HelocNextStepV2 = lazy(() => import("@/pages/HelocNextStepV2"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
 const WhatsNext = lazy(() => import("@/pages/WhatsNext"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const queryClient = new QueryClient();
@@ -192,6 +194,10 @@ function Router() {
         <Route path="/worksheet/internal" component={WorksheetInternal} />
         <Route path="/worksheet" component={Worksheet} />
         <Route path="/whats-next" component={WhatsNext} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms-of-use" component={Terms} />
+        {/* Alias for the older /terms URL still referenced by older inbound links. */}
+        <Route path="/terms" component={Terms} />
         <Route component={NotFound} />
       </Switch>
     </Suspense>

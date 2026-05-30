@@ -287,7 +287,7 @@ export default function HelocV2() {
   const dobError = dobValidation.error ?? null;
 
   const SUBMIT_ERR =
-    "Something went wrong with your submission. Please text or call Myke directly at (623) 280-8351 and he will get back to you within minutes.";
+    "Something went wrong with your submission. Please text or call Myke directly at (480) 206-9290 and he will get back to you within minutes.";
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!st.email) {

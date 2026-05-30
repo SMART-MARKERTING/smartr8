@@ -17,12 +17,12 @@ export function Header() {
           />
         </Link>
         <a
-          href="tel:6232808351"
+          href="tel:4802069290"
           className="flex items-center gap-2 font-medium transition-colors shrink-0 text-sm text-white hover:text-white/80"
           data-testid="header-phone"
         >
           <Phone className="h-4 w-4" />
-          <span>(623) 280-8351</span>
+          <span>(480) 206-9290</span>
         </a>
       </div>
     </header>

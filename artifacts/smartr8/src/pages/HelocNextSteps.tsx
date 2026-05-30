@@ -125,13 +125,13 @@ export default function HelocNextSteps() {
                   </p>
                 </div>
                 <div className="mt-auto flex flex-col gap-2">
-                  <a href="tel:6232808351">
+                  <a href="tel:4802069290">
                     <Button className="w-full h-11 bg-primary hover:bg-primary/90 text-white">
                       <Phone className="mr-2 h-4 w-4" />
-                      Call (623) 280-8351
+                      Call (480) 206-9290
                     </Button>
                   </a>
-                  <a href="sms:6232808351">
+                  <a href="sms:4802069290">
                     <Button variant="outline" className="w-full h-11">
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Text Me

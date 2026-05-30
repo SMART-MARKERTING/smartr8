@@ -97,7 +97,7 @@ function buildClientEmailHtml(clientName, advisorName) {
       monthly payment, reduce your total interest cost, and get you debt-free years sooner.
     </p>
     <p>
-      Have questions? Reply to this email or call me directly at <strong>(623) 280-8351</strong>.
+      Have questions? Reply to this email or call me directly at <strong>(480) 206-9290</strong>.
       I'm happy to walk through the numbers together.
     </p>
     <p style="margin-top: 24px;">
@@ -105,7 +105,7 @@ function buildClientEmailHtml(clientName, advisorName) {
       <strong>${advisorName || "Mykoal DeShazo"}</strong><br>
       Vice President | Senior Loan Officer<br>
       Adaxa Home LLC<br>
-      (623) 280-8351 · mykoal@adaxahome.com<br>
+      (480) 206-9290 · mykoal@adaxahome.com<br>
       NMLS #1912347 · Company NMLS #2380533
     </p>
     <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e5e5;">

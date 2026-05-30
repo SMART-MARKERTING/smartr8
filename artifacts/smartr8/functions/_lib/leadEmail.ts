@@ -50,8 +50,8 @@ Here's what happens next:
 
 If you have any questions before then, you can reach me directly:
 
-Phone: (623) 280-8351
-Text: (623) 280-8351
+Phone: (480) 206-9290
+Text: (480) 206-9290
 Email: mykoal@adaxahome.com
 
 Looking forward to helping you out.
@@ -100,8 +100,8 @@ export function renderHtml(firstNameRaw) {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#fdf2f2;border-left:4px solid #E31B23;border-radius:4px;">
       <tr><td style="padding:16px 20px;font-size:15px;line-height:1.8;color:#333333;">
         <strong style="color:#E31B23;">Have questions before then? Reach me directly:</strong><br>
-        Phone: <a href="tel:+16232808351" style="color:#E31B23;text-decoration:none;">(623) 280-8351</a><br>
-        Text: <a href="sms:+16232808351" style="color:#E31B23;text-decoration:none;">(623) 280-8351</a><br>
+        Phone: <a href="tel:+14802069290" style="color:#E31B23;text-decoration:none;">(480) 206-9290</a><br>
+        Text: <a href="sms:+14802069290" style="color:#E31B23;text-decoration:none;">(480) 206-9290</a><br>
         Email: <a href="mailto:mykoal@adaxahome.com" style="color:#E31B23;text-decoration:none;">mykoal@adaxahome.com</a>
       </td></tr>
     </table>

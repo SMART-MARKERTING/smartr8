@@ -250,7 +250,7 @@ export default function WhatsNext() {
               <a href="mailto:mykoal@adaxahome.com" className="underline">
                 mykoal@adaxahome.com
               </a>{" "}
-              or call <a href="tel:+16232808351" className="underline">(623) 280-8351</a>.
+              or call <a href="tel:+14802069290" className="underline">(480) 206-9290</a>.
             </span>
           </div>
         </div>

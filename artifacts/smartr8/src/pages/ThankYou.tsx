@@ -99,8 +99,8 @@ export default function ThankYou() {
 
           <p className="text-xl text-muted-foreground leading-relaxed mb-8">
             I'll review what you sent and reach out within a few hours. If you want to lock in a time now, grab a slot below. While you wait, save my number:{" "}
-            <a href="tel:6232808351" className="font-semibold hover:underline" style={{ color: "#1A3A47" }}>
-              (623) 280-8351
+            <a href="tel:4802069290" className="font-semibold hover:underline" style={{ color: "#1A3A47" }}>
+              (480) 206-9290
             </a>
             . Text me anytime.
           </p>

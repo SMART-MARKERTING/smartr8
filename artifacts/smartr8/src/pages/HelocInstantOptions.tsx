@@ -212,15 +212,15 @@ export default function HelocInstantOptions() {
               <p className="text-white/75 mb-6">I'm here to help you choose the right path for your situation.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
-                  href="tel:6232808351"
+                  href="tel:4802069290"
                   className="flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold text-sm text-white transition-opacity hover:opacity-90"
                   style={{ backgroundColor: "#E31B23" }}
                 >
-                  Call (623) 280-8351
+                  Call (480) 206-9290
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <a
-                  href="sms:6232808351"
+                  href="sms:4802069290"
                   className="flex items-center justify-center gap-2 h-12 px-6 rounded-lg font-semibold text-sm border border-white/30 hover:bg-white/10 text-white"
                 >
                   Text Me
