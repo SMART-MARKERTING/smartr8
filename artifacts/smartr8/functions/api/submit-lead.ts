@@ -67,6 +67,9 @@ export async function onRequest(context) {
 
   const ip = request.headers.get("CF-Connecting-IP") ?? request.headers.get("X-Forwarded-For") ?? "unknown";
   const userAgent = request.headers.get("User-Agent") ?? "";
+  // Explicit clientIp for downstream forwarding to LeadMailbox (LM rejects
+  // Cloudflare egress IPs without an X-Forwarded-For from the real visitor).
+  const clientIp = request.headers.get("CF-Connecting-IP") || "";
 
   // Turnstile is verified only when a token is supplied. Legacy forms
   // that haven't been migrated to <TcpaConsent /> yet send no token and
@@ -147,7 +150,7 @@ export async function onRequest(context) {
       }
     : null;
 
-  const result = await processLead(lead, consent, env as Env, { waitUntil });
+  const result = await processLead(lead, consent, env as Env, { waitUntil }, clientIp);
 
   // Browser-side LM fallback preserved: when LM IP-blocked the Worker, the
   // orchestrator surfaces the payload here so the client can replay it.

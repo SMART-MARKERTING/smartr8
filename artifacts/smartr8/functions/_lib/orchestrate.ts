@@ -50,12 +50,17 @@ export interface OrchestrateResult {
 
 /**
  * Process a validated, normalized Lead.
+ *
+ * `clientIp` is the visitor's real CF-Connecting-IP at the originating
+ * request — forwarded to LeadMailbox as X-Forwarded-For so LM doesn't
+ * reject the call as "foreign IP" from the Cloudflare egress range.
  */
 export async function processLead(
   lead: Lead,
   consent: TcpaConsent | null,
   env: Env,
   ctx: OrchestrateContext,
+  clientIp: string = "",
 ): Promise<OrchestrateResult> {
   const kv = env.LEAD_DEDUP;
   const db = env.LEADS_DB;
@@ -99,7 +104,7 @@ export async function processLead(
   }
 
   // ── Sync: LeadMailbox ───────────────────────────────────────────────
-  const lmResult = await submitToLeadMailbox(lead);
+  const lmResult = await submitToLeadMailbox(lead, clientIp);
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
   // ── Async: GHL chain (upsert -> opportunity) + Resend in parallel ───

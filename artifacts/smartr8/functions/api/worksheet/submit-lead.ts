@@ -148,16 +148,21 @@ function buildAdvisorNotificationHtml(data) {
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
 const FORMSPREE = "https://formspree.io/f/meennekb";
 
-async function submitToLeadMailbox(payload, ip) {
+async function submitToLeadMailbox(payload, clientIp) {
+  // Forward the visitor's real IP so LM doesn't reject the call as a
+  // Cloudflare egress IP. Skip the headers entirely when the IP is unknown
+  // or empty — sending a header literally saying "unknown" trips LM's
+  // foreign-IP guard the same way the Cloudflare egress does.
+  const headers = { "Content-Type": "application/json" };
+  if (clientIp && clientIp !== "unknown") {
+    headers["X-Forwarded-For"] = clientIp;
+    headers["True-Client-IP"] = clientIp;
+    headers["X-Real-IP"] = clientIp;
+  }
   try {
     const lmRes = await fetch(LM_ENDPOINT, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Forwarded-For": ip,
-        "X-Real-IP": ip,
-        "True-Client-IP": ip,
-      },
+      headers,
       body: JSON.stringify(payload),
     });
     const lmText = await lmRes.text();
@@ -407,7 +412,7 @@ export async function onRequest(context) {
 
   console.log(`[worksheet] public lead — ${firstName} ${lastName} <${email}> state=${propertyState || "—"} lead_id=${lead.lead_id}`);
 
-  const result = await processLead(lead, consent, env, { waitUntil });
+  const result = await processLead(lead, consent, env, { waitUntil }, ip);
 
   const lmPayload = !result.leadmailbox.ok && result.leadmailbox.fallbackPayload
     ? result.leadmailbox.fallbackPayload

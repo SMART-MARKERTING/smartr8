@@ -91,7 +91,7 @@ describe("processLead — happy path", () => {
     expect(result.ok).toBe(true);
     expect(result.duplicate).toBeFalsy();
     expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
-    expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead);
+    expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead, expect.any(String));
     // GHL + Resend are wrapped in waitUntil; the sync result returns before they finish.
     expect(ctx._promises.length).toBe(2);
 
