@@ -68,16 +68,24 @@ function buildPayload(lead: Lead): Record<string, string> {
   };
 }
 
-export async function submitToLeadMailbox(lead: Lead): Promise<LeadMailboxResult> {
+export async function submitToLeadMailbox(
+  lead: Lead,
+  clientIp: string,
+): Promise<LeadMailboxResult> {
   const payload = buildPayload(lead);
-  const ip = lead.ip && lead.ip !== "unknown" ? lead.ip : "";
+  // Forward the original visitor's IP so LeadMailbox sees the real client
+  // and not the Cloudflare egress IP that originates the fetch. LM trusts
+  // X-Forwarded-For; True-Client-IP is added as a fallback for the load
+  // balancer / WAF layer that may consume the header instead. We skip on
+  // "unknown" or empty so we never send a header literally saying "unknown".
+  const ip = clientIp && clientIp !== "unknown" ? clientIp : "";
 
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     if (ip) {
       headers["X-Forwarded-For"] = ip;
-      headers["X-Real-IP"] = ip;
       headers["True-Client-IP"] = ip;
+      headers["X-Real-IP"] = ip;
     }
     const res = await fetch(LM_ENDPOINT_LIVE, {
       method: "POST",

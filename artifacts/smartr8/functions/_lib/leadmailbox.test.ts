@@ -46,22 +46,34 @@ function lmResponse({
 }
 
 describe("submitToLeadMailbox", () => {
-  it("POSTs to the live LeadMailbox URL with the IP forwarded across three headers", async () => {
+  it("POSTs to the live LeadMailbox URL with the visitor IP forwarded across three headers", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse());
-    await submitToLeadMailbox(makeLead());
+    await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe(LEADMAILBOX_URL);
     expect(init.method).toBe("POST");
     expect(init.headers["X-Forwarded-For"]).toBe("1.2.3.4");
-    expect(init.headers["X-Real-IP"]).toBe("1.2.3.4");
     expect(init.headers["True-Client-IP"]).toBe("1.2.3.4");
+    expect(init.headers["X-Real-IP"]).toBe("1.2.3.4");
     expect(init.headers["Content-Type"]).toBe("application/json");
+  });
+
+  it("sets X-Forwarded-For from the explicit clientIp parameter, not from lead.ip", async () => {
+    fetchMock.mockResolvedValueOnce(lmResponse());
+    // lead.ip is "5.5.5.5" (stale value e.g. recovered from D1 audit), but
+    // the caller explicitly forwards the live request's visitor IP. The
+    // explicit clientIp must win — that's the whole point of the parameter.
+    await submitToLeadMailbox(makeLead({ ip: "5.5.5.5" }), "9.9.9.9");
+    const init = fetchMock.mock.calls[0][1];
+    expect(init.headers["X-Forwarded-For"]).toBe("9.9.9.9");
+    expect(init.headers["True-Client-IP"]).toBe("9.9.9.9");
+    expect(init.headers["X-Real-IP"]).toBe("9.9.9.9");
   });
 
   it("sends a PascalCase body shape with the expected fields", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse());
-    await submitToLeadMailbox(makeLead({ phone_e164: "+15555551234" }));
+    await submitToLeadMailbox(makeLead({ phone_e164: "+15555551234" }), "1.2.3.4");
     const init = fetchMock.mock.calls[0][1];
     const body = JSON.parse(init.body);
     expect(body.FirstName).toBe("Jane");
@@ -76,26 +88,26 @@ describe("submitToLeadMailbox", () => {
 
   it("returns ok:true on a 200 with LeadMailbox code:0", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse({ body: '{"code":0}' }));
-    const result = await submitToLeadMailbox(makeLead());
+    const result = await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(result.ok).toBe(true);
   });
 
   it("returns ok:false with error on a non-200 response", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse({ ok: false, status: 500, body: "boom" }));
-    const result = await submitToLeadMailbox(makeLead());
+    const result = await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/LM 500/);
   });
 
   it("returns ok:false with code:1 even on HTTP 200", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse({ body: '{"code":1,"message":"duplicate"}' }));
-    const result = await submitToLeadMailbox(makeLead());
+    const result = await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(result.ok).toBe(false);
   });
 
   it("returns fallbackPayload on a 403 ip_blocked response", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse({ ok: false, status: 403, body: "blocked" }));
-    const result = await submitToLeadMailbox(makeLead());
+    const result = await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(result.ok).toBe(false);
     expect(result.error).toMatch(/ip_blocked/);
     expect(result.fallbackPayload).toBeDefined();
@@ -104,15 +116,26 @@ describe("submitToLeadMailbox", () => {
 
   it("returns fallbackPayload on a network error so the browser can retry", async () => {
     fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
-    const result = await submitToLeadMailbox(makeLead());
+    const result = await submitToLeadMailbox(makeLead(), "1.2.3.4");
     expect(result.ok).toBe(false);
     expect(result.fallbackPayload).toBeDefined();
   });
 
-  it("does not set the X-Forwarded-For header when the lead IP is 'unknown'", async () => {
+  it("does not set IP headers when clientIp is 'unknown'", async () => {
     fetchMock.mockResolvedValueOnce(lmResponse());
-    await submitToLeadMailbox(makeLead({ ip: "unknown" }));
+    await submitToLeadMailbox(makeLead(), "unknown");
     const init = fetchMock.mock.calls[0][1];
     expect(init.headers["X-Forwarded-For"]).toBeUndefined();
+    expect(init.headers["True-Client-IP"]).toBeUndefined();
+    expect(init.headers["X-Real-IP"]).toBeUndefined();
+  });
+
+  it("does not set IP headers when clientIp is an empty string", async () => {
+    fetchMock.mockResolvedValueOnce(lmResponse());
+    await submitToLeadMailbox(makeLead(), "");
+    const init = fetchMock.mock.calls[0][1];
+    expect(init.headers["X-Forwarded-For"]).toBeUndefined();
+    expect(init.headers["True-Client-IP"]).toBeUndefined();
+    expect(init.headers["X-Real-IP"]).toBeUndefined();
   });
 });

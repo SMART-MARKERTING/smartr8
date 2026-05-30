@@ -72,9 +72,10 @@ export async function onRequestPost(context) {
   for (const row of candidates) {
     const lead: Lead = rowToLead(row);
 
-    // LeadMailbox retry
+    // LeadMailbox retry — replay the original visitor IP captured in the
+    // D1 audit row so LM sees a real client IP, not the cron Worker's egress.
     if (row.leadmailbox_status === "failed" && row.leadmailbox_attempts < MAX_ATTEMPTS) {
-      const r = await submitToLeadMailbox(lead);
+      const r = await submitToLeadMailbox(lead, lead.ip || "");
       const nextAttempts = row.leadmailbox_attempts + 1;
       const status = r.ok ? "sent" : nextAttempts >= MAX_ATTEMPTS ? "dead_letter" : "failed";
       await env.LEADS_DB
