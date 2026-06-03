@@ -410,24 +410,27 @@ preload(triB64,'tri');preload(bandB64,'band');preload(bbbB64,'bbb');
 
 // ── BROKER PROFILE ──
 var profile={};
+// Mykoal's profile is baked in as the default so the tool is always pre-filled,
+// even on a fresh device or after the browser clears storage. A saved profile
+// (localStorage) still wins and overrides these values.
+var DEFAULT_PROFILE={first:'Mykoal',last:'DeShazo',title:'Vice President — Executive Loan Officer',nmls:'1912347',phone:'(480) 206-9290',email:'mykoal@adaxahome.com',company:'Adaxa LLC',web:'www.AdaxaHome.com'};
 
 function loadProfile(){
   try{
     var saved=localStorage.getItem('adaxa_broker_profile');
-    if(saved){
-      profile=JSON.parse(saved);
-      applyProfileToUI();
-      // Don't show overlay if profile is complete
-      if(profile.first&&profile.last&&profile.phone&&profile.email){
-        document.getElementById('setupOverlay').style.display='none';
-        document.getElementById('setupBanner').style.display='none';
-      } else {
-        showOverlay(false);
-      }
-    } else {
-      showOverlay(true); // first time
-    }
-  }catch(e){showOverlay(true);}
+    // Start from the baked-in default, then let any saved profile override it.
+    profile=Object.assign({},DEFAULT_PROFILE,saved?JSON.parse(saved):{});
+    applyProfileToUI();
+    // Profile is pre-filled by default, so we never block on the setup overlay.
+    // The header pill (your name) opens the editor any time.
+    document.getElementById('setupOverlay').style.display='none';
+    document.getElementById('setupBanner').style.display='none';
+  }catch(e){
+    profile=Object.assign({},DEFAULT_PROFILE);
+    applyProfileToUI();
+    document.getElementById('setupOverlay').style.display='none';
+    document.getElementById('setupBanner').style.display='none';
+  }
 }
 
 function showOverlay(isFirst){

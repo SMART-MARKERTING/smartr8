@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe("processLead — happy path", () => {
-  it("performs the LeadMailbox sync write before returning, and queues GHL + Resend via waitUntil", async () => {
+  it("performs the LeadMailbox sync write before returning, and queues GHL + Resend + CRM webhook via waitUntil", async () => {
     const env = makeEnv();
     const ctx = makeCtxMock();
     const lead = makeLead();
@@ -92,8 +92,8 @@ describe("processLead — happy path", () => {
     expect(result.duplicate).toBeFalsy();
     expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
     expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead, expect.any(String));
-    // GHL + Resend are wrapped in waitUntil; the sync result returns before they finish.
-    expect(ctx._promises.length).toBe(2);
+    // GHL + Resend + CRM webhook are wrapped in waitUntil; the sync result returns before they finish.
+    expect(ctx._promises.length).toBe(3);
 
     await drainWaitUntil(ctx);
     expect(ghlUpsertMock).toHaveBeenCalledTimes(1);
@@ -212,5 +212,42 @@ describe("processLead — worksheet funnel", () => {
     expect(passedLead.landing_page).toBe("https://smartr8.com/worksheet");
     // The tag-derivation logic lives inside ghl.ts (covered by ghl.test.ts).
     // Here we only assert that processLead forwards the canonical Lead unchanged.
+  });
+});
+
+describe("processLead — CRM webhook", () => {
+  it("POSTs the lead as JSON to env.CRM_LEAD_WEBHOOK when configured", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv({ CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test" });
+      const ctx = makeCtxMock();
+      await processLead(makeLead(), null, env, ctx);
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      expect(crmCall).toBeDefined();
+      expect(crmCall?.[1]?.method).toBe("POST");
+      const body = JSON.parse(crmCall?.[1]?.body as string);
+      expect(body.email).toBe("jane@example.com");
+      expect(body.funnel).toBe("heloc");
+      expect(body.lead_id).toBe("lead-1");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("falls back to the built-in CRM URL when CRM_LEAD_WEBHOOK is unset", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv(); // no CRM_LEAD_WEBHOOK override
+      const ctx = makeCtxMock();
+      await processLead(makeLead(), null, env, ctx);
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.smartr8.com/webhooks/lead"));
+      expect(crmCall).toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

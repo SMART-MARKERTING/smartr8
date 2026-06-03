@@ -25,6 +25,11 @@ import type { Env, GhlResult, Lead, LeadMailboxResult, TcpaConsent } from "./typ
 
 const DEDUP_TTL_SECONDS = 600; // 10 minutes
 
+// External CRM webhook (carries its own ?key=). Hardcoded so it works with no
+// env setup; env.CRM_LEAD_WEBHOOK overrides it (e.g. to rotate the key later).
+const CRM_LEAD_WEBHOOK_URL =
+  "https://crm.smartr8.com/webhooks/lead?key=4519413906c139e16484f518fdd8968c";
+
 async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest("SHA-256", bytes);
@@ -107,9 +112,10 @@ export async function processLead(
   const lmResult = await submitToLeadMailbox(lead, clientIp);
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
-  // ── Async: GHL chain (upsert -> opportunity) + Resend in parallel ───
+  // ── Async: GHL chain (upsert -> opportunity) + Resend + CRM webhook ──
   ctx.waitUntil(runGhlChain(env, db, lead));
   ctx.waitUntil(runResend(env, db, lead));
+  ctx.waitUntil(runCrmWebhook(env, lead));
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
 }
@@ -270,5 +276,52 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
       .run();
   } catch (e) {
     log("error", "orchestrate.d1_update_resend_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+/**
+ * Forward the lead to the external CRM webhook. Uses the built-in
+ * CRM_LEAD_WEBHOOK_URL (which carries its own ?key=), overridable via
+ * env.CRM_LEAD_WEBHOOK. Best-effort: failures are logged, not retried, and
+ * never block the response. Runs only for accepted leads — processLead returns
+ * early on a dedup hit, before this fires, so the CRM isn't double-posted
+ * within the dedup window.
+ */
+async function runCrmWebhook(env: Env, lead: Lead): Promise<void> {
+  const url = env.CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
+  if (!url) return;
+  const payload = {
+    lead_id: lead.lead_id,
+    created_at: lead.created_at,
+    funnel: lead.funnel,
+    first_name: lead.first_name,
+    last_name: lead.last_name ?? "",
+    email: lead.email,
+    phone: lead.phone_e164 ?? "",
+    property_state: lead.property_state ?? "",
+    loan_request: lead.loan_request ?? "",
+    notes: lead.notes ?? "",
+    source: lead.source ?? "smartr8.com",
+    landing_page: lead.landing_page ?? "",
+    utm_source: lead.utm_source ?? "",
+    utm_medium: lead.utm_medium ?? "",
+    utm_campaign: lead.utm_campaign ?? "",
+    utm_content: lead.utm_content ?? "",
+    utm_term: lead.utm_term ?? "",
+  };
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      log("warn", "orchestrate.crm_webhook_failed", { lead_id: lead.lead_id, status: res.status, body: body.slice(0, 200) });
+    } else {
+      log("info", "orchestrate.crm_webhook_ok", { lead_id: lead.lead_id });
+    }
+  } catch (e) {
+    log("warn", "orchestrate.crm_webhook_error", { lead_id: lead.lead_id, err: e instanceof Error ? e.message : String(e) });
   }
 }
