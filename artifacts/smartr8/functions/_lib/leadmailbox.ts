@@ -36,14 +36,22 @@ function loanRequestFromLead(lead: Lead): string {
   }
 }
 
-function buildPayload(lead: Lead): Record<string, string> {
+function buildPayload(lead: Lead, notesPrefix?: string[]): Record<string, string> {
   const phoneDigits = (lead.phone_e164 || "").replace(/\D/g, "");
-  const notesLines: string[] = [
+  const notesLines: string[] = [];
+  // Caller-supplied marker lines ride at the top of the Notes block. The
+  // worksheet endpoint uses this to preserve its funnel marker
+  // ("Funnel: worksheet-internal" / "Funnel: worksheet-self"), which is a
+  // finer-grained label than the canonical FunnelId ("worksheet").
+  if (notesPrefix && notesPrefix.length > 0) {
+    notesLines.push(...notesPrefix);
+  }
+  notesLines.push(
     `Funnel: ${lead.funnel}`,
     `Lead ID: ${lead.lead_id}`,
     `Submitted: ${new Date(lead.created_at).toISOString()}`,
     "Source: smartr8.com",
-  ];
+  );
   if (lead.landing_page) notesLines.push(`Page URL: ${lead.landing_page}`);
   if (lead.referrer) notesLines.push(`Referrer: ${lead.referrer}`);
   if (lead.notes && lead.notes.trim()) {
@@ -57,7 +65,7 @@ function buildPayload(lead: Lead): Record<string, string> {
     if (lead.utm_content) notesLines.push(`- Content: ${lead.utm_content}`);
     if (lead.utm_term) notesLines.push(`- Term: ${lead.utm_term}`);
   }
-  return {
+  const payload: Record<string, string> = {
     FirstName: lead.first_name,
     LastName: lead.last_name || "",
     Email: lead.email,
@@ -66,13 +74,29 @@ function buildPayload(lead: Lead): Record<string, string> {
     Loan_Request: loanRequestFromLead(lead),
     Notes: notesLines.join("\n"),
   };
+  // Only emit Phys_State when we actually have one so we never send an empty
+  // field on funnels that don't collect state. The worksheet self-send path
+  // relies on this to forward the visitor's state to LeadMailbox.
+  if (lead.property_state && lead.property_state.trim()) {
+    payload.Phys_State = lead.property_state.trim();
+  }
+  return payload;
+}
+
+export interface SubmitToLeadMailboxOptions {
+  /** Extra lines prepended to the generated Notes block. Used by the
+   *  worksheet endpoint to preserve its funnel marker
+   *  ("Funnel: worksheet-internal" / "Funnel: worksheet-self") after
+   *  migrating off its inline LeadMailbox client. */
+  notesPrefix?: string[];
 }
 
 export async function submitToLeadMailbox(
   lead: Lead,
   clientIp: string,
+  opts: SubmitToLeadMailboxOptions = {},
 ): Promise<LeadMailboxResult> {
-  const payload = buildPayload(lead);
+  const payload = buildPayload(lead, opts.notesPrefix);
   // Forward the original visitor's IP so LeadMailbox sees the real client
   // and not the Cloudflare egress IP that originates the fetch. LM trusts
   // X-Forwarded-For; True-Client-IP is added as a fallback for the load
