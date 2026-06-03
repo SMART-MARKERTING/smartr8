@@ -158,6 +158,16 @@
       fbq('track', 'PageView');
     </script>
 
+    <!-- Bing UET (Universal Event Tracking) eager stub. window.uetq must
+         exist immediately so any client-fired events queue in order and
+         drain once bat.js loads (deferred in loadAll below). Consent Mode
+         default is set here, before the tag loads, as Bing requires. The
+         'update' to granted fires in loadAll alongside the tag load. -->
+    <script>
+      window.uetq = window.uetq || [];
+      window.uetq.push('consent', 'default', { ad_storage: 'denied' });
+    </script>
+
     <!-- Google Analytics (gtag). Kept eagerly loaded because attribution
          for the first page view needs gtag initialized before any
          client-side route navigation. Small library (~50KB gz). -->
@@ -193,11 +203,31 @@
           t.src = 'https://connect.facebook.net/en_US/fbevents.js';
           s.parentNode.insertBefore(t, s);
         }
+        function loadUET() {
+          var o = { ti: '97249605', enableAutoSpaTracking: true, ts: (new Date).getTime() };
+          var s = document.getElementsByTagName('script')[0];
+          var n = document.createElement('script');
+          n.async = true;
+          n.src = 'https://bat.bing.net/bat.js?ti=' + o.ti;
+          n.onload = n.onreadystatechange = function() {
+            var st = this.readyState;
+            if (st && st !== 'loaded' && st !== 'complete') return;
+            o.q = window.uetq;
+            window.uetq = new UET(o);
+            window.uetq.push('pageLoad');
+            n.onload = n.onreadystatechange = null;
+          };
+          s.parentNode.insertBefore(n, s);
+        }
         function loadAll() {
           loadGTM('GTM-TNNCPJMV');
           loadGTM('GTM-PNB42GPW');
           loadGTM('GTM-5D9892QJ', 'https://sig.smartr8.com/gtm.js?id=GTM-5D9892QJ');
           loadMetaPixel();
+          loadUET();
+          // No real consent banner on this site (GTM/Meta/GA load eagerly
+          // too), so grant Bing Consent Mode immediately to match.
+          window.uetq.push('consent', 'update', { ad_storage: 'granted' });
         }
         if (typeof requestIdleCallback === 'function') {
           requestIdleCallback(loadAll, { timeout: 3000 });
