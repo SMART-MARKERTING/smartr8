@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getWorksheetPdfBase64 } from "@/lib/generatePdf";
+import { getWorksheetPdfBase64, prefetchWorksheetPdf } from "@/lib/generatePdf";
 import {
   computeScenarios,
   makeDefaultInputs,
@@ -444,6 +444,15 @@ export default function Worksheet() {
   //   calc + RATE_REDUCTION:     4 visible steps (product, mortgage, loan, contact)
   //   calc + other:              5 visible steps (product, mortgage, goals, loan, contact)
   const totalSteps = !isCalc ? 2 : isRateReduction ? 4 : 5;
+
+  // Warm the ≈490 KB react-pdf chunk once a calc-product user reaches the
+  // contact step, so the post-Submit "Sending your worksheet…" wait isn't a
+  // cold download. Non-calc products (heloc/purchase) never build a PDF.
+  useEffect(() => {
+    if (step === 5 && isCalc && entryButton !== "heloc" && entryButton !== "purchase") {
+      prefetchWorksheetPdf();
+    }
+  }, [step, isCalc, entryButton]);
 
   // Map logical FunnelStep (1-5) to the visible progress index (1-totalSteps).
   function visibleStep(s: FunnelStep): number {

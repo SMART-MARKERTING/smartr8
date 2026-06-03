@@ -40,6 +40,18 @@ async function buildBlob(
   ).toBlob();
 }
 
+/**
+ * Warm the lazy PDF chunks (≈490 KB @react-pdf/renderer + the WorksheetPDF
+ * component) ahead of time. Call this when the user is about to need a PDF —
+ * e.g. on reaching the funnel's contact step — so the eventual generate call
+ * doesn't pay for a cold download. Safe to call repeatedly: dynamic import()
+ * is cached, and failures are swallowed (buildBlob retries on demand).
+ */
+export function prefetchWorksheetPdf(): void {
+  void import("@react-pdf/renderer").catch(() => {});
+  void import("../components/worksheet/WorksheetPDF").catch(() => {});
+}
+
 export async function downloadWorksheetPdf(
   inputs: WorksheetInputs,
   results: ScenarioResults,

@@ -1,3 +1,5 @@
+import { Link } from "wouter";
+
 export function Footer() {
   return (
     <footer className="mt-auto py-12" style={{ backgroundColor: "#1A3A47" }}>
@@ -34,13 +36,13 @@ export function Footer() {
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.6)" }}>
-          <a
-            href="/worksheet"
+          <Link
+            href="/worksheet/internal"
             className="underline hover:text-white"
             style={{ color: "rgba(255,255,255,0.6)" }}
           >
             Loan Benefits Worksheet
-          </a>
+          </Link>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
             href="https://adaxahome.com/privacy/"

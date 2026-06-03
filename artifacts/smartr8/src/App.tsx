@@ -1,8 +1,6 @@
 import { useEffect, useRef, Suspense, lazy } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation, useSearch } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { trackFbEvent, generateEventId } from "@/lib/fbq";
 import { LegacyAssetWarn } from "@/lib/legacyAssetWarn";
 
@@ -29,8 +27,6 @@ const WhatsNext = lazy(() => import("@/pages/WhatsNext"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const NotFound = lazy(() => import("@/pages/not-found"));
-
-const queryClient = new QueryClient();
 
 /**
  * Refresh Meta Pixel's URL context on every wouter SPA route change.
@@ -206,18 +202,14 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <RouteChangeScrollReset />
-          <PixelRouteTracker />
-          <PixelLinkTracker />
-          <LegacyAssetWarn />
-          <Router />
-        </WouterRouter>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+      <RouteChangeScrollReset />
+      <PixelRouteTracker />
+      <PixelLinkTracker />
+      <LegacyAssetWarn />
+      <Router />
+      <Toaster />
+    </WouterRouter>
   );
 }
 
