@@ -123,6 +123,11 @@ header{background:var(--black);padding:16px 32px;display:flex;align-items:center
 
 .dlbtn{width:100%;padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;background:var(--green);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;margin-top:12px;transition:background .15s}
 .dlbtn:hover{background:#236040}
+.sndbtn{width:100%;padding:13px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;background:#1a56a0;color:#fff;border:none;border-radius:var(--radius);cursor:pointer;margin-top:8px;transition:background .15s}
+.sndbtn:hover{background:#16498a}
+.send-status{font-size:13px;text-align:center;min-height:18px;margin-top:10px;color:var(--muted)}
+.send-status.ok{color:#2e7d4f;font-weight:600}
+.send-status.err{color:#c0392b;font-weight:600}
 .rstbtn{width:100%;padding:11px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;background:transparent;color:#999;border:1.5px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-top:8px}
 .rstbtn:hover{border-color:#bbb;color:#555}
 .dlst{font-size:12px;color:var(--muted);text-align:center;margin-top:8px;min-height:18px}
@@ -371,8 +376,21 @@ header{background:var(--black);padding:16px 32px;display:flex;align-items:center
       </div>
     </div>
     <button class="dlbtn" onclick="dl()">Download PDF</button>
+    <button class="sndbtn" onclick="openSend()">Send to Client</button>
     <button class="rstbtn" onclick="resetForm()">Start a new quote</button>
     <div class="dlst" id="dlst"></div>
+  </div>
+</div>
+
+<div class="overlay" id="sendOverlay" style="display:none">
+  <div class="setup-card" style="max-width:420px">
+    <div class="setup-title">Send quote to client</div>
+    <div class="setup-sub">We'll email this quote to your client &mdash; both options shown inline, with the full PDF attached.</div>
+    <div class="sf"><label>Client name</label><input id="send-name" placeholder="Jane Smith"/></div>
+    <div class="sf"><label>Client email</label><input id="send-email" type="email" placeholder="jane@example.com"/></div>
+    <div class="send-status" id="sendStatus"></div>
+    <button class="save-btn green" id="sendBtn" onclick="doSend()" style="margin-top:8px">Send quote &rarr;</button>
+    <div class="skip-link" onclick="closeSend()">Cancel</div>
   </div>
 </div>
 
@@ -570,11 +588,7 @@ function resetForm(){
   document.getElementById('pw').style.display='none';window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function dl(){
-  var st=document.getElementById('dlst');
-  st.textContent='Building PDF...';
-  setTimeout(function(){
-    try{
+function buildQuoteDoc(){
       var {jsPDF}=window.jspdf;
       var W=612,mg=36,bw=W-mg*2;
       var G=[46,125,79],B=[26,86,160];
@@ -695,12 +709,74 @@ function dl(){
       doc.text('P: '+(profile.phone||'——'),cx2,textStartY+26);
       doc.text('E: '+(profile.email||'——'),cx2+112,textStartY+26);
       doc.setTextColor(132,132,132);doc.text(profile.web||'www.AdaxaHome.com',cx2,textStartY+39);
+      return doc;
+}
+function dl(){
+  var st=document.getElementById('dlst');
+  st.textContent='Building PDF...';
+  setTimeout(function(){
+    try{
+      var doc=buildQuoteDoc();
       var nm=(S.name||'applicant').toLowerCase().replace(/\s+/g,'-');
       doc.save('adaxa-quickquote-'+nm+'.pdf');
       st.textContent='PDF downloaded!';
       setTimeout(function(){st.textContent=''},3000);
     }catch(e){st.textContent='Error: '+e.message;console.error(e);}
   },200);
+}
+function quotePdfBase64(){
+  var doc=buildQuoteDoc();
+  var uri=doc.output('datauristring');
+  return uri.substring(uri.indexOf(',')+1);
+}
+
+// ── SEND TO CLIENT ──
+var QUOTE_SEND_ENDPOINT='https://smartr8.com/api/quote/send';
+function openSend(){
+  document.getElementById('send-name').value=document.getElementById('name').value||'';
+  document.getElementById('send-email').value='';
+  var stt=document.getElementById('sendStatus');stt.className='send-status';stt.textContent='';
+  document.getElementById('sendOverlay').style.display='flex';
+}
+function closeSend(){document.getElementById('sendOverlay').style.display='none';}
+function doSend(){
+  var name=document.getElementById('send-name').value.trim();
+  var email=document.getElementById('send-email').value.trim();
+  var stt=document.getElementById('sendStatus');
+  if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){stt.className='send-status err';stt.textContent='Please enter a valid client email.';return;}
+  var btn=document.getElementById('sendBtn');var oldLabel=btn.innerHTML;
+  btn.disabled=true;btn.textContent='Sending…';
+  stt.className='send-status';stt.textContent='Building quote and sending…';
+  setTimeout(function(){
+    try{
+      gen();
+      var pdf=quotePdfBase64();
+      var nm=(S.name||'applicant').toLowerCase().replace(/\s+/g,'-');
+      var payload={
+        clientName:name||S.name||'',
+        clientEmail:email,
+        advisor:{name:((profile.first||'')+' '+(profile.last||'')).trim(),title:profile.title||'Loan Officer',company:profile.company||'Adaxa LLC',nmls:profile.nmls||'',phone:profile.phone||'',email:profile.email||'',web:profile.web||'www.AdaxaHome.com'},
+        options:{
+          date:S.date,loanType:S.lt,
+          a:{termLabel:S.tl,loanAmount:'$'+fi(S.la),payoff:S.po>0?'$'+fi(S.po):'$0',cashOut:S.co>=0?'$'+fi(S.co):'($'+fi(Math.abs(S.co))+')',rate:S.ra?S.ra.toFixed(3)+'%':'--',apr:S.apr||'',payment:S.mo||'--'},
+          b:{termLabel:S.tl2,lineAmount:'$'+fi(S.la2),draw:S.cb2>=0?'$'+fi(S.cb2):'($'+fi(Math.abs(S.cb2))+')',rate:S.ra2?S.ra2.toFixed(3)+'%':'--',apr:S.apr2||'',payment:S.mo2||'--'}
+        },
+        disclaimer:DISC,pdfBase64:pdf,fileName:'adaxa-quickquote-'+nm+'.pdf'
+      };
+      fetch(QUOTE_SEND_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+        .then(function(r){return r.json().catch(function(){return{};}).then(function(j){return{ok:r.ok,j:j};});})
+        .then(function(res){
+          btn.disabled=false;btn.innerHTML=oldLabel;
+          if(res.ok&&res.j&&res.j.success&&res.j.emailOk!==false){
+            stt.className='send-status ok';stt.textContent='Sent to '+email+' ✓';
+            setTimeout(closeSend,1800);
+          }else{
+            stt.className='send-status err';stt.textContent=(res.j&&(res.j.emailError||res.j.error))||'Send failed. Please try again.';
+          }
+        })
+        .catch(function(e){btn.disabled=false;btn.innerHTML=oldLabel;stt.className='send-status err';stt.textContent='Network error: '+e.message;});
+    }catch(e){btn.disabled=false;btn.innerHTML=oldLabel;stt.className='send-status err';stt.textContent='Error: '+e.message;}
+  },150);
 }
 
 // Init
