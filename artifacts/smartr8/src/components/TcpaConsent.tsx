@@ -8,7 +8,7 @@ import { CONSENT_TEXT, CONSENT_VERSION } from "@/lib/tcpa";
 // VITE_TURNSTILE_SITE_KEY build variable in Cloudflare Pages.
 const SITE_KEY =
   (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ||
-  "0x4AaKPxtp3CxdWqCsLrB1s";
+  "0x4AAAAAADX6q2I_R4J9sxTC";
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
 declare global {
