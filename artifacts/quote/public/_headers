@@ -1,0 +1,19 @@
+# Cloudflare Pages headers for the Adaxa Quick Quote Tool (quote.smartr8.com).
+#
+# Single self-contained index.html (inline CSS/JS, DM Sans via Google Fonts,
+# jsPDF via cdnjs, inline base64 images). No local hashed assets, so the HTML
+# is served revalidated rather than long-cached.
+#
+# Framing is intentionally left open so the tool can be embedded in an iframe
+# elsewhere if needed. To lock that down, add a
+# `Content-Security-Policy: frame-ancestors ...` line below.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
