@@ -1,10 +1,8 @@
 # Cloudflare Pages config for the smartr8 site.
 #
-# Bindings are NOT declared here yet because their real IDs only exist
-# after `wrangler d1 create` and `wrangler kv:namespace create` run.
-# See scripts/setup-cloudflare.sh for the ordered one-time setup, then
-# uncomment + populate the blocks at the bottom of this file with the
-# IDs that those commands print.
+# LEADS_DB + LEAD_DEDUP bindings are populated below from the provisioned
+# Cloudflare resources. See scripts/setup-cloudflare.sh for the original
+# one-time setup steps.
 #
 # Env vars (secrets) are managed in Cloudflare Pages -> Settings ->
 # Environment variables (Production + Preview). See README.md.
@@ -13,17 +11,27 @@ name = "smartr8"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# ─── Add these blocks after running scripts/setup-cloudflare.sh ────────
+# ─── Bindings (filled in from the live Cloudflare account) ─────────────
 #
-# [[d1_databases]]
-# binding = "LEADS_DB"
-# database_name = "smartr8-leads"
-# database_id = "<paste the database_id returned by `wrangler d1 create smartr8-leads`>"
-#
-# [[kv_namespaces]]
-# binding = "LEAD_DEDUP"
-# id = "<paste the id returned by `wrangler kv:namespace create LEAD_DEDUP`>"
+# IMPORTANT: these only take effect if the Pages project deploys using this
+# wrangler.toml. If bindings are instead configured in the Pages dashboard
+# (Settings -> Functions -> Bindings), keep both in sync.
+
+[[d1_databases]]
+binding = "LEADS_DB"
+database_name = "smartr8-leads"
+database_id = "b1be7618-d79e-4889-b21f-9b3782e59b00"
+
+[[kv_namespaces]]
+binding = "LEAD_DEDUP"
+id = "a70020078cbc445eb350f384e1a18be8"
+
+# CF_KV_NAMESPACE is the pre-existing namespace used by the legacy
+# /api/submit-lead rate limiter. Two KV namespaces exist on the account
+# (LEAD_DEDUP and one named "smartr8-leads"); confirm which one the rate
+# limiter expects in the Cloudflare dashboard before uncommenting so we
+# don't point it at the wrong store.
 #
 # [[kv_namespaces]]
 # binding = "CF_KV_NAMESPACE"
-# id = "<existing CF_KV_NAMESPACE id (look it up in the Cloudflare dashboard)>"
+# id = "<confirm in the Cloudflare dashboard>"
