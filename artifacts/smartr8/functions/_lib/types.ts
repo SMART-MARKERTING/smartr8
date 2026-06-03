@@ -97,6 +97,11 @@ export interface Env {
   // Resend
   RESEND_API_KEY?: string;
 
+  // External CRM webhook — full URL including its ?key=... When set, every
+  // accepted (non-deduped) lead is POSTed here as JSON, in addition to the
+  // other destinations.
+  CRM_LEAD_WEBHOOK?: string;
+
   // LeadMailbox has no secret; the URL is hardcoded in the helper.
 
   // GoHighLevel.
