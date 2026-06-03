@@ -45,6 +45,16 @@ export function Footer() {
           </Link>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
+            href="https://quote.smartr8.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            Quick Quote
+          </a>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
+          <a
             href="https://adaxahome.com/privacy/"
             target="_blank"
             rel="noopener noreferrer"

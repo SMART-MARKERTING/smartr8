@@ -1,0 +1,226 @@
+// @ts-nocheck
+// Cloudflare Pages Function — POST /api/quote/send
+//
+// Sends the Adaxa Quick Quote to a client: an HTML email with both options
+// rendered inline PLUS the generated PDF attached. Called cross-origin by the
+// standalone Quick Quote tool hosted at quote.smartr8.com, so CORS allows that
+// origin (and *.pages.dev previews).
+//
+// Required env binding (Cloudflare Pages → Settings → Environment variables):
+//   RESEND_API_KEY — Resend API key (also accepts RE_worksheet as a fallback)
+
+const ALLOWED_ORIGINS = new Set([
+  "https://quote.smartr8.com",
+  "https://smartr8.com",
+  "https://www.smartr8.com",
+]);
+
+function isAllowedOrigin(origin) {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (/^https:\/\/[^.]+\.pages\.dev$/.test(origin)) return true;
+  return false;
+}
+
+function corsHeaders(origin) {
+  return {
+    "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin : "https://quote.smartr8.com",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
+}
+
+function jsonResponse(data, status, cors) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { ...cors, "Content-Type": "application/json" },
+  });
+}
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]),
+  );
+}
+
+async function sendResendEmail({ apiKey, from, replyTo, to, subject, html, pdfBase64, fileName }) {
+  const body = {
+    from,
+    reply_to: replyTo,
+    to: Array.isArray(to) ? to : [to],
+    subject,
+    html,
+  };
+  if (pdfBase64 && fileName) {
+    body.attachments = [{ filename: fileName, content: pdfBase64 }];
+  }
+
+  let res;
+  try {
+    res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (networkErr) {
+    console.error("[quote] Resend network error:", networkErr);
+    return { ok: false, error: `Network error: ${networkErr}` };
+  }
+
+  if (!res.ok) {
+    let resBody = "";
+    try { resBody = await res.text(); } catch {}
+    console.error(`[quote] Resend API error — status=${res.status} body=${resBody}`);
+    return { ok: false, error: `Resend ${res.status}: ${resBody}` };
+  }
+
+  const j = await res.json().catch(() => ({}));
+  console.log(`[quote] Resend email sent — id=${j.id}`);
+  return { ok: true };
+}
+
+// Renders one option as an email-safe card (table layout + inline styles).
+function optionCard({ accent, accentLight, tag, title, subtitle, rows, rate, apr, payment, paymentLabel }) {
+  const rowsHtml = rows
+    .map(
+      ([label, value]) =>
+        `<tr>` +
+        `<td style="padding:6px 0;color:#666;font-size:13px;">${esc(label)}</td>` +
+        `<td style="padding:6px 0;text-align:right;font-weight:600;color:#111;font-size:13px;">${esc(value)}</td>` +
+        `</tr>`,
+    )
+    .join("");
+
+  return (
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${accent};border-radius:8px;overflow:hidden;">` +
+    `<tr><td style="background:${accent};padding:12px 16px;">` +
+    `<div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.85;">${esc(tag)}</div>` +
+    `<div style="color:#ffffff;font-size:16px;font-weight:700;">${esc(title)}</div>` +
+    (subtitle ? `<div style="color:${accentLight};font-size:12px;margin-top:2px;">${esc(subtitle)}</div>` : "") +
+    `</td></tr>` +
+    `<tr><td style="padding:14px 16px;background:#ffffff;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowsHtml}</table>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;background:${accent};border-radius:6px;">` +
+    `<tr>` +
+    `<td style="padding:12px 14px;vertical-align:top;">` +
+    `<div style="color:${accentLight};font-size:10px;font-weight:600;letter-spacing:.5px;">INTEREST RATE</div>` +
+    `<div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.1;">${esc(rate || "--")}</div>` +
+    (apr ? `<div style="color:${accentLight};font-size:11px;">APR ${esc(apr)}</div>` : "") +
+    `</td>` +
+    `<td style="padding:12px 14px;text-align:right;vertical-align:top;">` +
+    `<div style="color:${accentLight};font-size:10px;font-weight:600;letter-spacing:.5px;">${esc(paymentLabel)}</div>` +
+    `<div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.1;">${esc(payment || "--")}</div>` +
+    `</td>` +
+    `</tr></table>` +
+    `</td></tr></table>`
+  );
+}
+
+function buildQuoteEmailHtml(d) {
+  const a = d.options.a || {};
+  const b = d.options.b || {};
+  const adv = d.advisor || {};
+  const GREEN = "#2e7d4f", GREEN_L = "#bfe6cf", BLUE = "#1a56a0", BLUE_L = "#bcd2f5";
+
+  const advName = esc(adv.name || "Your Loan Officer");
+  const advLine = [adv.title || "Loan Officer", adv.company || "Adaxa LLC", adv.nmls ? `NMLS #${adv.nmls}` : ""]
+    .filter(Boolean)
+    .map(esc)
+    .join(" &middot; ");
+
+  const cardA = optionCard({
+    accent: GREEN, accentLight: GREEN_L,
+    tag: "OPTION A", title: "Cash-Out Refinance · 1st Lien",
+    subtitle: [d.options.loanType, a.termLabel].filter(Boolean).join(" · "),
+    rows: [["New Loan Amount", a.loanAmount], ["Existing Loan Payoff", a.payoff], ["Cash-Out Amount", a.cashOut]],
+    rate: a.rate, apr: a.apr, payment: a.payment, paymentLabel: "EST. MONTHLY PAYMENT",
+  });
+
+  const cardB = optionCard({
+    accent: BLUE, accentLight: BLUE_L,
+    tag: "OPTION B", title: "HELOC",
+    subtitle: [b.termLabel, "Interest Only"].filter(Boolean).join(" · "),
+    rows: [["Line Amount", b.lineAmount], ["Initial Draw at Closing", b.draw]],
+    rate: b.rate, apr: b.apr, payment: b.payment, paymentLabel: "EST. MONTHLY PAYMENT (INT. ONLY)",
+  });
+
+  return (
+    `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>` +
+    `<body style="margin:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#222;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;"><tr><td align="center">` +
+    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">` +
+    `<tr><td style="background:#111111;border-radius:8px 8px 0 0;padding:16px 20px;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
+    `<td style="color:#ffffff;font-size:18px;font-weight:700;">${esc(adv.company || "Adaxa")}</td>` +
+    `<td style="text-align:right;color:#c9a74d;font-size:13px;font-weight:600;">Quick Quote</td>` +
+    `</tr></table></td></tr>` +
+    `<tr><td style="background:#ffffff;padding:24px 20px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px;">` +
+    `<p style="margin:0 0 4px;font-size:15px;">Hi ${esc(d.clientName || "there")},</p>` +
+    `<p style="margin:0 0 18px;font-size:14px;color:#444;line-height:1.5;">Here is your personalized quick quote${d.options.date ? ` &middot; ${esc(d.options.date)}` : ""}. Two options are shown below, and a detailed PDF is attached.</p>` +
+    cardA +
+    `<div style="text-align:center;color:#888;font-size:12px;font-weight:700;margin:12px 0;">— OR —</div>` +
+    cardB +
+    `<p style="margin:18px 0 0;font-size:12px;color:#666;">A full PDF breakdown of both options is attached to this email.</p>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-top:1px solid #eeeeee;"><tr><td style="padding-top:14px;">` +
+    `<div style="font-size:15px;font-weight:700;color:#111;">${advName}</div>` +
+    `<div style="font-size:12px;color:#777;margin:2px 0 6px;">${advLine}</div>` +
+    (adv.phone ? `<div style="font-size:13px;color:#444;">P: ${esc(adv.phone)}</div>` : "") +
+    (adv.email ? `<div style="font-size:13px;color:#444;">E: <a href="mailto:${esc(adv.email)}" style="color:#1a56a0;text-decoration:none;">${esc(adv.email)}</a></div>` : "") +
+    (adv.web ? `<div style="font-size:13px;color:#777;">${esc(adv.web)}</div>` : "") +
+    `</td></tr></table>` +
+    `<p style="margin:18px 0 0;font-size:9px;color:#aaa;line-height:1.45;">${esc(d.disclaimer || "")}</p>` +
+    `</td></tr></table></td></tr></table></body></html>`
+  );
+}
+
+export async function onRequest(context) {
+  const { request, env } = context;
+  const origin = request.headers.get("Origin") ?? "";
+  const cors = corsHeaders(origin);
+
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+  if (request.method !== "POST") return jsonResponse({ success: false, error: "Method not allowed" }, 405, cors);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonResponse({ success: false, error: "Invalid JSON body" }, 400, cors);
+  }
+
+  if (!body.clientEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.clientEmail)) {
+    return jsonResponse({ success: false, error: "A valid clientEmail is required." }, 400, cors);
+  }
+  if (!body.options || !body.options.a || !body.options.b) {
+    return jsonResponse({ success: false, error: "Missing quote options." }, 400, cors);
+  }
+
+  const resendKey = env.RESEND_API_KEY || env.RE_worksheet;
+  if (!resendKey) {
+    console.error("[quote] CRITICAL: no Resend key (checked RESEND_API_KEY, RE_worksheet).");
+    return jsonResponse({ success: false, error: "Email is not configured on the server." }, 500, cors);
+  }
+
+  const adv = body.advisor || {};
+  const cleanName = String(adv.name || "Adaxa Home").replace(/["\r\n<>]/g, "").trim() || "Adaxa Home";
+  const replyTo = (adv.email && String(adv.email).trim()) || "mykoal@adaxahome.com";
+  const subject = `Your Quick Quote${body.clientName ? ` — ${body.clientName}` : ""}`;
+
+  const result = await sendResendEmail({
+    apiKey: resendKey,
+    from: `"${cleanName}" <mykoal@mykoal.com>`,
+    replyTo,
+    to: body.clientEmail,
+    subject,
+    html: buildQuoteEmailHtml(body),
+    pdfBase64: body.pdfBase64,
+    fileName: body.fileName || "adaxa-quickquote.pdf",
+  });
+
+  console.log(`[quote] send — to=${body.clientEmail} advisor="${cleanName}" emailOk=${result.ok}`);
+  return jsonResponse(
+    { success: true, emailOk: result.ok, emailError: result.ok ? undefined : result.error },
+    200,
+    cors,
+  );
+}
