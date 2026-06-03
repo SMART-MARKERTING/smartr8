@@ -55,18 +55,14 @@ export function Footer() {
           </a>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
-            href="https://adaxahome.com/privacy/"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/privacy"
             className="underline hover:text-white"
           >
             Privacy Policy
           </a>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
-            href="https://adaxahome.com/terms-of-use/"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/terms-of-use"
             className="underline hover:text-white"
           >
             Terms of Use

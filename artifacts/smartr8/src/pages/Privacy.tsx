@@ -150,6 +150,17 @@ export default function Privacy() {
             <li>With your explicit consent</li>
           </UL>
           <P><strong>We do not sell your personal information.</strong></P>
+          <P>
+            <strong>
+              Your mobile information will not be sold or shared with third
+              parties for promotional or marketing purposes.
+            </strong>{" "}
+            SMS opt-in data and consent are never shared with third parties
+            for any purpose unrelated to delivering the specific SMS service
+            you signed up for. Any data sharing with service providers (e.g.,
+            message-delivery platforms, phone carriers) is limited to what's
+            required to operate the messaging service itself.
+          </P>
 
           <H2>7. Data security</H2>
           <P>We use reasonable administrative and technical safeguards including TLS encryption in transit, secure cloud-hosted infrastructure (Cloudflare, GoHighLevel, Resend), and access controls on internal systems. No system is 100% secure; you provide information at your own risk.</P>

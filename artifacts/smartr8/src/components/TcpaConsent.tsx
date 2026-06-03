@@ -121,12 +121,22 @@ export function TcpaConsent({ onChange }: TcpaConsentProps) {
           className="mt-1 h-4 w-4 shrink-0 cursor-pointer"
         />
         <label htmlFor="tcpa-consent" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
-          <span className="font-semibold text-foreground">Optional:</span>{" "}
-          I consent to receive calls, texts, and emails from Mykoal DeShazo
-          (NMLS #1912347) and Adaxa Home (NMLS #2380533) about mortgage and
-          home-equity options, including via autodialer or prerecorded
-          messages. Consent isn't required. Msg & data rates may apply.
-          Reply STOP to opt out.
+          <span className="block font-semibold text-foreground mb-1">
+            Text me about my application (optional)
+          </span>
+          By providing my phone number and checking this box, I agree to
+          receive recurring SMS messages about mortgage and home-equity loan
+          options from Mykoal DeShazo (NMLS #1912347) and Adaxa Home, LLC
+          (NMLS #2380533). I am opting into marketing texts. Message
+          frequency may vary. Standard Message and Data Rates may apply.
+          Reply <strong>STOP</strong> to opt out. Reply <strong>HELP</strong>{" "}
+          for help. Consent is not a condition of purchase. My mobile
+          information will not be sold or shared with third parties for
+          promotional or marketing purposes. See our{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">
+            Privacy Policy
+          </a>{" "}
+          for details.
         </label>
       </div>
       <div ref={widgetEl} aria-label="Turnstile challenge" />
