@@ -5,22 +5,22 @@
 # (Previously it lacked that key, so Cloudflare logged "not valid … Skipping
 # file" and ignored it entirely — all config came from the dashboard.)
 #
-# SECRETS stay in the dashboard (Settings → Environment variables) and must
-# NEVER be committed here. Wrangler does not delete encrypted secrets on
-# deploy, so these survive the switch:
+# SECRETS + plaintext env vars stay in the dashboard (Settings → Environment
+# variables) and must NEVER be committed here:
 #   SMARTR8_LEAD_CAPTURE_PROD (GHL PIT) · RESEND_API_KEY · TURNSTILE_SECRET_KEY · CRON_SECRET
+#   GHL_* IDs · GHL_PIPELINE_ID/STAGE_NEW · optional CRM_LEAD_WEBHOOK
 #
-# `keep_vars = true` tells the deploy NOT to wipe the dashboard's plaintext
-# env vars (the GHL_* IDs, GHL_PIPELINE_ID/STAGE_NEW, optional CRM_LEAD_WEBHOOK),
-# so we don't have to mirror them here. ⚠️ VERIFY on this PR's PREVIEW deploy
-# that those vars still resolve in the Functions BEFORE merging — merge to main
-# is a production deploy.
+# Cloudflare Pages does NOT overwrite dashboard environment variables on deploy
+# (unlike Workers `wrangler deploy`), so the dashboard vars survive making this
+# file the source of truth — no need to mirror them here. NOTE: the Workers-only
+# `keep_vars` key is NOT supported in a Pages config and will hard-fail the
+# deploy ("Configuration file for Pages projects does not support keep_vars"),
+# so it is deliberately absent.
 
 name = "smartr8"
 pages_build_output_dir = "dist/public"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
-keep_vars = true
 
 # ─── Bindings ──────────────────────────────────────────────────────────
 # Now that the file is the source of truth, every binding the Functions use
