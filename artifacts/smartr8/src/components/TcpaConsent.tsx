@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { CONSENT_TEXT, CONSENT_VERSION } from "@/lib/tcpa";
 
-// Cloudflare Turnstile site key (public). Set in Cloudflare Pages env as
-// VITE_TURNSTILE_SITE_KEY. If missing, the widget falls back to a
-// permissive placeholder token (dev only) and renders an inline warning.
-const SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
+// Cloudflare Turnstile site key (public — safe to commit; it is rendered into
+// the page and pairs with the server-side TURNSTILE_SECRET_KEY). Baked in as a
+// default so a freshly built deploy always ships a working widget even when the
+// build environment lacks the var; override per-environment by setting the
+// VITE_TURNSTILE_SITE_KEY build variable in Cloudflare Pages.
+const SITE_KEY =
+  (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) ||
+  "0x4AaKPxtp3CxdWqCsLrB1s";
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
 
 declare global {
