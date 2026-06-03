@@ -1,4 +1,3 @@
-// @ts-nocheck
 // Cloudflare Pages Function — POST /api/worksheet/submit-lead
 // Handles internal worksheet email delivery (PDF attachment via Resend)
 // and public worksheet lead capture.
@@ -7,20 +6,82 @@
 //   RESEND_API_KEY — Resend API key for sending emails
 //   (also accepts RE_worksheet as an alternative name)
 
+import { submitToLeadMailbox } from "../../_lib/leadmailbox";
 import { log } from "../../_lib/log";
 import { normalizeEmail, normalizeName, normalizePhoneE164US } from "../../_lib/normalize";
 import { processLead } from "../../_lib/orchestrate";
 import { verifyTurnstile } from "../../_lib/turnstile";
+import type { Env, Lead, TcpaConsent } from "../../_lib/types";
+
+/** Cloudflare Pages Functions request context (the subset this handler uses). */
+interface WorksheetContext {
+  request: Request;
+  env: Env & { RE_worksheet?: string };
+  waitUntil(promise: Promise<unknown>): void;
+}
+
+/** Loosely-typed worksheet request body. Every branch validates the fields it
+ *  needs before use; unknown extras are ignored. */
+interface WorksheetBody {
+  source?: string;
+  // Internal / self-send email fields
+  clientEmail?: string;
+  pdfBase64?: string;
+  clientName?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
+  advisorName?: string;
+  fileName?: string;
+  worksheetSummary?: string;
+  // Public unlock-lead fields
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  state?: string;
+  trackingId?: string;
+  turnstile_token?: string;
+  consent?: boolean;
+  consent_text?: string;
+  consent_version?: string;
+  page_url?: string;
+}
+
+type CorsHeaders = Record<string, string>;
+
+interface ResendEmailParams {
+  apiKey: string;
+  to: string | string[];
+  subject: string;
+  html: string;
+  pdfBase64?: string;
+  fileName?: string;
+}
+
+interface ResendEmailResult {
+  ok: boolean;
+  error?: string;
+}
+
+interface AdvisorNotificationData {
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  state?: string;
+  source?: string;
+  worksheetSummary?: string;
+}
 
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 
-function isAllowedOrigin(origin) {
+function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.has(origin)) return true;
   if (/^https:\/\/[^.]+\.pages\.dev$/.test(origin)) return true;
   return false;
 }
 
-function corsHeaders(origin) {
+function corsHeaders(origin: string): CorsHeaders {
   return {
     "Access-Control-Allow-Origin": isAllowedOrigin(origin) ? origin : "https://smartr8.com",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -28,16 +89,22 @@ function corsHeaders(origin) {
   };
 }
 
-function jsonResponse(data, status, cors) {
+function jsonResponse(data: unknown, status: number, cors: CorsHeaders): Response {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...cors, "Content-Type": "application/json" },
   });
 }
 
-// Returns { ok: boolean, error?: string }
-async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName }) {
-  const body = {
+async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName }: ResendEmailParams): Promise<ResendEmailResult> {
+  const body: {
+    from: string;
+    reply_to: string;
+    to: string[];
+    subject: string;
+    html: string;
+    attachments?: Array<{ filename: string; content: string }>;
+  } = {
     from: "Mykoal DeShazo <mykoal@mykoal.com>",
     reply_to: "mykoal@adaxahome.com",
     to: Array.isArray(to) ? to : [to],
@@ -76,7 +143,7 @@ async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName 
   return { ok: true };
 }
 
-function buildClientEmailHtml(clientName, advisorName) {
+function buildClientEmailHtml(clientName: string, advisorName?: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -121,7 +188,7 @@ function buildClientEmailHtml(clientName, advisorName) {
 `;
 }
 
-function buildAdvisorNotificationHtml(data) {
+function buildAdvisorNotificationHtml(data: AdvisorNotificationData): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -145,38 +212,12 @@ function buildAdvisorNotificationHtml(data) {
 `;
 }
 
-const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
+// LeadMailbox delivery is handled by the shared _lib/leadmailbox helper for
+// every branch below (see issue #19 — the inline client was removed so error
+// handling, IP forwarding, and the fallbackPayload contract live in one place).
 const FORMSPREE = "https://formspree.io/f/meennekb";
 
-async function submitToLeadMailbox(payload, clientIp) {
-  // Forward the visitor's real IP so LM doesn't reject the call as a
-  // Cloudflare egress IP. Skip the headers entirely when the IP is unknown
-  // or empty — sending a header literally saying "unknown" trips LM's
-  // foreign-IP guard the same way the Cloudflare egress does.
-  const headers = { "Content-Type": "application/json" };
-  if (clientIp && clientIp !== "unknown") {
-    headers["X-Forwarded-For"] = clientIp;
-    headers["True-Client-IP"] = clientIp;
-    headers["X-Real-IP"] = clientIp;
-  }
-  try {
-    const lmRes = await fetch(LM_ENDPOINT, {
-      method: "POST",
-      headers,
-      body: JSON.stringify(payload),
-    });
-    const lmText = await lmRes.text();
-    let lmSuccess = false;
-    try { lmSuccess = JSON.parse(lmText).code === 0; } catch { lmSuccess = lmRes.ok; }
-    console.log(`[lm] submit — name="${payload.FirstName} ${payload.LastName}" ok=${lmSuccess} response=${lmText.slice(0, 200)}`);
-    return lmSuccess;
-  } catch (e) {
-    console.error("[lm] LeadMailbox error:", e);
-    return false;
-  }
-}
-
-export async function onRequest(context) {
+export async function onRequest(context: WorksheetContext): Promise<Response> {
   const { request, env, waitUntil } = context;
   const origin = request.headers.get("Origin") ?? "";
   const cors = corsHeaders(origin);
@@ -188,9 +229,9 @@ export async function onRequest(context) {
     return jsonResponse({ error: "Method not allowed" }, 405, cors);
   }
 
-  let body;
+  let body: WorksheetBody;
   try {
-    body = await request.json();
+    body = (await request.json()) as WorksheetBody;
   } catch {
     return jsonResponse({ error: "Invalid JSON body" }, 400, cors);
   }
@@ -219,7 +260,7 @@ export async function onRequest(context) {
 
     console.log(`[worksheet] internal send — to=${body.clientEmail} client="${firstName} ${lastName}"`);
 
-    let emailResult = { ok: false, error: "No Resend key" };
+    let emailResult: ResendEmailResult = { ok: false, error: "No Resend key" };
     if (resendKey) {
       emailResult = await sendResendEmail({
         apiKey: resendKey,
@@ -231,23 +272,29 @@ export async function onRequest(context) {
       });
     }
 
-    // Log to LeadMailbox as manual send
-    const lmPayload = {
-      FirstName: firstName,
-      LastName: lastName,
-      Email: body.clientEmail,
-      MobilePhone: "",
-      Phys_State: "",
-      Loan_Request: "Worksheet Internal Send",
-      Notes: [
-        "Funnel: worksheet-internal",
-        "Tag: manual send by Mykoal",
-        `Submitted: ${new Date().toISOString()}`,
-        `Source: smartr8.com/worksheet/internal`,
-        body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
-      ].filter(Boolean).join("\n"),
+    // Log to LeadMailbox as a manual send via the shared helper. No phone /
+    // state is collected on this path; the funnel marker + manual-send tag
+    // ride in as a notesPrefix to preserve the legacy Notes contract.
+    const lead: Lead = {
+      lead_id: crypto.randomUUID(),
+      created_at: Date.now(),
+      funnel: "worksheet",
+      first_name: firstName,
+      last_name: lastName,
+      email: body.clientEmail,
+      loan_request: "Worksheet Internal Send",
+      notes: body.worksheetSummary ? `Worksheet summary:\n${body.worksheetSummary}` : "",
+      source: "smartr8.com",
     };
-    waitUntil(submitToLeadMailbox(lmPayload, ip));
+    waitUntil(
+      submitToLeadMailbox(lead, ip, {
+        notesPrefix: [
+          "Funnel: worksheet-internal",
+          "Tag: manual send by Mykoal",
+          "Source: smartr8.com/worksheet/internal",
+        ],
+      }),
+    );
 
     return jsonResponse({ success: true, emailOk: emailResult.ok, emailError: emailResult.error }, 200, cors);
   }
@@ -266,7 +313,7 @@ export async function onRequest(context) {
 
     console.log(`[worksheet] self-send — to=${body.clientEmail} client="${firstName} ${lastName}"`);
 
-    let emailResult = { ok: false, error: "No Resend key" };
+    let emailResult: ResendEmailResult = { ok: false, error: "No Resend key" };
     if (resendKey) {
       emailResult = await sendResendEmail({
         apiKey: resendKey,
@@ -280,23 +327,31 @@ export async function onRequest(context) {
 
     console.log(`[worksheet] self-send result — emailOk=${emailResult.ok}${emailResult.error ? ` error=${emailResult.error}` : ""}`);
 
-    const lmPayload = {
-      FirstName: firstName,
-      LastName: lastName,
-      Email: body.clientEmail,
-      MobilePhone: body.phone ? body.phone.replace(/\D/g, "") : "",
-      Phys_State: body.state ?? "",
-      Loan_Request: "Worksheet Self-Send",
-      Notes: [
-        "Funnel: worksheet-self",
-        `Submitted: ${new Date().toISOString()}`,
-        `Source: smartr8.com/worksheet`,
+    // Self-send goes through the shared LeadMailbox helper. Phone is now
+    // normalized to E.164 (digits-only on the wire, matching the public
+    // unlock-lead path) and state rides as property_state → Phys_State. The
+    // funnel marker is preserved via notesPrefix.
+    const lead: Lead = {
+      lead_id: crypto.randomUUID(),
+      created_at: Date.now(),
+      funnel: "worksheet",
+      first_name: firstName,
+      last_name: lastName,
+      email: body.clientEmail,
+      phone_e164: normalizePhoneE164US(body.phone),
+      property_state: (body.state ?? "").trim(),
+      loan_request: "Worksheet Self-Send",
+      notes: [
         body.trackingId ? `Tracking ID: ${body.trackingId}` : "",
-        body.worksheetSummary ? `\nWorksheet summary:\n${body.worksheetSummary}` : "",
-      ].filter(Boolean).join("\n"),
+        body.worksheetSummary ? `Worksheet summary:\n${body.worksheetSummary}` : "",
+      ].filter(Boolean).join("\n\n"),
+      source: "smartr8.com",
     };
 
-    const lmSuccess = await submitToLeadMailbox(lmPayload, ip);
+    const lmResult = await submitToLeadMailbox(lead, ip, {
+      notesPrefix: ["Funnel: worksheet-self"],
+    });
+    const lmSuccess = lmResult.ok;
 
     if (resendKey) {
       waitUntil(
@@ -331,7 +386,7 @@ export async function onRequest(context) {
   // GHL workflows now own advisor notification + nurture; D1 owns the
   // backup audit row. The legacy advisor email + Formspree POST that
   // used to live here are intentionally gone.
-  const missing = ["firstName", "lastName", "email"].filter((f) => !body[f]?.trim());
+  const missing = (["firstName", "lastName", "email"] as const).filter((f) => !body[f]?.trim());
   if (missing.length > 0) {
     return jsonResponse({ success: false, error: `Missing: ${missing.join(", ")}` }, 400, cors);
   }
@@ -358,7 +413,7 @@ export async function onRequest(context) {
 
   const propertyState = (body.state ?? "").trim();
 
-  const lead = {
+  const lead: Lead = {
     lead_id: crypto.randomUUID(),
     created_at: Date.now(),
     funnel: "worksheet",
@@ -382,7 +437,7 @@ export async function onRequest(context) {
   const hasConsentText = Boolean(body.consent_text);
   const hasConsentVersion = Boolean(body.consent_version);
   const hasConsentChecked = body.consent === true;
-  let consent = null;
+  let consent: TcpaConsent | null = null;
   if (hasTurnstile && hasConsentText && hasConsentVersion) {
     // Fields are present (form rendered the widget). Only record consent
     // when the user actively checked the optional box; an unchecked submit
@@ -391,8 +446,8 @@ export async function onRequest(context) {
       consent = {
         consent_id: crypto.randomUUID(),
         lead_id: lead.lead_id,
-        consent_version: body.consent_version,
-        consent_text: body.consent_text,
+        consent_version: body.consent_version ?? "",
+        consent_text: body.consent_text ?? "",
         ip,
         user_agent: userAgent,
         page_url: body.page_url || "smartr8.com/worksheet",
