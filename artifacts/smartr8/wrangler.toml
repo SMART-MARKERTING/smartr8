@@ -1,21 +1,30 @@
-# Cloudflare Pages config for the smartr8 site.
+# Cloudflare Pages config for the "smartr8" project — FILE-BASED (source of truth).
 #
-# LEADS_DB + LEAD_DEDUP bindings are populated below from the provisioned
-# Cloudflare resources. See scripts/setup-cloudflare.sh for the original
-# one-time setup steps.
+# This file now carries `pages_build_output_dir`, so Cloudflare reads it on
+# every deploy and it SUPERSEDES the dashboard's bindings + plaintext vars.
+# (Previously it lacked that key, so Cloudflare logged "not valid … Skipping
+# file" and ignored it entirely — all config came from the dashboard.)
 #
-# Env vars (secrets) are managed in Cloudflare Pages -> Settings ->
-# Environment variables (Production + Preview). See README.md.
+# SECRETS stay in the dashboard (Settings → Environment variables) and must
+# NEVER be committed here. Wrangler does not delete encrypted secrets on
+# deploy, so these survive the switch:
+#   SMARTR8_LEAD_CAPTURE_PROD (GHL PIT) · RESEND_API_KEY · TURNSTILE_SECRET_KEY · CRON_SECRET
+#
+# `keep_vars = true` tells the deploy NOT to wipe the dashboard's plaintext
+# env vars (the GHL_* IDs, GHL_PIPELINE_ID/STAGE_NEW, optional CRM_LEAD_WEBHOOK),
+# so we don't have to mirror them here. ⚠️ VERIFY on this PR's PREVIEW deploy
+# that those vars still resolve in the Functions BEFORE merging — merge to main
+# is a production deploy.
 
 name = "smartr8"
+pages_build_output_dir = "dist/public"
 compatibility_date = "2025-01-01"
 compatibility_flags = ["nodejs_compat"]
+keep_vars = true
 
-# ─── Bindings (filled in from the live Cloudflare account) ─────────────
-#
-# IMPORTANT: these only take effect if the Pages project deploys using this
-# wrangler.toml. If bindings are instead configured in the Pages dashboard
-# (Settings -> Functions -> Bindings), keep both in sync.
+# ─── Bindings ──────────────────────────────────────────────────────────
+# Now that the file is the source of truth, every binding the Functions use
+# must be declared here (dashboard bindings are no longer applied).
 
 [[d1_databases]]
 binding = "LEADS_DB"
@@ -26,12 +35,11 @@ database_id = "b1be7618-d79e-4889-b21f-9b3782e59b00"
 binding = "LEAD_DEDUP"
 id = "a70020078cbc445eb350f384e1a18be8"
 
-# CF_KV_NAMESPACE is the pre-existing namespace used by the legacy
-# /api/submit-lead rate limiter. Two KV namespaces exist on the account
-# (LEAD_DEDUP and one named "smartr8-leads"); confirm which one the rate
-# limiter expects in the Cloudflare dashboard before uncommenting so we
-# don't point it at the wrong store.
-#
+# CF_KV_NAMESPACE — legacy /api/submit-lead rate limiter. It is OPTIONAL:
+# submit-lead.ts skips rate limiting when this binding is absent, so leaving it
+# off only disables that belt-and-suspenders limiter (no breakage). The account
+# has a KV titled "smartr8-leads" (id c36ddeb55cea4e9da51a47526d7aaf73) that is
+# the likely target — confirm it against the dashboard binding, then uncomment.
 # [[kv_namespaces]]
 # binding = "CF_KV_NAMESPACE"
-# id = "<confirm in the Cloudflare dashboard>"
+# id = "c36ddeb55cea4e9da51a47526d7aaf73"  # VERIFY in dashboard before enabling
