@@ -30,6 +30,7 @@ const Dscr = lazy(() => import("@/pages/Dscr"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetNextStep = lazy(() => import("@/pages/WorksheetNextStep"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
+const AdminLeads = lazy(() => import("@/pages/AdminLeads"));
 const WhatsNext = lazy(() => import("@/pages/WhatsNext"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
 const Terms = lazy(() => import("@/pages/Terms"));
@@ -237,6 +238,7 @@ function Router() {
         <Route path="/apply/rate-reduction/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
         <Route path="/apply/purchase/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
         <Route path="/worksheet/internal" component={WorksheetInternal} />
+        <Route path="/admin/leads" component={AdminLeads} />
         <Route path="/worksheet">{() => <WorksheetProductRedirect />}</Route>
         <Route path="/whats-next" component={WhatsNext} />
         <Route path="/privacy" component={Privacy} />

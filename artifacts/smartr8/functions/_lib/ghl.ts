@@ -225,3 +225,80 @@ export async function ghlCreateOpportunity(env: Env, lead: Lead, contactId: stri
     return { ok: false, contactId, error: `GHL opportunity network: ${e instanceof Error ? e.message : String(e)}` };
   }
 }
+
+export interface GhlOpportunity {
+  id: string;
+  pipelineId?: string;
+  pipelineStageId?: string;
+  status?: string;
+  name?: string;
+}
+
+/**
+ * Find a contact's opportunities. Used by the admin tool to locate the
+ * pipeline card(s) to remove. Narrows to GHL_PIPELINE_ID when set. Requires
+ * the PIT to grant opportunities.readonly.
+ */
+export async function ghlFindOpportunitiesByContact(
+  env: Env,
+  contactId: string,
+): Promise<{ ok: boolean; opportunities?: GhlOpportunity[]; error?: string; scopeError?: boolean }> {
+  const token = env.SMARTR8_LEAD_CAPTURE_PROD;
+  const locationId = env.GHL_LOCATION_ID;
+  if (!token || !locationId) return { ok: false, error: "GHL token or locationId missing" };
+
+  const url = new URL(`${GHL_BASE}/opportunities/search`);
+  url.searchParams.set("location_id", locationId);
+  url.searchParams.set("contact_id", contactId);
+  if (env.GHL_PIPELINE_ID) url.searchParams.set("pipeline_id", env.GHL_PIPELINE_ID);
+
+  try {
+    const res = await fetch(url.toString(), { headers: authHeaders(token) });
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      const scope = res.status === 401 || res.status === 403;
+      if (scope) logScopeError("opportunity_search", contactId, res.status, text);
+      else log("warn", "ghl.opportunity_search_error", { contactId, status: res.status, body: text.slice(0, 240) });
+      return { ok: false, error: `GHL opportunity search ${res.status}: ${text.slice(0, 240)}`, scopeError: scope };
+    }
+    const data = (text ? JSON.parse(text) : {}) as { opportunities?: GhlOpportunity[] };
+    const opportunities = (data.opportunities ?? []).map((o) => ({
+      id: o.id,
+      pipelineId: o.pipelineId,
+      pipelineStageId: o.pipelineStageId,
+      status: o.status,
+      name: o.name,
+    }));
+    return { ok: true, opportunities };
+  } catch (e) {
+    log("error", "ghl.opportunity_search_network_error", { contactId, err: e instanceof Error ? e.message : String(e) });
+    return { ok: false, error: `GHL opportunity search network: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
+
+/**
+ * Delete a single opportunity (removes the card from the pipeline). The
+ * contact is left intact. Requires the PIT to grant opportunities.write.
+ */
+export async function ghlDeleteOpportunity(env: Env, opportunityId: string): Promise<GhlResult> {
+  const token = env.SMARTR8_LEAD_CAPTURE_PROD;
+  if (!token) return { ok: false, error: "SMARTR8_LEAD_CAPTURE_PROD not set" };
+  try {
+    const res = await fetch(`${GHL_BASE}/opportunities/${opportunityId}`, {
+      method: "DELETE",
+      headers: authHeaders(token),
+    });
+    const text = await res.text().catch(() => "");
+    if (!res.ok) {
+      const scope = res.status === 401 || res.status === 403;
+      if (scope) logScopeError("opportunity_delete", opportunityId, res.status, text);
+      else log("warn", "ghl.opportunity_delete_error", { opportunityId, status: res.status, body: text.slice(0, 240) });
+      return { ok: false, error: `GHL opportunity delete ${res.status}: ${text.slice(0, 240)}`, scopeError: scope };
+    }
+    log("info", "ghl.opportunity_delete_ok", { opportunityId });
+    return { ok: true };
+  } catch (e) {
+    log("error", "ghl.opportunity_delete_network_error", { opportunityId, err: e instanceof Error ? e.message : String(e) });
+    return { ok: false, error: `GHL opportunity delete network: ${e instanceof Error ? e.message : String(e)}` };
+  }
+}
