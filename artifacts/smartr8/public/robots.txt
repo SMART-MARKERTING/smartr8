@@ -1,3 +1,4 @@
+# smartr8.com robots policy
 User-agent: GPTBot
 Allow: /
 
