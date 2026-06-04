@@ -1468,11 +1468,14 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
 
-        <main className="flex-1 container mx-auto max-w-3xl px-4 py-8">
+        {/* Brand type: Plus Jakarta Sans body + Bricolage Grotesque headings,
+            matching the /heloc-v3 funnel. Scoped to the funnel content so the
+            shared Header/Footer keep the site default. */}
+        <main className="flex-1 container mx-auto max-w-3xl px-4 py-8 font-body [&_h1]:font-heading [&_h2]:font-heading [&_h3]:font-heading [&_h4]:font-heading">
           <TopBar step={vStep} totalSteps={totalSteps} onStartOver={handleStartOver} />
           <Progress step={vStep} total={totalSteps} />
 
-          <div className="bg-card border rounded-xl shadow-sm p-6 sm:p-8">
+          <div className="bg-card border rounded-2xl shadow-md p-6 sm:p-8">
             {/* Step 1: calc shows product picker, non-calc shows confirmation intro */}
             {step === 1 && (isCalc ? renderStep1() : renderNonCalcIntro())}
             {step === 2 && isCalc && renderStep2()}

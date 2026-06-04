@@ -161,7 +161,8 @@ export default function WorksheetNextStep() {
       />
       <Header />
 
-      <main className="flex-1">
+      <main className="flex-1 font-body [&_h1]:font-heading [&_h2]:font-heading">
+
         {/* HERO */}
         <div
           className="px-4 py-5 sm:py-10 text-center text-white"
