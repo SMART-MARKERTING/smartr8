@@ -20,6 +20,7 @@ const HelocQuick = lazy(() => import("@/pages/HelocQuick"));
 const HelocQuickV2 = lazy(() => import("@/pages/HelocQuickV2"));
 const HelocInstantOptionsV2 = lazy(() => import("@/pages/HelocInstantOptionsV2"));
 const HelocV2 = lazy(() => import("@/pages/HelocV2"));
+const HelocV3 = lazy(() => import("@/pages/HelocV3"));
 const HelocNextStepV2 = lazy(() => import("@/pages/HelocNextStepV2"));
 // Product funnels (single-page landers). Each tags its lead with a loanType
 // the CRM uses to enroll it into the matching drip campaign.
@@ -179,6 +180,9 @@ function Router() {
             personalization params (name, credit, etc.) survive the hop. */}
         <Route path="/heloc">{() => <RedirectTo to="/heloc-v2" preserveSearch />}</Route>
         <Route path="/heloc-v2" component={HelocV2} />
+        {/* v3 — the "elevated" Adaxa funnel: hero → 4 steps → inline result.
+            Standalone, noIndex; reached directly by ad traffic / A/B tooling. */}
+        <Route path="/heloc-v3" component={HelocV3} />
         <Route path="/heloc/next-steps">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
         <Route path="/heloc/whats-next">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
         <Route path="/heloc/instant-options">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>

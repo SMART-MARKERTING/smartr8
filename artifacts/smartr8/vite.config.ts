@@ -132,7 +132,7 @@ export default defineConfig({
         // never download them. Everything else uses Vite's default
         // splitting (one chunk per dynamic import).
         manualChunks(id: string) {
-          if (/\/src\/pages\/(Heloc|HelocV2|HelocQuick|HelocQuickV2)\.tsx?$/.test(id)) {
+          if (/\/src\/pages\/(Heloc|HelocV2|HelocV3|HelocQuick|HelocQuickV2)\.tsx?$/.test(id)) {
             return "heloc-ads";
           }
           return undefined;
