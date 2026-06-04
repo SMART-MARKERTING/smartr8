@@ -21,6 +21,10 @@ Allow: /
 
 User-agent: *
 Disallow: /thank-you
+Disallow: /see-my-options
+Disallow: /application-next
+Disallow: /whats-next
+Disallow: /worksheet
 Disallow: /heloc/whats-next
 Disallow: /heloc/next-steps
 Disallow: /apply/cash-out/whats-next

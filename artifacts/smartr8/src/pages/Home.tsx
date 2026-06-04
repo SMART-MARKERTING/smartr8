@@ -1,6 +1,4 @@
-import { useState } from "react";
 import { Link } from "wouter";
-import { getHelocBucket } from "@/lib/abTest";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { JsonLd } from "@/components/JsonLd";
@@ -23,10 +21,8 @@ const STATES_11 = [
 ];
 
 export default function Home() {
-  // HELOC A/B split test: bucket is assigned once per session (src/lib/abTest.ts).
-  // Variant A routes to the full /heloc funnel; variant B to the 1-step /heloc/quick.
-  const [helocBucket] = useState(getHelocBucket);
-  const helocHref = helocBucket === "B" ? "/heloc/quick" : "/heloc";
+  // All HELOC / home-equity traffic now lands on the /heloc-v3 funnel.
+  const helocHref = "/heloc-v3";
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/10">
@@ -85,7 +81,7 @@ export default function Home() {
                   asChild
                   data-testid="hero-primary-cta"
                 >
-                  <Link href="/worksheet">
+                  <Link href="/see-my-options">
                     See My Options
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -148,7 +144,7 @@ export default function Home() {
         <section className="py-20 px-4 container mx-auto max-w-5xl">
           <h2 className="text-3xl font-bold text-center mb-12 text-primary">How can I help you today?</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <Link href="/worksheet?product=cash-out" className="block h-full" data-testid="path-card-cash">
+            <Link href="/cash-out" className="block h-full" data-testid="path-card-cash">
               <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
                 <CardContent className="p-8 flex flex-col items-center text-center gap-4">
                   <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -163,7 +159,7 @@ export default function Home() {
               </Card>
             </Link>
 
-            <Link href="/worksheet?product=rate-reduction" className="block h-full" data-testid="path-card-lower">
+            <Link href="/rate-reduction" className="block h-full" data-testid="path-card-lower">
               <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
                 <CardContent className="p-8 flex flex-col items-center text-center gap-4">
                   <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -178,7 +174,7 @@ export default function Home() {
               </Card>
             </Link>
 
-            <Link href="/worksheet" className="block h-full" data-testid="path-card-unsure">
+            <Link href="/see-my-options" className="block h-full" data-testid="path-card-unsure">
               <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
                 <CardContent className="p-8 flex flex-col items-center text-center gap-4">
                   <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -220,7 +216,7 @@ export default function Home() {
                 </Card>
               </Link>
 
-              <Link href="/worksheet?product=cash-out">
+              <Link href="/cash-out">
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
                   <CardContent className="p-4 md:p-5 flex flex-col gap-2 h-full">
                     <div className="h-9 w-9 bg-primary/5 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -237,7 +233,7 @@ export default function Home() {
                 </Card>
               </Link>
 
-              <Link href="/worksheet?product=rate-reduction">
+              <Link href="/rate-reduction">
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
                   <CardContent className="p-4 md:p-5 flex flex-col gap-2 h-full">
                     <div className="h-9 w-9 bg-primary/5 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -254,7 +250,7 @@ export default function Home() {
                 </Card>
               </Link>
 
-              <Link href="/worksheet?product=purchase">
+              <Link href="/purchase">
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
                   <CardContent className="p-4 md:p-5 flex flex-col gap-2 h-full">
                     <div className="h-9 w-9 bg-primary/5 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -271,7 +267,7 @@ export default function Home() {
                 </Card>
               </Link>
 
-              <Link href="/worksheet?product=home-equity">
+              <Link href="/heloc-v3">
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
                   <CardContent className="p-4 md:p-5 flex flex-col gap-2 h-full">
                     <div className="h-9 w-9 bg-primary/5 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -321,7 +317,7 @@ export default function Home() {
 
         {/* WORKSHEET LINK */}
         <div className="text-center py-4 pb-8 -mt-8">
-          <Link href="/worksheet" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link href="/see-my-options" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
             <BarChart2 className="h-3.5 w-3.5" />
             Run the free Loan Benefits Worksheet
           </Link>
@@ -368,7 +364,7 @@ export default function Home() {
               asChild
               data-testid="footer-cta"
             >
-              <Link href="/worksheet">
+              <Link href="/see-my-options">
                 See My Options
                 <ArrowRight className="ml-2 h-6 w-6" />
               </Link>

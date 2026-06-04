@@ -22,13 +22,13 @@ const HelocInstantOptionsV2 = lazy(() => import("@/pages/HelocInstantOptionsV2")
 const HelocV2 = lazy(() => import("@/pages/HelocV2"));
 const HelocV3 = lazy(() => import("@/pages/HelocV3"));
 const HelocNextStepV2 = lazy(() => import("@/pages/HelocNextStepV2"));
-// Product funnels (single-page landers). Each tags its lead with a loanType
-// the CRM uses to enroll it into the matching drip campaign.
+// DSCR remains a standalone single-page lander (tags its lead with a loanType
+// for the matching CRM drip). The former Cash-Out / Rate-Term / Purchase
+// landers were folded into the unified funnel and now 301 to their canonical
+// product routes below.
 const Dscr = lazy(() => import("@/pages/Dscr"));
-const CashOutRefi = lazy(() => import("@/pages/CashOutRefi"));
-const RateTermRefi = lazy(() => import("@/pages/RateTermRefi"));
-const Purchase = lazy(() => import("@/pages/Purchase"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
+const WorksheetNextStep = lazy(() => import("@/pages/WorksheetNextStep"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
 const WhatsNext = lazy(() => import("@/pages/WhatsNext"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
@@ -151,6 +151,32 @@ function RedirectTo({ to, preserveSearch = false }: { to: string; preserveSearch
 }
 
 /**
+ * Legacy /worksheet?product=… → canonical per-product route. Maps the old
+ * query-param entry to its clean URL (home-equity/heloc fold into /heloc-v3),
+ * preserving every other inbound param (utm_*, name, etc.). A bare /worksheet
+ * with no product lands on the generic /see-my-options picker.
+ */
+function WorksheetProductRedirect() {
+  const [, navigate] = useLocation();
+  const search = useSearch();
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const raw = params.get("product")?.toLowerCase().trim();
+    const map: Record<string, string> = {
+      "cash-out": "/cash-out", cashout: "/cash-out", cash_out: "/cash-out",
+      "rate-reduction": "/rate-reduction", rate: "/rate-reduction", rate_reduction: "/rate-reduction",
+      "home-equity": "/heloc-v3", home_equity: "/heloc-v3", "2nd-mortgage": "/heloc-v3", heloc: "/heloc-v3",
+      purchase: "/purchase", buy: "/purchase",
+    };
+    const dest = (raw && map[raw]) || "/see-my-options";
+    params.delete("product");
+    const qs = params.toString();
+    navigate(qs ? `${dest}?${qs}` : dest, { replace: true });
+  }, [navigate, search]);
+  return null;
+}
+
+/**
  * Scrolls the window to the top on every wouter route change so a new page
  * never loads scrolled to a position carried over from the previous route
  * (e.g. submitting /heloc-v2 step 9 and landing on /heloc/instant-options-v2).
@@ -175,14 +201,13 @@ function Router() {
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/thank-you" component={ThankYou} />
-        {/* v1 HELOC routes redirect to their v2 equivalents — see RedirectTo.
-            All preserve query params so utm_*, ad attribution, and any
-            personalization params (name, credit, etc.) survive the hop. */}
-        <Route path="/heloc">{() => <RedirectTo to="/heloc-v2" preserveSearch />}</Route>
-        <Route path="/heloc-v2" component={HelocV2} />
-        {/* v3 — the "elevated" Adaxa funnel: hero → 4 steps → inline result.
-            Standalone, noIndex; reached directly by ad traffic / A/B tooling. */}
+        {/* All HELOC / home-equity traffic now lands on the v3 "elevated"
+            funnel — the legacy v1/v2/quick routes redirect there, preserving
+            query params (utm_*, name, credit, etc.). */}
         <Route path="/heloc-v3" component={HelocV3} />
+        <Route path="/heloc">{() => <RedirectTo to="/heloc-v3" preserveSearch />}</Route>
+        <Route path="/heloc-v2" component={HelocV2} />
+        <Route path="/home-equity">{() => <RedirectTo to="/heloc-v3" preserveSearch />}</Route>
         <Route path="/heloc/next-steps">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
         <Route path="/heloc/whats-next">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
         <Route path="/heloc/instant-options">{() => <RedirectTo to="/heloc/next-step-v2" preserveSearch />}</Route>
@@ -190,21 +215,29 @@ function Router() {
         <Route path="/heloc/next-step-v2" component={HelocNextStepV2} />
         <Route path="/heloc/quick">{() => <RedirectTo to="/heloc/quick-v2" preserveSearch />}</Route>
         <Route path="/heloc/quick-v2" component={HelocQuickV2} />
-        {/* Product funnels — single-page landers that POST to the CRM with a
-            loanType tag (DSCR | CASHOUT_REFI | RT_REFI | PURCHASE). */}
+        {/* Canonical product funnels (unified worksheet). Each runs the funnel
+            pre-selected to its product; Cash-Out / Rate-Reduction / Purchase
+            all hand off to the LendingPad guest application via
+            /application-next. /see-my-options is the generic strategy picker. */}
+        <Route path="/see-my-options">{() => <Worksheet />}</Route>
+        <Route path="/cash-out">{() => <Worksheet entry="cash-out" />}</Route>
+        <Route path="/rate-reduction">{() => <Worksheet entry="rate-reduction" />}</Route>
+        <Route path="/purchase">{() => <Worksheet entry="purchase" />}</Route>
+        <Route path="/application-next" component={WorksheetNextStep} />
+        {/* DSCR remains its own standalone lander. */}
         <Route path="/dscr" component={Dscr} />
-        <Route path="/cash-out-refi" component={CashOutRefi} />
-        <Route path="/rate-and-term-refi" component={RateTermRefi} />
-        <Route path="/purchase" component={Purchase} />
-        {/* Legacy /apply/* funnels — superseded by the unified /worksheet funnel */}
-        <Route path="/apply/cash-out">{() => <RedirectTo to="/worksheet?product=cash-out" />}</Route>
-        <Route path="/apply/rate-reduction">{() => <RedirectTo to="/worksheet?product=rate-reduction" />}</Route>
-        <Route path="/apply/purchase">{() => <RedirectTo to="/worksheet?product=purchase" />}</Route>
+        {/* Retired single-page landers → their canonical funnel routes. */}
+        <Route path="/cash-out-refi">{() => <RedirectTo to="/cash-out" preserveSearch />}</Route>
+        <Route path="/rate-and-term-refi">{() => <RedirectTo to="/rate-reduction" preserveSearch />}</Route>
+        {/* Legacy /apply/* and /worksheet?product= → canonical product routes. */}
+        <Route path="/apply/cash-out">{() => <RedirectTo to="/cash-out" preserveSearch />}</Route>
+        <Route path="/apply/rate-reduction">{() => <RedirectTo to="/rate-reduction" preserveSearch />}</Route>
+        <Route path="/apply/purchase">{() => <RedirectTo to="/purchase" preserveSearch />}</Route>
         <Route path="/apply/cash-out/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
         <Route path="/apply/rate-reduction/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
         <Route path="/apply/purchase/whats-next">{() => <RedirectTo to="/whats-next" />}</Route>
         <Route path="/worksheet/internal" component={WorksheetInternal} />
-        <Route path="/worksheet" component={Worksheet} />
+        <Route path="/worksheet">{() => <WorksheetProductRedirect />}</Route>
         <Route path="/whats-next" component={WhatsNext} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms-of-use" component={Terms} />

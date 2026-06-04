@@ -33,6 +33,28 @@ const STORAGE_KEY = "smartr8_worksheet_funnel_v2";
 const STEP_KEY = "smartr8_worksheet_funnel_step_v2";
 const CONTACT_KEY = "smartr8_funnel_contact_v1";
 const ENTRY_KEY = "smartr8_funnel_entry_v1";
+const PURCHASE_KEY = "smartr8_funnel_purchase_v1";
+
+// Tailored purchase-path answers (no existing mortgage / equity to calc).
+interface PurchaseInfo {
+  priceRange: string;
+  downPayment: string;
+  timeline: string;
+  firstTime: string;
+}
+function emptyPurchase(): PurchaseInfo {
+  return { priceRange: "", downPayment: "", timeline: "", firstTime: "" };
+}
+function loadPurchase(): PurchaseInfo {
+  try {
+    const raw = sessionStorage.getItem(PURCHASE_KEY);
+    if (raw) return { ...emptyPurchase(), ...JSON.parse(raw) };
+  } catch {}
+  return emptyPurchase();
+}
+function savePurchase(p: PurchaseInfo) {
+  try { sessionStorage.setItem(PURCHASE_KEY, JSON.stringify(p)); } catch {}
+}
 
 // Step machinery for the unified funnel.
 // Calc products (CASH_OUT/RATE_REDUCTION/HOME_EQUITY) use 1-5.
@@ -370,24 +392,34 @@ function Progress({ step, total }: { step: number; total: number }) {
 // MAIN COMPONENT
 // ─────────────────────────────────────────────────────────────────────────────
 
-export default function Worksheet() {
+export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {}) {
   const search = useSearch();
   const [, setLocation] = useLocation();
+  // The product can arrive three ways, in priority order: an explicit `entry`
+  // prop (from a canonical per-product route like /cash-out), the legacy
+  // ?product= query param, or a resumed sessionStorage value.
+  const initialEntry = entry ?? parseEntryFromUrl(search);
   const [inputs, setInputs] = useState<WorksheetInputs>(loadInputs);
   const [step, setStep] = useState<FunnelStep>(
-    // A ?product= entry param means the user is launching a funnel from a
+    // A fresh product entry means the user is launching a funnel from a
     // product button, so always start at Step 1. Otherwise resume the saved step.
-    () => (parseEntryFromUrl(search) ? 1 : loadStep()),
+    () => (initialEntry ? 1 : loadStep()),
   );
   const [contact, setContact] = useState<ContactInfo>(loadContact);
   const [entryButton, setEntryButton] = useState<FunnelEntryButton | null>(
-    () => parseEntryFromUrl(search) ?? loadEntry(),
+    () => initialEntry ?? loadEntry(),
   );
   const [isSubmittingContact, setIsSubmittingContact] = useState(false);
   const [consentState, setConsentState] = useState({
     ready: false, consent: false, consent_version: "",
     consent_text: "", turnstile_token: "",
   });
+
+  // Purchase is the one non-calc product with tailored questions (it has no
+  // existing mortgage or equity to calculate). Captured here and folded into
+  // the lead Notes; persisted so a back/refresh keeps the answers.
+  const [purchaseInfo, setPurchaseInfo] = useState<PurchaseInfo>(loadPurchase);
+  useEffect(() => { savePurchase(purchaseInfo); }, [purchaseInfo]);
   const { toast } = useToast();
   const initialPrefillRef = useRef(false);
 
@@ -417,6 +449,13 @@ export default function Worksheet() {
   useEffect(() => { saveStep(step); }, [step]);
   useEffect(() => { saveContact(contact); }, [contact]);
   useEffect(() => { saveEntry(entryButton); }, [entryButton]);
+
+  // Home equity / 2nd mortgage no longer runs the worksheet calculator — it
+  // has its own dedicated funnel. Bounce any such entry (deep link, saved
+  // session, or legacy ?product=home-equity) straight to /heloc-v3.
+  useEffect(() => {
+    if (entryButton === "home-equity") setLocation("/heloc-v3");
+  }, [entryButton, setLocation]);
 
   // On mount, sync productType to URL entry param (calc products only).
   // For RATE_REDUCTION, force hasExistingMortgage true so renderStep2 skips the gate.
@@ -628,6 +667,11 @@ export default function Worksheet() {
       "New-Loan-Rate": isCalc && inputs.loanRate ? `${inputs.loanRate}%` : undefined,
       "Loan-Structure": isCalc ? STRUCTURE_LABELS[inputs.loanStructure] : undefined,
       "Term-Years": isCalc ? inputs.termYears : undefined,
+      // Purchase-path answers (non-calc tailored mini-flow)
+      "Purchase-Price-Range": entryButton === "purchase" ? purchaseInfo.priceRange || undefined : undefined,
+      "Purchase-Down-Payment": entryButton === "purchase" ? purchaseInfo.downPayment || undefined : undefined,
+      "Purchase-Timeline": entryButton === "purchase" ? purchaseInfo.timeline || undefined : undefined,
+      "Purchase-First-Time-Buyer": entryButton === "purchase" ? purchaseInfo.firstTime || undefined : undefined,
     };
 
     const result = await submitFunnelCompletion({
@@ -697,16 +741,19 @@ export default function Worksheet() {
 
     setIsSubmittingContact(false);
 
-    // All products go directly to /whats-next. The fork screen that used to
-    // sit between contact submit and /whats-next has been removed.
+    // Cash-Out / Rate-Reduction / Purchase all hand off to the LendingPad
+    // guest application via the shared 3-second countdown page. (HELOC and
+    // home-equity never reach here — they run the dedicated /heloc-v3 funnel.)
+    const product = entryButton ?? "cash-out";
     const params = new URLSearchParams({
+      product,
       source: isCalcProduct ? "worksheet" : "funnel-professional",
       utm_source: "funnel",
       utm_medium: "contact-submit",
-      utm_campaign: "direct-to-whats-next",
+      utm_campaign: "direct-to-application",
     });
     if (first) params.set("name", first);
-    setLocation(`/whats-next?${params.toString()}`);
+    setLocation(`/application-next?${params.toString()}`);
   }
 
   // When entering step 4 for RATE_REDUCTION, auto-prefill once
@@ -762,10 +809,15 @@ export default function Worksheet() {
 
   // ── Step renderers ────────────────────────────────────────────────────────
   function renderStep1() {
-    const cards: { value: ProductType; title: string; desc: string }[] = [
-      { value: "CASH_OUT", title: "Cash-Out Refinance", desc: "Replace your current mortgage and pull cash to consolidate debt or fund improvements." },
-      { value: "RATE_REDUCTION", title: "Rate Reduction Refinance", desc: "Lower your existing mortgage rate and redirect savings to principal." },
-      { value: "HOME_EQUITY", title: "Home Equity / 2nd Mortgage", desc: "Keep your low-rate first mortgage; add a second mortgage for cash or debt consolidation." },
+    // The picker is a router: each strategy lives at its own canonical URL.
+    // Cash-Out / Rate-Reduction / Purchase run this funnel; Home Equity has its
+    // own dedicated /heloc-v3 funnel. The current product (from the route) is
+    // pre-highlighted so a direct /cash-out visit shows Cash-Out selected.
+    const cards: { entry: FunnelEntryButton; href: string; title: string; desc: string }[] = [
+      { entry: "cash-out", href: "/cash-out", title: "Cash-Out Refinance", desc: "Replace your current mortgage and pull cash to consolidate debt or fund improvements." },
+      { entry: "rate-reduction", href: "/rate-reduction", title: "Rate Reduction Refinance", desc: "Lower your existing mortgage rate and redirect savings to principal." },
+      { entry: "purchase", href: "/purchase", title: "Purchase", desc: "Buy a home or investment property — get pre-approved so you can shop with confidence." },
+      { entry: "home-equity", href: "/heloc-v3", title: "Home Equity / 2nd Mortgage", desc: "Keep your low-rate first mortgage; add a second mortgage or HELOC for cash or debt consolidation." },
     ];
     return (
       <div className="space-y-6">
@@ -775,15 +827,12 @@ export default function Worksheet() {
         </div>
         <div className="grid gap-3">
           {cards.map((c) => {
-            const selected = inputs.productType === c.value;
+            const selected = entryButton === c.entry;
             return (
               <button
-                key={c.value}
+                key={c.entry}
                 type="button"
-                onClick={() => {
-                  update("productType", c.value);
-                  if (c.value === "RATE_REDUCTION") update("hasExistingMortgage", true);
-                }}
+                onClick={() => setLocation(c.href)}
                 className={`text-left rounded-lg border-2 p-4 transition-all ${
                   selected ? "border-accent bg-accent/5 shadow-sm" : "border-border hover:border-muted-foreground/50"
                 }`}
@@ -1264,6 +1313,7 @@ export default function Worksheet() {
             <p className="text-muted-foreground text-sm">{desc}</p>
           </div>
         </div>
+        {isPurchase && renderPurchaseQuestions()}
         <div className="rounded-lg bg-muted/40 border p-4 text-sm">
           <div className="font-semibold text-primary mb-1">What happens next:</div>
           <ul className="text-muted-foreground space-y-1 list-disc list-inside">
@@ -1272,6 +1322,43 @@ export default function Worksheet() {
             <li>Free, no obligation, no credit pull</li>
           </ul>
         </div>
+      </div>
+    );
+  }
+
+  // Tailored purchase questions (rendered inside the purchase intro step). Pure
+  // single-select pills — fast on mobile, no calc, all optional but encouraged.
+  function renderPurchaseQuestions() {
+    const groups: { key: keyof PurchaseInfo; label: string; options: string[] }[] = [
+      { key: "priceRange", label: "Target price range", options: ["Under $300k", "$300k–$500k", "$500k–$750k", "$750k–$1M", "$1M+"] },
+      { key: "downPayment", label: "Down payment ready", options: ["Under 5%", "5–10%", "10–20%", "20%+", "Not sure yet"] },
+      { key: "timeline", label: "When are you looking to buy?", options: ["ASAP", "1–3 months", "3–6 months", "Just exploring"] },
+      { key: "firstTime", label: "First-time buyer?", options: ["Yes", "No"] },
+    ];
+    return (
+      <div className="space-y-5">
+        {groups.map((g) => (
+          <div key={g.key} className="space-y-2">
+            <Label className="text-sm font-semibold text-primary">{g.label}</Label>
+            <div className="flex flex-wrap gap-2">
+              {g.options.map((opt) => {
+                const selected = purchaseInfo[g.key] === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setPurchaseInfo((p) => ({ ...p, [g.key]: opt }))}
+                    className={`rounded-full border-2 px-3.5 py-2 text-sm font-medium transition-all ${
+                      selected ? "border-accent bg-accent/5 text-accent" : "border-border text-foreground hover:border-muted-foreground/50"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     );
   }
@@ -1344,22 +1431,51 @@ export default function Worksheet() {
   // ── Render ────────────────────────────────────────────────────────────────
   const vStep = visibleStep(step);
 
+  // Per-product SEO. Each canonical product funnel is indexable at its clean
+  // URL (carrying the SEO from the retired /cash-out-refi etc. landers); the
+  // bare /see-my-options picker stays noIndex.
+  const META: Record<string, { title: string; description: string; canonical: string }> = {
+    "cash-out": {
+      title: "Cash-Out Refinance | Mykoal DeShazo at Adaxa Home",
+      description: "Pull cash from your home equity with a cash-out refinance from Mykoal DeShazo at Adaxa Home. See your options in minutes, no credit pull. NMLS #1912347.",
+      canonical: "/cash-out",
+    },
+    "rate-reduction": {
+      title: "Rate Reduction Refinance | Mykoal DeShazo at Adaxa Home",
+      description: "Lower your mortgage rate and monthly payment with a rate-reduction refinance from Mykoal DeShazo at Adaxa Home. NMLS #1912347.",
+      canonical: "/rate-reduction",
+    },
+    purchase: {
+      title: "Home Purchase Pre-Approval | Mykoal DeShazo at Adaxa Home",
+      description: "Get pre-approved to buy a home with Mykoal DeShazo at Adaxa Home. Know what you can afford and shop with confidence. NMLS #1912347.",
+      canonical: "/purchase",
+    },
+  };
+  const meta = (entryButton && META[entryButton]) || {
+    title: "See My Options | Mykoal DeShazo at Adaxa Home",
+    description: "See exactly how the right loan strategy could lower your monthly payment, eliminate interest, and get you debt-free years sooner.",
+    canonical: "/see-my-options",
+  };
+
   return (
     <>
       <PageMeta
-        title="Loan Benefits Worksheet | Adaxa Home"
-        description="See exactly how the right loan strategy could lower your monthly payment, eliminate interest, and get you debt-free years sooner."
-        canonical="/worksheet"
-        noIndex
+        title={meta.title}
+        description={meta.description}
+        canonical={meta.canonical}
+        noIndex={!entryButton}
       />
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
 
-        <main className="flex-1 container mx-auto max-w-3xl px-4 py-8">
+        {/* Brand type: Plus Jakarta Sans body + Bricolage Grotesque headings,
+            matching the /heloc-v3 funnel. Scoped to the funnel content so the
+            shared Header/Footer keep the site default. */}
+        <main className="flex-1 container mx-auto max-w-3xl px-4 py-8 font-body [&_h1]:font-heading [&_h2]:font-heading [&_h3]:font-heading [&_h4]:font-heading">
           <TopBar step={vStep} totalSteps={totalSteps} onStartOver={handleStartOver} />
           <Progress step={vStep} total={totalSteps} />
 
-          <div className="bg-card border rounded-xl shadow-sm p-6 sm:p-8">
+          <div className="bg-card border rounded-2xl shadow-md p-6 sm:p-8">
             {/* Step 1: calc shows product picker, non-calc shows confirmation intro */}
             {step === 1 && (isCalc ? renderStep1() : renderNonCalcIntro())}
             {step === 2 && isCalc && renderStep2()}
@@ -1367,8 +1483,11 @@ export default function Worksheet() {
             {step === 4 && isCalc && renderStep4()}
             {step === 5 && renderStep5Contact()}
 
-            {/* Button bar: input steps 1-4 → Continue; step 5 → Submit (handled below). */}
-            {step <= 4 && (
+            {/* Button bar: input steps 1-4 → Continue; step 5 → Submit (handled below).
+                The bare /see-my-options picker (step 1, no product yet) hides the
+                bar — each card navigates to its product, so there's nothing to
+                "continue" until a strategy is chosen. */}
+            {step <= 4 && !(step === 1 && !entryButton) && (
               <div className="flex items-center justify-between gap-3 mt-8 pt-6 border-t">
                 <Button variant="ghost" onClick={back} disabled={step === 1}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back
