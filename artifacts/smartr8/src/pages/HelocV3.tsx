@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -77,6 +77,11 @@ const STEP_LABELS = ["Mortgage", "Goal", "Credit", "About you", "Options"];
 // Single-select steps (Goal, Credit) auto-advance on tap; this brief pause lets
 // the chosen card show as selected before the funnel moves to the next step.
 const AUTO_ADVANCE_MS = 180;
+
+// End-of-funnel: the Options/Result screen auto-hands off to the application
+// after this pause, mirroring the v2 next-step page. The CTA stays as a manual
+// fallback.
+const RESULT_REDIRECT_MS = 1500;
 
 type GoalDef = { id: string; icon: typeof DollarSign; title: string; sub: string };
 const GOALS: GoalDef[] = [
@@ -696,7 +701,13 @@ function Result({ data, onRestart }: { data: Data; onRestart: () => void }) {
   const fmt = (n: number) => "$" + (n || 0).toLocaleString("en-US");
   const goal = goalLabel(data.goal).toLowerCase() || "your goal";
 
+  // One-shot guard so the auto-redirect and a manual click can't both fire the
+  // SubmitApplication event or navigate twice.
+  const redirectedRef = useRef(false);
+
   function continueToApplication() {
+    if (redirectedRef.current) return;
+    redirectedRef.current = true;
     trackFbEvent("SubmitApplication", {
       content_name: "HELOC Application",
       content_category: "Mortgage",
@@ -704,6 +715,14 @@ function Result({ data, onRestart }: { data: Data; onRestart: () => void }) {
     });
     window.location.href = buildApplicationUrl();
   }
+
+  // Auto-hand off to the application after a brief pause, matching the v2
+  // next-step page. The CTA below remains as a manual fallback.
+  useEffect(() => {
+    const id = window.setTimeout(continueToApplication, RESULT_REDIRECT_MS);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="funnel-wrap" style={{ maxWidth: 720 }}>
@@ -761,7 +780,8 @@ function Result({ data, onRestart }: { data: Data; onRestart: () => void }) {
             Continue to my application <ArrowRight size={18} />
           </button>
           <p className="under-cta">
-            This is not a commitment to lend. Final terms are set by the lender after review.
+            Taking you to your secure application… &nbsp;·&nbsp; This is not a commitment to lend.
+            Final terms are set by the lender after review.
           </p>
         </div>
       </div>
