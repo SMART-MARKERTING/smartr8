@@ -85,6 +85,10 @@ export async function processLead(
             .run()
             .catch(() => {});
         }
+        // Forward to the CRM even on a dedup hit so the text/drip goes out regardless of
+        // duplicate status. LeadMailbox/GHL/Resend stay deduped (no double advisor pings);
+        // the CRM cancels + restarts the lead's drip, so rapid re-submits yield one text.
+        ctx.waitUntil(runCrmWebhook(env, lead));
         return {
           ok: true,
           lead_id: lead.lead_id,

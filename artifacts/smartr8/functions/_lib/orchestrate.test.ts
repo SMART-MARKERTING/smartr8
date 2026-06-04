@@ -162,21 +162,36 @@ describe("processLead — GHL behavior", () => {
 });
 
 describe("processLead — dedup", () => {
-  it("returns { duplicate: true } early when KV has seen the dedup key within the window", async () => {
-    const kv = makeKVMock();
-    const env = makeEnv({ LEAD_DEDUP: kv as unknown as Env["LEAD_DEDUP"] });
-    // Pre-seed KV with the dedup key for this lead.
-    const lead = makeLead();
-    // Mimic dedup hit by writing any value to a key matching the dedupKey shape;
-    // we don't know the hash, so use a get-stub.
-    const originalGet = kv.get;
-    kv.get = vi.fn(async (key: string) => {
-      if (key.startsWith("lead_dedup:")) return "1";
-      return await originalGet.call(kv, key);
-    }) as typeof kv.get;
-    const result = await processLead(lead, null, env, makeCtxMock());
-    expect(result.duplicate).toBe(true);
-    expect(submitToLeadMailboxMock).not.toHaveBeenCalled();
+  it("returns { duplicate: true } early but STILL forwards to the CRM so the text/drip fires", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const kv = makeKVMock();
+      const env = makeEnv({
+        LEAD_DEDUP: kv as unknown as Env["LEAD_DEDUP"],
+        CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test",
+      });
+      // Pre-seed KV with the dedup key for this lead.
+      const lead = makeLead();
+      // Mimic dedup hit by writing any value to a key matching the dedupKey shape;
+      // we don't know the hash, so use a get-stub.
+      const originalGet = kv.get;
+      kv.get = vi.fn(async (key: string) => {
+        if (key.startsWith("lead_dedup:")) return "1";
+        return await originalGet.call(kv, key);
+      }) as typeof kv.get;
+      const ctx = makeCtxMock();
+      const result = await processLead(lead, null, env, ctx);
+      expect(result.duplicate).toBe(true);
+      // LeadMailbox/GHL/Resend stay deduped (no double advisor pings)...
+      expect(submitToLeadMailboxMock).not.toHaveBeenCalled();
+      // ...but the CRM webhook fires even on a dedup hit so the text/drip goes out.
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      expect(crmCall).toBeDefined();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
 
