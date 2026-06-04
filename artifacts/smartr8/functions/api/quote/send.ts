@@ -179,7 +179,7 @@ function buildQuoteEmailHtml(d) {
 }
 
 export async function onRequest(context) {
-  const { request, env } = context;
+  const { request, env, waitUntil } = context;
   const origin = request.headers.get("Origin") ?? "";
   const cors = corsHeaders(origin);
 
@@ -226,6 +226,40 @@ export async function onRequest(context) {
     pdfBase64: body.pdfBase64,
     fileName: body.fileName || "adaxa-quickquote.pdf",
   });
+
+  // Capture the quote recipient as a CRM lead (best-effort, non-blocking) so every
+  // Quick Quote also lands in crm.smartr8.com. Server-to-server; the CRM dedups by
+  // email/phone, so re-quoting an existing lead updates rather than duplicates.
+  // The CRM webhook URL (which carries its own ?key=) comes from env so no secret
+  // lives in source. If it is unset, capture is skipped with a warning. Dedups by email/phone.
+  const crmUrl = env.CRM_LEAD_WEBHOOK;
+  if (crmUrl) {
+    const nameParts = String(body.clientName || "").trim().split(/\s+/).filter(Boolean);
+    const crmLead = {
+      first_name: nameParts[0] || "",
+      last_name: nameParts.slice(1).join(" "),
+      email: body.clientEmail,
+      phone: body.clientPhone || body.phone || "",
+      source: "quote.smartr8.com",
+      loanType: (body.options && body.options.loanType) || "CASHOUT_REFI",
+      notes: `Quick Quote sent${body.source ? ` (${body.source})` : ""}`,
+    };
+    const crmJob = fetch(crmUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(crmLead),
+    })
+      .then(async (r) => {
+        if (!r.ok)
+          console.error(`[quote] CRM capture failed ${r.status}: ${(await r.text().catch(() => "")).slice(0, 200)}`);
+        else console.log(`[quote] CRM capture ok — ${body.clientEmail}`);
+      })
+      .catch((e) => console.error("[quote] CRM capture error:", e));
+    if (typeof waitUntil === "function") waitUntil(crmJob);
+    else await crmJob;
+  } else {
+    console.warn("[quote] CRM_LEAD_WEBHOOK not set — quote recipient not captured to CRM");
+  }
 
   console.log(
     `[quote] send — to=${body.clientEmail} advisor="${cleanName}" source=${body.source || "tool"} bcc=${bcc ? "yes" : "no"} emailOk=${result.ok}`,
