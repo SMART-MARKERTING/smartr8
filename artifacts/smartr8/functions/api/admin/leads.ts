@@ -20,14 +20,25 @@ function jsonResponse(data, status, cors) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
+// The admin password may be stored under any of these env var names. Some
+// hosting UIs cap the variable-name length, so WORKSHEET_ADMIN_PASS (20 chars)
+// can't always be saved — WORKSHEET_ADN_PASS / ADN_PASS / ADMIN_PASS are
+// accepted as shorter fallbacks. A token matching ANY configured value passes,
+// and values are trimmed so a stray newline in the secret won't block login.
+function adminSecrets(env) {
+  return [env.WORKSHEET_ADMIN_PASS, env.WORKSHEET_ADN_PASS, env.ADN_PASS, env.ADMIN_PASS]
+    .filter(Boolean)
+    .map((s) => String(s).trim());
+}
+
 async function isAuthed(request, env) {
-  const token = request.headers.get("X-Admin-Token") ?? "";
-  const valid = env.WORKSHEET_ADMIN_PASS;
-  if (!valid) {
-    console.warn("[admin/leads] WORKSHEET_ADMIN_PASS not set — denying");
+  const token = (request.headers.get("X-Admin-Token") ?? "").trim();
+  const secrets = adminSecrets(env);
+  if (secrets.length === 0) {
+    console.warn("[admin/leads] no admin password env var set — denying");
     return false;
   }
-  if (token && token === valid) return true;
+  if (token && secrets.includes(token)) return true;
   // Small randomized delay to blunt brute-force timing.
   await new Promise((r) => setTimeout(r, 250 + Math.random() * 200));
   return false;
@@ -41,7 +52,7 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (request.method !== "GET") return jsonResponse({ ok: false, error: "Method not allowed" }, 405, cors);
 
-  if (!env.WORKSHEET_ADMIN_PASS) {
+  if (adminSecrets(env).length === 0) {
     return jsonResponse({ ok: false, error: "Admin auth not configured" }, 503, cors);
   }
   if (!(await isAuthed(request, env))) {
