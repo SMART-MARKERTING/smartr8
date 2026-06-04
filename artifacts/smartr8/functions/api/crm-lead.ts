@@ -22,6 +22,7 @@
 
 import { log } from "../_lib/log";
 import { verifyTurnstile } from "../_lib/turnstile";
+import { handleLeadEmail } from "../_lib/leadEmail";
 import type { Env } from "../_lib/types";
 
 // Built-in default mirrors functions/_lib/orchestrate.ts so the funnels work
@@ -88,7 +89,7 @@ export async function onRequest(context) {
   const email = str(body.email);
   const phone = str(body.phone);
   const loanType = str(body.loanType).toUpperCase();
-  const consent = body.consent === true || body.consent === "true";
+  const smsConsent = body.consent === true || body.consent === "true";
 
   if (!email && !phone) {
     return jsonResponse({ success: false, error: "Enter an email or phone number." }, 400, cors);
@@ -98,7 +99,7 @@ export async function onRequest(context) {
   }
   // A ticked SMS-consent box requires a phone number to text — enforce it
   // server-side too (the form enforces it as well).
-  if (consent && !phone) {
+  if (smsConsent && !phone) {
     return jsonResponse({ success: false, error: "A phone number is required to opt into texts." }, 400, cors);
   }
 
@@ -123,7 +124,10 @@ export async function onRequest(context) {
     email,
     phone,
     source: str(body.source) || "smartr8.com",
-    consent,
+    // Submitting the funnel implies email consent; the optional checkbox is the SMS
+    // opt-in. The CRM reads `smsOptIn` for SMS consent and `consent` for email.
+    consent: true,
+    smsOptIn: smsConsent ? "yes" : "no",
     loanType,
     tags: [loanType],
     consent_text: str(body.consent_text),
@@ -135,6 +139,17 @@ export async function onRequest(context) {
     utm_content: str(body.utm_content),
     utm_term: str(body.utm_term),
   };
+
+  // Send the branded "thanks for reaching out" email (the same transactional email
+  // the older capture funnels send) so every funnel lead gets one welcome. No-ops if
+  // RESEND_API_KEY is not bound; KV dedup applies when CF_KV_NAMESPACE is set.
+  const funnelForSubject =
+    { CASHOUT_REFI: "cash-out", PURCHASE: "purchase", RT_REFI: "rate-reduction", HELOC: "heloc", DSCR: "dscr" }[loanType] || "";
+  if (email && firstName) {
+    const emailJob = handleLeadEmail(env, { firstName, email, funnel: funnelForSubject });
+    if (typeof waitUntil === "function") waitUntil(emailJob);
+    else await emailJob;
+  }
 
   const url = (env as Env).CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
   const forward = (async () => {
