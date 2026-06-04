@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 
 const FUNNEL_VERSION = "v2";
-const COUNTDOWN_SECONDS = 3;
+// Brief pause so the reassurance screen registers, then hand off to the lender.
+const REDIRECT_DELAY_MS = 1500;
 
 // Destination preserved from the prior /heloc/instant-options-v2 Option 1
 // "Continue" button. Change here to retarget the Fast Digital Path without
@@ -63,7 +64,6 @@ export default function HelocNextStepV2() {
   const funnelLength: "long" | "short" = variant === "B" ? "short" : "long";
   const ga4 = useGA4("heloc");
 
-  const [countdown, setCountdown] = useState<number>(COUNTDOWN_SECONDS);
   const eventsFiredRef = useRef(false);
   const redirectedRef = useRef(false);
 
@@ -112,21 +112,10 @@ export default function HelocNextStepV2() {
     });
   }, []);
 
-  // Countdown + auto-redirect at zero. Refreshing the page restarts the
-  // countdown from COUNTDOWN_SECONDS, which is acceptable per the spec.
+  // Brief pause so the reassurance screen registers, then auto-redirect.
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(id);
-          // Defer one tick so the visible countdown can render 0 before navigating.
-          window.setTimeout(triggerRedirect, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
+    const id = window.setTimeout(triggerRedirect, REDIRECT_DELAY_MS);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -255,7 +244,7 @@ export default function HelocNextStepV2() {
                   aria-live="polite"
                   data-testid="next-step-countdown"
                 >
-                  Redirecting to your application in {countdown} second{countdown === 1 ? "" : "s"}...
+                  Taking you to your secure application…
                 </div>
 
                 <button

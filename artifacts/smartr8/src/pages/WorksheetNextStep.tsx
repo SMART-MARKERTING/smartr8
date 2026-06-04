@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useSearch } from "wouter";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -10,12 +10,13 @@ import { ArrowRight, CheckCircle2, Clock, Phone, Shield, TrendingUp, Zap } from 
 
 // Post-funnel next-step page for the worksheet products (Cash-Out Refinance,
 // Rate Reduction Refinance, and Home Purchase). Mirrors the proven
-// /heloc/next-step-v2 pattern: a short reassurance screen with a 3-second
-// countdown that auto-redirects into the lender's guest application, plus a
-// manual "Continue Now" fallback. HELOC / home-equity traffic never lands
+// /heloc/next-step-v2 pattern: a short reassurance screen that auto-redirects
+// into the lender's guest application after a 1.5s pause, plus a manual
+// "Continue Now" fallback. HELOC / home-equity traffic never lands
 // here — it runs the dedicated /heloc-v3 funnel instead.
 
-const COUNTDOWN_SECONDS = 3;
+// Brief pause so the reassurance screen registers, then hand off to the lender.
+const REDIRECT_DELAY_MS = 1500;
 
 // LendingPad guest application — the single destination for all three
 // worksheet products. Change here to retarget without touching the funnel.
@@ -93,7 +94,6 @@ export default function WorksheetNextStep() {
   const copy = PRODUCT_COPY[product];
   const ga4 = useGA4("cashout");
 
-  const [countdown, setCountdown] = useState<number>(COUNTDOWN_SECONDS);
   const eventsFiredRef = useRef(false);
   const redirectedRef = useRef(false);
 
@@ -125,17 +125,8 @@ export default function WorksheetNextStep() {
   }, []);
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(id);
-          window.setTimeout(triggerRedirect, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => window.clearInterval(id);
+    const id = window.setTimeout(triggerRedirect, REDIRECT_DELAY_MS);
+    return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -230,7 +221,7 @@ export default function WorksheetNextStep() {
                   aria-live="polite"
                   data-testid="application-next-countdown"
                 >
-                  Redirecting to your application in {countdown} second{countdown === 1 ? "" : "s"}...
+                  Taking you to your secure application…
                 </div>
 
                 <button
