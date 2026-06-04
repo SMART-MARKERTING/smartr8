@@ -25,11 +25,19 @@ function jsonResponse(data, status, cors) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
+// Mirror /api/admin/leads: accept the admin password under any of these env
+// var names (hosting UIs sometimes cap the variable-name length), trimmed.
+function adminSecrets(env) {
+  return [env.WORKSHEET_ADMIN_PASS, env.WORKSHEET_ADN_PASS, env.ADN_PASS, env.ADMIN_PASS]
+    .filter(Boolean)
+    .map((s) => String(s).trim());
+}
+
 async function isAuthed(request, env) {
-  const token = request.headers.get("X-Admin-Token") ?? "";
-  const valid = env.WORKSHEET_ADMIN_PASS;
-  if (!valid) return false;
-  if (token && token === valid) return true;
+  const token = (request.headers.get("X-Admin-Token") ?? "").trim();
+  const secrets = adminSecrets(env);
+  if (secrets.length === 0) return false;
+  if (token && secrets.includes(token)) return true;
   await new Promise((r) => setTimeout(r, 250 + Math.random() * 200));
   return false;
 }
@@ -42,7 +50,7 @@ export async function onRequest(context) {
   if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
   if (request.method !== "POST") return jsonResponse({ ok: false, error: "Method not allowed" }, 405, cors);
 
-  if (!env.WORKSHEET_ADMIN_PASS) {
+  if (adminSecrets(env).length === 0) {
     return jsonResponse({ ok: false, error: "Admin auth not configured" }, 503, cors);
   }
   if (!(await isAuthed(request, env))) {
