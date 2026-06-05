@@ -231,6 +231,25 @@ describe("processLead — CRM webhook", () => {
       expect(body.email).toBe("jane@example.com");
       expect(body.funnel).toBe("heloc");
       expect(body.lead_id).toBe("lead-1");
+      // No consent passed → the CRM is told the lead is NOT SMS-opted-in.
+      expect(body.smsOptIn).toBe("no");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("forwards smsOptIn:\"yes\" when TCPA SMS consent was given", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv({ CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test" });
+      const ctx = makeCtxMock();
+      await processLead(makeLead(), makeConsent(), env, ctx);
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      const body = JSON.parse(crmCall?.[1]?.body as string);
+      // The CRM derives sms_consent from this flag, so an opted-in lead must forward "yes".
+      expect(body.smsOptIn).toBe("yes");
     } finally {
       vi.unstubAllGlobals();
     }

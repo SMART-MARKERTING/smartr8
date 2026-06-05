@@ -115,7 +115,12 @@ export async function processLead(
   // ── Async: GHL chain (upsert -> opportunity) + Resend + CRM webhook ──
   ctx.waitUntil(runGhlChain(env, db, lead));
   ctx.waitUntil(runResend(env, db, lead));
-  ctx.waitUntil(runCrmWebhook(env, lead));
+  // Forward the SMS opt-in so the CRM's drip can actually text the lead. The CRM
+  // derives `sms_consent` from this flag and treats its absence as email-only, so
+  // without forwarding it every website inquiry lands no-SMS-consent and the drip's
+  // text step always skips. `consent` is non-null only when the TCPA "Text me…" box
+  // was checked, so it maps directly to express SMS opt-in.
+  ctx.waitUntil(runCrmWebhook(env, lead, consent != null));
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
 }
@@ -287,7 +292,7 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
  * early on a dedup hit, before this fires, so the CRM isn't double-posted
  * within the dedup window.
  */
-async function runCrmWebhook(env: Env, lead: Lead): Promise<void> {
+async function runCrmWebhook(env: Env, lead: Lead, smsOptIn = false): Promise<void> {
   const url = env.CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
   if (!url) return;
   const payload = {
@@ -298,6 +303,9 @@ async function runCrmWebhook(env: Env, lead: Lead): Promise<void> {
     last_name: lead.last_name ?? "",
     email: lead.email,
     phone: lead.phone_e164 ?? "",
+    // The CRM only texts a lead whose `sms_consent` is true, which it derives from
+    // this flag — set when the site's TCPA "Text me about my application" box was checked.
+    smsOptIn: smsOptIn ? "yes" : "no",
     property_state: lead.property_state ?? "",
     loan_request: lead.loan_request ?? "",
     notes: lead.notes ?? "",
