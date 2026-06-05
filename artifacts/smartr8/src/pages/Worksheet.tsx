@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import {
   ArrowLeft, ArrowRight, RotateCcw, Plus, Trash2, Check, Pencil,
@@ -13,12 +13,9 @@ import { Label } from "@/components/ui/label";
 import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getWorksheetPdfBase64, prefetchWorksheetPdf } from "@/lib/generatePdf";
 import {
-  computeScenarios,
   makeDefaultInputs,
   money,
-  PRODUCT_LABELS_SHORT,
   STRUCTURE_LABELS,
   type WorksheetInputs,
   type ProductType,
@@ -27,7 +24,8 @@ import {
   DEFAULT_NEW_LOAN_RATE,
   DEFAULT_CLOSING_COSTS,
 } from "@/lib/worksheetCalc";
-import { submitFunnelCompletion, getOrCreateTrackingId, type FunnelEntryButton } from "@/lib/submitLead";
+import { submitFunnelCompletion, type FunnelEntryButton } from "@/lib/submitLead";
+import { sendAutoQuote } from "@/lib/autoQuote";
 
 const STORAGE_KEY = "smartr8_worksheet_funnel_v2";
 const STEP_KEY = "smartr8_worksheet_funnel_step_v2";
@@ -443,8 +441,6 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
   const [lockedTerm, setLockedTerm] = useState(true);
   const [lockedStructure, setLockedStructure] = useState(true);
 
-  const results = useMemo(() => computeScenarios(inputs), [inputs]);
-
   useEffect(() => { saveInputs(inputs); }, [inputs]);
   useEffect(() => { saveStep(step); }, [step]);
   useEffect(() => { saveContact(contact); }, [contact]);
@@ -505,15 +501,6 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
   //   calc + other:              5 visible steps (product, mortgage, goals, loan, contact)
   const totalSteps = !isCalc ? 2 : isRateReduction ? 4 : 5;
 
-  // Warm the ≈490 KB react-pdf chunk once a calc-product user reaches the
-  // contact step, so the post-Submit "Sending your worksheet…" wait isn't a
-  // cold download. Non-calc products (heloc/purchase) never build a PDF.
-  useEffect(() => {
-    if (step === 5 && isCalc && entryButton !== "heloc" && entryButton !== "purchase") {
-      prefetchWorksheetPdf();
-    }
-  }, [step, isCalc, entryButton]);
-
   // Map logical FunnelStep (1-5) to the visible progress index (1-totalSteps).
   function visibleStep(s: FunnelStep): number {
     if (!isCalc) {
@@ -564,6 +551,10 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
       return;
     }
     if (step === 2) {
+      if (inputs.homeValue <= 0) {
+        toast({ title: "Add your home value", description: "Enter your home's estimated value to continue.", variant: "destructive" });
+        return;
+      }
       if (inputs.hasExistingMortgage) {
         if (inputs.existBalance <= 0) {
           toast({ title: "Add your mortgage balance", description: "Enter your current mortgage balance to continue.", variant: "destructive" });
@@ -721,43 +712,26 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
     // Persist trimmed contact (so /whats-next can read the firstName for personal banner)
     setContact({ firstName: first, lastName: last, email, mobile });
 
-    // For calc products, auto-generate the worksheet PDF and email it to the
-    // address they just entered. We await this before redirecting so the email
-    // is reliably queued; any failure here is swallowed (the lead is already
-    // captured in LeadMailbox above) and the user still gets to /whats-next.
+    // Calc products (cash-out, rate-reduction) get the Quick Quote auto-emailed
+    // — the same two-option estimate (cash-out refi at 80% LTV + HELOC at 90%)
+    // the /heloc-v3 funnel sends, BCC'd to Mykoal. Fire-and-forget: the lead is
+    // already captured above, and sendAutoQuote no-ops when there isn't enough
+    // equity to quote. The Loan Benefits Worksheet PDF is internal-only — Mykoal
+    // sends it by hand from /worksheet/internal — so it is NOT emailed here.
     const isCalcProduct =
       isCalc && entryButton !== "heloc" && entryButton !== "purchase";
     if (isCalcProduct) {
-      try {
-        const inputsWithName: WorksheetInputs = {
-          ...inputs,
-          clientFirstName: first,
-          clientLastName: last,
-        };
-        const pdfBase64 = await getWorksheetPdfBase64(inputsWithName, results);
-        const clientName = `${first} ${last}`;
-        await fetch("/api/worksheet/submit-lead", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            source: "worksheet-auto",
-            firstName: first,
-            lastName: last,
-            clientName,
-            clientEmail: email,
-            phone: mobile,
-            pdfBase64,
-            fileName: `Loan-Benefits-Worksheet-${clientName.replace(/\s+/g, "-")}.pdf`,
-            worksheetSummary,
-            trackingId: getOrCreateTrackingId(),
-            consentBoxChecked: consentState.consent,
-          }),
-        });
-      } catch (err) {
-        // Email delivery is best-effort. Mykoal still gets the lead via
-        // LeadMailbox and can email the worksheet manually if needed.
-        console.error("[worksheet] Auto-email failed:", err);
-      }
+      void sendAutoQuote({
+        firstName: first,
+        lastName: last,
+        email,
+        homeValue: inputs.homeValue,
+        balance: inputs.existBalance,
+        // The worksheet funnel doesn't ask for a credit range, so we pass
+        // "unsure": the quote still shows equity/amounts, just no rate line
+        // (honest — we didn't collect credit on this path).
+        creditId: "unsure",
+      });
     }
 
     setIsSubmittingContact(false);
@@ -815,18 +789,6 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
     inputs.goal, inputs.debts, inputs.homeImprovementAmount,
     inputs.cashBack, inputs.closingCosts,
   ]);
-
-  // Worksheet summary for lead notes
-  const worksheetSummary = useMemo(() => {
-    return [
-      `Product: ${PRODUCT_LABELS_SHORT[inputs.productType]}`,
-      `Structure: ${STRUCTURE_LABELS[inputs.loanStructure]}`,
-      inputs.hasExistingMortgage ? `Existing: ${money(inputs.existBalance)} @ ${inputs.existRate || "?"}% (PITI ${money(inputs.existTotalPayment)})` : "No existing mortgage",
-      `New: ${money(inputs.loanAmount)} @ ${inputs.loanRate}% / ${inputs.termYears}yr`,
-      `Monthly savings: ${money(results.monthlySavings)}`,
-      `Interest saved: ${money(results.consolidated.totalInterest - results.accelerated.totalInterest)}`,
-    ].join(" | ");
-  }, [inputs, results]);
 
   // ── Step renderers ────────────────────────────────────────────────────────
   function renderStep1() {
@@ -894,6 +856,15 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
           <h2 className="text-2xl font-bold text-primary mb-1">Tell us about your current mortgage</h2>
           <p className="text-muted-foreground text-sm">Just the basics — answer what you know.</p>
         </div>
+
+        <NumberField
+          label="Estimated Home Value"
+          value={inputs.homeValue}
+          onChange={(v) => update("homeValue", v)}
+          prefix="$"
+          placeholder="500,000"
+          hint="Your best estimate is fine — it lets us size your quote."
+        />
 
         {showMortgageGate && (
           <div className="space-y-2.5">

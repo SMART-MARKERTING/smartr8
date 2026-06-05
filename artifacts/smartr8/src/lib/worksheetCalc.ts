@@ -63,6 +63,10 @@ export interface WorksheetInputs extends AdvisorInfo {
   productType: ProductType;
   loanStructure: LoanStructure;
 
+  // Property — estimated home value. Used only by the public funnel's auto-quote
+  // (LTV math); the worksheet calc + PDF ignore it. 0 = unknown.
+  homeValue: number;
+
   // Existing mortgage (may all be 0 if hasExistingMortgage = false)
   hasExistingMortgage: boolean;
   existBalance: number;
@@ -346,6 +350,7 @@ export function makeDefaultInputs(overrides: Partial<WorksheetInputs> = {}): Wor
     clientLastName: "",
     productType: "CASH_OUT",
     loanStructure: "FIXED",
+    homeValue: 0,
     hasExistingMortgage: true,
     existBalance: 320000,
     existRate: 6.875,
