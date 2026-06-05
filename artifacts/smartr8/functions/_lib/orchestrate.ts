@@ -70,6 +70,14 @@ export async function processLead(
   const kv = env.LEAD_DEDUP;
   const db = env.LEADS_DB;
 
+  // Express SMS opt-in — true only when the visitor checked the TCPA "Text me
+  // about my application" box (which is the only thing that produces a non-null
+  // `consent`). Forwarded to the CRM as `smsOptIn`; the CRM sets sms_consent from
+  // it and its drip skips the text step without it, so THIS is what decides
+  // "texted or not". Box checked → texted; box unchecked → not. Rides the
+  // dedup-hit forward too, so a re-submit that opts in still upgrades consent.
+  const smsOptIn = consent != null;
+
   // ── Dedup window ────────────────────────────────────────────────────
   const key = await dedupKeyFor(lead);
   if (kv) {
@@ -88,7 +96,7 @@ export async function processLead(
         // Forward to the CRM even on a dedup hit so the text/drip goes out regardless of
         // duplicate status. LeadMailbox/GHL/Resend stay deduped (no double advisor pings);
         // the CRM cancels + restarts the lead's drip, so rapid re-submits yield one text.
-        ctx.waitUntil(runCrmWebhook(env, lead));
+        ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
         return {
           ok: true,
           lead_id: lead.lead_id,
@@ -119,7 +127,7 @@ export async function processLead(
   // ── Async: GHL chain (upsert -> opportunity) + Resend + CRM webhook ──
   ctx.waitUntil(runGhlChain(env, db, lead));
   ctx.waitUntil(runResend(env, db, lead));
-  ctx.waitUntil(runCrmWebhook(env, lead));
+  ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
 }
@@ -291,7 +299,7 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
  * early on a dedup hit, before this fires, so the CRM isn't double-posted
  * within the dedup window.
  */
-async function runCrmWebhook(env: Env, lead: Lead): Promise<void> {
+async function runCrmWebhook(env: Env, lead: Lead, smsOptIn = false): Promise<void> {
   const url = env.CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
   if (!url) return;
   const payload = {
@@ -302,6 +310,9 @@ async function runCrmWebhook(env: Env, lead: Lead): Promise<void> {
     last_name: lead.last_name ?? "",
     email: lead.email,
     phone: lead.phone_e164 ?? "",
+    // The CRM derives sms_consent from this (smsOptIn === "yes" && phone present)
+    // and its drip skips the text step without it — this is the consent gate.
+    smsOptIn: smsOptIn ? "yes" : "no",
     property_state: lead.property_state ?? "",
     loan_request: lead.loan_request ?? "",
     notes: lead.notes ?? "",

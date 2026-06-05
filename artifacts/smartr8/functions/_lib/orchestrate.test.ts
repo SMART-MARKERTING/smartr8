@@ -246,6 +246,25 @@ describe("processLead — CRM webhook", () => {
       expect(body.email).toBe("jane@example.com");
       expect(body.funnel).toBe("heloc");
       expect(body.lead_id).toBe("lead-1");
+      // No consent passed → the CRM is told the lead did NOT opt in to texts.
+      expect(body.smsOptIn).toBe("no");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("forwards smsOptIn:\"yes\" only when the visitor opted in (TCPA box checked)", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv({ CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test" });
+      const ctx = makeCtxMock();
+      await processLead(makeLead(), makeConsent(), env, ctx);
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      const body = JSON.parse(crmCall?.[1]?.body as string);
+      // CRM derives sms_consent from this; "yes" is what lets its drip text the lead.
+      expect(body.smsOptIn).toBe("yes");
     } finally {
       vi.unstubAllGlobals();
     }
