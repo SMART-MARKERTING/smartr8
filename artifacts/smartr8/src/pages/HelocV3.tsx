@@ -935,7 +935,7 @@ export default function HelocV3() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Auto-advance past the hero into step one ~50ms after landing, so visitors
+  // Auto-advance past the hero into step one ~1.5s after landing, so visitors
   // drop straight into the first question instead of dwelling on the hero — the
   // same target as the hero's "See My Options" button. One-shot (ref-guarded) so
   // going Back to the hero, or a restart, doesn't bounce them forward again. The
@@ -944,7 +944,7 @@ export default function HelocV3() {
   useEffect(() => {
     if (autoStartedRef.current || stage !== "hero") return;
     autoStartedRef.current = true;
-    const id = window.setTimeout(() => go("s0"), 50);
+    const id = window.setTimeout(() => go("s0"), 1500);
     return () => window.clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
