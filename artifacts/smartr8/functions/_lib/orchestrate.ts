@@ -2,16 +2,18 @@
 //
 // Sync: LeadMailbox (the LO actively watches that inbox).
 // Async (ctx.waitUntil):
-//   - GHL chain: contact upsert (with tags + custom fields in body)
-//     -> sequentially, opportunity create on the Web Leads pipeline.
-//     Tags ride with the upsert; no separate /contacts/{id}/tags call.
-//     The upsert triggers GHL's "Contact Created with web lead tag"
-//     workflow, which routes by loan-type tags, assigns by timezone,
-//     and handles all SMS and nurture downstream.
-//   - Resend confirmation (parallel to the GHL chain; independent).
+//   - CRM webhook: forwards the lead to the Smartr8 CRM (crm.smartr8.com), which
+//     owns texting (iMessage-first → SMS), the nurture drip, and pipeline. The
+//     SMS opt-in rides along as smsOptIn so the CRM only texts box-checkers.
+//   - Resend confirmation (independent).
 //
-// The Worker does NOT send SMS. The Sendblue API is integrated only
-// inside GHL's send_blue connector and is never called from this codebase.
+// GHL is RETIRED: the lead now lives solely in the CRM. runGhlChain (contact
+// upsert + opportunity create) is kept below but is NO LONGER CALLED — re-add the
+// `ctx.waitUntil(runGhlChain(env, db, lead))` line to restore it. Removing that
+// call is what stopped GHL's "Contact Created" workflow from texting every lead
+// (regardless of consent) via the send_blue connector.
+//
+// The Worker does NOT send SMS itself.
 //
 // D1 row is written before any side-effect fires so the audit row exists
 // even if every destination fails. KV dedup runs first; a hit within 10
@@ -124,8 +126,10 @@ export async function processLead(
   const lmResult = await submitToLeadMailbox(lead, clientIp);
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
-  // ── Async: GHL chain (upsert -> opportunity) + Resend + CRM webhook ──
-  ctx.waitUntil(runGhlChain(env, db, lead));
+  // ── Async: Resend confirmation + CRM webhook ───────────────────────
+  // GHL retired — runGhlChain is intentionally no longer called (kept dormant
+  // below). The lead lives solely in the CRM now; dropping this call is what
+  // stops GHL from texting every lead via its "Contact Created" workflow.
   ctx.waitUntil(runResend(env, db, lead));
   ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
 
@@ -260,7 +264,11 @@ async function updateGhlOpportunityStatus(
 // Async destination runners
 // ───────────────────────────────────────────────────────────────────────
 
-/** Upsert -> sequentially opportunity create. Each step writes its own status. */
+/**
+ * DORMANT — GHL retired. No longer called by processLead; kept intact so re-enabling
+ * GHL is a one-line restore (re-add the `ctx.waitUntil(runGhlChain(env, db, lead))`
+ * call). Upsert -> sequentially opportunity create; each step writes its own status.
+ */
 async function runGhlChain(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const upsert = await ghlUpsert(env, lead);
   await updateGhlUpsertStatus(db, lead.lead_id, upsert);

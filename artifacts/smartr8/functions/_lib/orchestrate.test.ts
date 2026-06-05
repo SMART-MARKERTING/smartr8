@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe("processLead — happy path", () => {
-  it("performs the LeadMailbox sync write before returning, and queues GHL + Resend + CRM webhook via waitUntil", async () => {
+  it("performs the LeadMailbox sync write before returning, and queues Resend + CRM webhook via waitUntil (GHL retired)", async () => {
     const env = makeEnv();
     const ctx = makeCtxMock();
     const lead = makeLead();
@@ -92,12 +92,11 @@ describe("processLead — happy path", () => {
     expect(result.duplicate).toBeFalsy();
     expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
     expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead, expect.any(String));
-    // GHL + Resend + CRM webhook are wrapped in waitUntil; the sync result returns before they finish.
-    expect(ctx._promises.length).toBe(3);
+    // GHL is retired, so only Resend + CRM webhook are queued via waitUntil (not 3).
+    expect(ctx._promises.length).toBe(2);
 
     await drainWaitUntil(ctx);
-    expect(ghlUpsertMock).toHaveBeenCalledTimes(1);
-    expect(ghlCreateOpportunityMock).toHaveBeenCalledWith(env, lead, "ghl-c-1");
+    expect(ghlUpsertMock).not.toHaveBeenCalled();
     expect(sendResendConfirmationMock).toHaveBeenCalledWith(env, lead);
   });
 
@@ -132,34 +131,10 @@ describe("processLead — TCPA consent row", () => {
   });
 });
 
-describe("processLead — GHL behavior", () => {
-  it("captures contactId from a successful upsert and uses it for opportunity create", async () => {
-    ghlUpsertMock.mockResolvedValue({ ok: true, contactId: "ghl-99" });
-    const env = makeEnv();
-    const ctx = makeCtxMock();
-    await processLead(makeLead(), null, env, ctx);
-    await drainWaitUntil(ctx);
-    expect(ghlCreateOpportunityMock).toHaveBeenCalledWith(env, expect.any(Object), "ghl-99");
-  });
-
-  it("does NOT call opportunity create when upsert fails, and does not block Resend", async () => {
-    ghlUpsertMock.mockResolvedValue({ ok: false, error: "GHL boom" });
-    const env = makeEnv();
-    const db = env.LEADS_DB as unknown as ReturnType<typeof makeD1Mock>;
-    const ctx = makeCtxMock();
-    await processLead(makeLead(), null, env, ctx);
-    await drainWaitUntil(ctx);
-    expect(ghlCreateOpportunityMock).not.toHaveBeenCalled();
-    // Resend should still have run.
-    expect(sendResendConfirmationMock).toHaveBeenCalled();
-    // D1 should reflect ghl_upsert_status='failed'.
-    const upsertUpdate = db._calls.find(
-      (c) => c.sql.includes("UPDATE leads") && c.sql.includes("ghl_upsert_status"),
-    );
-    expect(upsertUpdate).toBeDefined();
-    expect(upsertUpdate?.bind[0]).toBe("failed");
-  });
-});
+// GHL behavior tests removed: GHL is retired, so processLead no longer triggers the
+// upsert/opportunity chain (runGhlChain is dormant). The happy-path test now asserts
+// ghlUpsert is NOT called; ghl.ts keeps its own unit coverage in ghl.test.ts for if
+// the chain is ever restored.
 
 describe("processLead — dedup", () => {
   it("returns { duplicate: true } early but STILL forwards to the CRM so the text/drip fires", async () => {
@@ -203,7 +178,7 @@ describe("processLead — degraded mode (no D1)", () => {
     expect(result.ok).toBe(true);
     expect(submitToLeadMailboxMock).toHaveBeenCalled();
     await drainWaitUntil(ctx);
-    expect(ghlUpsertMock).toHaveBeenCalled();
+    // GHL retired — only Resend + CRM fire as async destinations now.
     expect(sendResendConfirmationMock).toHaveBeenCalled();
     // No error-level logs should have been emitted by the orchestrator itself.
     const errorCalls = logMock.mock.calls.filter((c) => c[0] === "error");
@@ -221,11 +196,11 @@ describe("processLead — worksheet funnel", () => {
     });
     await processLead(worksheetLead, null, env, ctx);
     await drainWaitUntil(ctx);
-    expect(ghlUpsertMock).toHaveBeenCalledTimes(1);
-    const passedLead = ghlUpsertMock.mock.calls[0][1];
+    // Assert via LeadMailbox (the sync destination) since GHL is retired.
+    expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
+    const passedLead = submitToLeadMailboxMock.mock.calls[0][0];
     expect(passedLead.funnel).toBe("worksheet");
     expect(passedLead.landing_page).toBe("https://smartr8.com/worksheet");
-    // The tag-derivation logic lives inside ghl.ts (covered by ghl.test.ts).
     // Here we only assert that processLead forwards the canonical Lead unchanged.
   });
 });
