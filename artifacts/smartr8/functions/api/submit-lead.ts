@@ -110,6 +110,12 @@ export async function onRequest(context) {
   if (v.data.dob) notesParts.push(`DOB: ${v.data.dob}`);
   if (v.data.notes) notesParts.push(v.data.notes);
 
+  // Structured quote inputs → forwarded to the CRM, which pre-fills its quote panel from them.
+  const quoteFields: Record<string, string> = {};
+  if (v.data.homeValue) quoteFields.home_value = String(v.data.homeValue);
+  if (v.data.mortgageBalance) quoteFields.mortgage_balance = String(v.data.mortgageBalance);
+  if (v.data.creditScore) quoteFields.credit = String(v.data.creditScore);
+
   const lead: Lead = {
     lead_id: crypto.randomUUID(),
     created_at: Date.now(),
@@ -121,6 +127,7 @@ export async function onRequest(context) {
     address1: v.data.address || "",
     loan_request: v.data.loanRequest || "",
     notes: notesParts.join("\n"),
+    quote_fields: quoteFields,
     source: "smartr8.com",
     referrer: v.data.referrer || "",
     landing_page: v.data.page_url,

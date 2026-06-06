@@ -335,6 +335,9 @@ async function runCrmWebhook(env: Env, lead: Lead, smsOptIn = false): Promise<vo
     utm_campaign: lead.utm_campaign ?? "",
     utm_content: lead.utm_content ?? "",
     utm_term: lead.utm_term ?? "",
+    // Structured funnel quote inputs (home_value, mortgage_balance, credit) — the CRM
+    // captures these into the lead's custom, pre-filling its Quote/loan-details panel.
+    ...(lead.quote_fields ?? {}),
   };
   try {
     const res = await fetch(url, {
