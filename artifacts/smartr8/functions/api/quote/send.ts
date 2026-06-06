@@ -165,6 +165,12 @@ function buildQuoteEmailHtml(d) {
     cardA +
     `<div style="text-align:center;color:#888;font-size:12px;font-weight:700;margin:12px 0;">— OR —</div>` +
     cardB +
+    (Array.isArray(d.benefits) && d.benefits.length
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;background:#f7f9fc;border:1px solid #e5e5e5;border-radius:8px;"><tr><td style="padding:14px 16px;">` +
+        `<div style="font-size:13px;font-weight:700;color:#111;margin-bottom:8px;">Why homeowners move forward</div>` +
+        d.benefits.map((x) => `<div style="font-size:13px;color:#444;line-height:1.6;">&bull; ${esc(x)}</div>`).join("") +
+        `</td></tr></table>`
+      : "") +
     `<p style="margin:18px 0 0;font-size:12px;color:#666;">A full PDF breakdown of both options is attached to this email.</p>` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-top:1px solid #eeeeee;"><tr><td style="padding-top:14px;">` +
     `<div style="font-size:15px;font-weight:700;color:#111;">${advName}</div>` +
