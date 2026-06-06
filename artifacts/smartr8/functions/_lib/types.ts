@@ -36,6 +36,10 @@ export interface Lead {
   /** Freeform notes (form answers, summary, etc.) for LeadMailbox + GHL. */
   notes?: string;
 
+  /** Structured funnel quote inputs (home_value, mortgage_balance, credit) forwarded to the
+   *  CRM so its Quote/loan-details panel pre-fills. Captured into the CRM lead's `custom`. */
+  quote_fields?: Record<string, string>;
+
   /** "smartr8.com" by default; allows future overrides. */
   source?: string;
   referrer?: string;
