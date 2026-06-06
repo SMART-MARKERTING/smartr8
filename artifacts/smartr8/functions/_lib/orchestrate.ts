@@ -126,11 +126,12 @@ export async function processLead(
   const lmResult = await submitToLeadMailbox(lead, clientIp);
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
-  // ── Async: Resend confirmation + CRM webhook ───────────────────────
-  // GHL retired — runGhlChain is intentionally no longer called (kept dormant
-  // below). The lead lives solely in the CRM now; dropping this call is what
-  // stops GHL from texting every lead via its "Contact Created" workflow.
-  ctx.waitUntil(runResend(env, db, lead));
+  // ── Async: CRM webhook ─────────────────────────────────────────────
+  // Two destinations are intentionally retired (both kept dormant below):
+  //   • runGhlChain — GHL no longer receives the lead (stopped its un-gated texting).
+  //   • runResend  — the website welcome/confirmation email is dropped; the funnel's
+  //     Quick Quote (/api/quote/send) is the only lead email now.
+  // So the worker just forwards to the CRM, which owns texting + the nurture drip.
   ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
@@ -282,6 +283,9 @@ async function runGhlChain(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<v
   await updateGhlOpportunityStatus(db, lead.lead_id, opp);
 }
 
+// DORMANT — the website welcome/confirmation email is retired; the funnel's Quick
+// Quote is the only lead email now. Kept so it's a one-line restore (re-add the
+// `ctx.waitUntil(runResend(env, db, lead))` call in processLead).
 async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const r = await sendResendConfirmation(env, lead);
   if (!db) return;

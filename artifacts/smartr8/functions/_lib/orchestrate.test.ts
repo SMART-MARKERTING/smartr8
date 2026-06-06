@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe("processLead — happy path", () => {
-  it("performs the LeadMailbox sync write before returning, and queues Resend + CRM webhook via waitUntil (GHL retired)", async () => {
+  it("performs the LeadMailbox sync write before returning, and queues only the CRM webhook via waitUntil (GHL + welcome email retired)", async () => {
     const env = makeEnv();
     const ctx = makeCtxMock();
     const lead = makeLead();
@@ -92,12 +92,12 @@ describe("processLead — happy path", () => {
     expect(result.duplicate).toBeFalsy();
     expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
     expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead, expect.any(String));
-    // GHL is retired, so only Resend + CRM webhook are queued via waitUntil (not 3).
-    expect(ctx._promises.length).toBe(2);
+    // GHL and the Resend welcome email are both retired, so only the CRM webhook is queued.
+    expect(ctx._promises.length).toBe(1);
 
     await drainWaitUntil(ctx);
     expect(ghlUpsertMock).not.toHaveBeenCalled();
-    expect(sendResendConfirmationMock).toHaveBeenCalledWith(env, lead);
+    expect(sendResendConfirmationMock).not.toHaveBeenCalled();
   });
 
   it("writes the D1 audit row before any destination side effect fires", async () => {
@@ -178,8 +178,8 @@ describe("processLead — degraded mode (no D1)", () => {
     expect(result.ok).toBe(true);
     expect(submitToLeadMailboxMock).toHaveBeenCalled();
     await drainWaitUntil(ctx);
-    // GHL retired — only Resend + CRM fire as async destinations now.
-    expect(sendResendConfirmationMock).toHaveBeenCalled();
+    // GHL + welcome email retired — only the CRM webhook fires as an async destination now.
+    expect(sendResendConfirmationMock).not.toHaveBeenCalled();
     // No error-level logs should have been emitted by the orchestrator itself.
     const errorCalls = logMock.mock.calls.filter((c) => c[0] === "error");
     expect(errorCalls.length).toBe(0);
