@@ -51,19 +51,29 @@ describe("buildQuotePayload", () => {
     expect(p!.options.a.payment).toMatch(/^\$[\d,]+\/mo$/);
   });
 
-  it("shows '—' rate/payment for an unpriceable credit band (unsure)", () => {
-    const p = buildQuotePayload({
+  it("prices 'unsure' (and unrecognized) credit against the conservative default band", () => {
+    const base = {
       firstName: "Sam",
       lastName: "Lee",
       email: "sam@example.com",
       homeValue: "600000",
       balance: "200000",
-      creditId: "unsure",
-    });
-    expect(p).not.toBeNull();
-    expect(p!.options.b.rate).toBe("—");
-    expect(p!.options.b.payment).toBe("—");
-    expect(p!.options.a.rate).toBe("—");
+    };
+    const unsure = buildQuotePayload({ ...base, creditId: "unsure" });
+    const building = buildQuotePayload({ ...base, creditId: "building" });
+    expect(unsure).not.toBeNull();
+    // "unsure" has no self-reported band → falls back to the lowest tier, the
+    // same band "building" maps to, so the rates match.
+    expect(unsure!.options.b.rate).toBe(building!.options.b.rate);
+    expect(unsure!.options.a.rate).toBe(building!.options.a.rate);
+    // ...and it now carries a real rate + payment instead of "—".
+    expect(unsure!.options.b.rate).toMatch(/^\d+\.\d{2}%$/);
+    expect(unsure!.options.b.payment).toMatch(/^\$[\d,]+\/mo$/);
+    expect(unsure!.options.a.rate).toMatch(/^\d+\.\d{2}%$/);
+    expect(unsure!.options.a.payment).toMatch(/^\$[\d,]+\/mo$/);
+    // An unrecognized id behaves identically.
+    const unknown = buildQuotePayload({ ...base, creditId: "mystery" });
+    expect(unknown!.options.a.rate).toBe(building!.options.a.rate);
   });
 
   it("returns null below the minimum HELOC equity threshold", () => {

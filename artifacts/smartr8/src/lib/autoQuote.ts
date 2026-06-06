@@ -45,8 +45,9 @@ const DISCLAIMER =
 
 // v3 funnel credit-bucket id → rate-table band key. The bands span the bucket
 // labels (e.g. "good" = 680–739), so we pick the band the bucket's midpoint
-// lands in — a defensible "as low as" estimate. "unsure" has no priceable
-// band and falls back to "—" rate/payment in the email.
+// lands in — a defensible "as low as" estimate. "unsure" has no self-reported
+// band; it (and any unrecognized id) is priced against DEFAULT_RATE_KEY below
+// so the email always shows a rate + payment.
 const CREDIT_RATE_KEY: Record<string, string | null> = {
   excellent: "740 – 779",
   good: "700 – 739",
@@ -54,6 +55,11 @@ const CREDIT_RATE_KEY: Record<string, string | null> = {
   building: "580 – 619",
   unsure: null,
 };
+
+// Fallback band when credit is "Not sure" / unknown. We use the lowest tier
+// (highest rate), so the estimate never over-promises — a full credit review
+// can only improve it. The disclaimer already frames this as a soft estimate.
+const DEFAULT_RATE_KEY = "580 – 619";
 
 const usd = (n: number): string => "$" + Math.round(n).toLocaleString("en-US");
 const roundK = (n: number): number => Math.round(n / 1000) * 1000;
@@ -129,9 +135,11 @@ export function buildQuotePayload(input: QuoteInput): QuotePayload | null {
   const n = computeQuoteNumbers(input.homeValue, input.balance);
   if (n.helocAvailable < MIN_HELOC_AVAILABLE) return null;
 
-  const rateKey = CREDIT_RATE_KEY[input.creditId] ?? null;
-  const helocRange = rateKey ? getRateEstimate(rateKey, "heloc") : null;
-  const cashoutRange = rateKey ? getRateEstimate(rateKey, "cashout") : null;
+  // "unsure" maps to null and unrecognized ids to undefined — both fall back
+  // to the conservative default band so the quote always carries a rate.
+  const rateKey = CREDIT_RATE_KEY[input.creditId] ?? DEFAULT_RATE_KEY;
+  const helocRange = getRateEstimate(rateKey, "heloc");
+  const cashoutRange = getRateEstimate(rateKey, "cashout");
 
   // Headline the low end of the band ("as low as"); the disclaimer makes the
   // estimate nature explicit. APR is intentionally left blank — we don't have

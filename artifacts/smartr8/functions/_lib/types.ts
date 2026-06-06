@@ -102,6 +102,12 @@ export interface Env {
   // other destinations.
   CRM_LEAD_WEBHOOK?: string;
 
+  // Shared secret for the Telnyx AI voice receptionist's take_message Webhook
+  // tool (functions/api/voice-message.ts). When set, the endpoint requires a
+  // matching "Authorization: Bearer <secret>" header; when unset it serves
+  // unauthenticated so it deploys cleanly before the secret is provisioned.
+  VOICE_WEBHOOK_SECRET?: string;
+
   // LeadMailbox has no secret; the URL is hardcoded in the helper.
 
   // GoHighLevel.
