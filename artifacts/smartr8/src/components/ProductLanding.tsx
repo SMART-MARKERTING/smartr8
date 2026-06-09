@@ -129,11 +129,47 @@ function buildConsentText(product: string): string {
   );
 }
 
+// ── Qualifying criteria (mirror the HELOC funnel) ───────────────────────────
+const CREDIT_RANGES = ["580 to 619", "620 to 659", "660 to 699", "700 to 739", "740 to 779", "780+", "Not sure"];
+const DOB_MONTHS = [
+  { v: 1, label: "Jan" }, { v: 2, label: "Feb" }, { v: 3, label: "Mar" }, { v: 4, label: "Apr" },
+  { v: 5, label: "May" }, { v: 6, label: "Jun" }, { v: 7, label: "Jul" }, { v: 8, label: "Aug" },
+  { v: 9, label: "Sep" }, { v: 10, label: "Oct" }, { v: 11, label: "Nov" }, { v: 12, label: "Dec" },
+];
+const DOB_MAX_YEAR = new Date().getFullYear() - 18; // 18+ enforced at the option level
+const DOB_YEAR_OPTIONS = Array.from({ length: DOB_MAX_YEAR - 1925 + 1 }, (_, i) => DOB_MAX_YEAR - i);
+const DOB_DAY_OPTIONS = Array.from({ length: 31 }, (_, i) => i + 1);
+
+/** True when M/D/Y are a real calendar date and the person is 18+ today. */
+function dobIsValid(m: string, d: string, y: string): boolean {
+  if (!m || !d || !y) return false;
+  const month = parseInt(m, 10), day = parseInt(d, 10), year = parseInt(y, 10);
+  const dt = new Date(year, month - 1, day);
+  if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) return false;
+  return new Date(year + 18, month - 1, day) <= new Date();
+}
+
+/** MM/DD/YYYY for the CRM (matches the HELOC funnel's notes format). */
+function dobToMMDDYYYY(m: string, d: string, y: string): string {
+  if (!m || !d || !y) return "";
+  return `${m.padStart(2, "0")}/${d.padStart(2, "0")}/${y}`;
+}
+
+// Native-select styling to match the form's <Input> look.
+const SELECT_CLASS =
+  "flex h-12 w-full rounded-md border border-input bg-background px-3 text-base ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2";
+
 export function ProductLanding({ config }: { config: ProductConfig }) {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [homeValue, setHomeValue] = useState("");
+  const [mortgageBalance, setMortgageBalance] = useState("");
+  const [creditScore, setCreditScore] = useState("");
+  const [dobM, setDobM] = useState("");
+  const [dobD, setDobD] = useState("");
+  const [dobY, setDobY] = useState("");
   const [consent, setConsent] = useState(false);
   const [honeypot, setHoneypot] = useState("");
   const [token, setToken] = useState("");
@@ -189,18 +225,26 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
   // Phone is optional unless the visitor opts into texts.
   const phoneRequired = consent;
   const phoneOk = !phoneRequired || phone.trim().length >= 7;
+  // DOB is optional; but if the visitor starts it, it must be a valid 18+ date.
+  const dobTouched = !!(dobM || dobD || dobY);
+  const dobOk = !dobTouched || dobIsValid(dobM, dobD, dobY);
   const canSubmit =
     !isSubmitting &&
     firstName.trim().length > 0 &&
     lastName.trim().length > 0 &&
     /\S+@\S+\.\S+/.test(email) &&
     phoneOk &&
+    homeValue.trim().length > 0 &&
+    mortgageBalance.trim().length > 0 &&
+    creditScore.length > 0 &&
+    dobOk &&
     token.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) {
       if (phoneRequired && !phone.trim()) setSubmitError("Add your mobile number to opt into texts, or uncheck the box.");
+      else if (dobTouched && !dobOk) setSubmitError("Please enter a valid date of birth — you must be 18 or older.");
       return;
     }
     setIsSubmitting(true);
@@ -215,6 +259,10 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
         consent,
         consent_text: consent ? consentText : "",
         consent_version: CONSENT_VERSION,
+        homeValue: homeValue.trim(),
+        mortgageBalance: mortgageBalance.trim(),
+        creditScore,
+        dob: dobToMMDDYYYY(dobM, dobD, dobY),
         honeypot,
         pageLoadTime,
         turnstile_token: token,
@@ -456,6 +504,78 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
                       autoComplete="tel"
                       required={phoneRequired}
                     />
+                  </div>
+
+                  {/* Qualifying criteria — pre-fills the loan officer's quote panel in the CRM */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="home-value" className="text-sm">Estimated home value</Label>
+                      <Input
+                        id="home-value"
+                        type="text"
+                        inputMode="numeric"
+                        value={homeValue}
+                        onChange={(e) => setHomeValue(e.target.value)}
+                        placeholder="$500,000"
+                        className="h-12 text-base"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="mortgage-balance" className="text-sm">Mortgage balance</Label>
+                      <Input
+                        id="mortgage-balance"
+                        type="text"
+                        inputMode="numeric"
+                        value={mortgageBalance}
+                        onChange={(e) => setMortgageBalance(e.target.value)}
+                        placeholder="$250,000"
+                        className="h-12 text-base"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="credit-score" className="text-sm">Estimated credit score</Label>
+                    <select
+                      id="credit-score"
+                      value={creditScore}
+                      onChange={(e) => setCreditScore(e.target.value)}
+                      className={SELECT_CLASS}
+                      required
+                    >
+                      <option value="" disabled>Select a range</option>
+                      {CREDIT_RANGES.map((r) => (
+                        <option key={r} value={r}>{r}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">
+                      Date of birth <span className="text-muted-foreground">(optional)</span>
+                    </Label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <select aria-label="Birth month" value={dobM} onChange={(e) => setDobM(e.target.value)} className={SELECT_CLASS}>
+                        <option value="">Month</option>
+                        {DOB_MONTHS.map((m) => (
+                          <option key={m.v} value={String(m.v)}>{m.label}</option>
+                        ))}
+                      </select>
+                      <select aria-label="Birth day" value={dobD} onChange={(e) => setDobD(e.target.value)} className={SELECT_CLASS}>
+                        <option value="">Day</option>
+                        {DOB_DAY_OPTIONS.map((d) => (
+                          <option key={d} value={String(d)}>{d}</option>
+                        ))}
+                      </select>
+                      <select aria-label="Birth year" value={dobY} onChange={(e) => setDobY(e.target.value)} className={SELECT_CLASS}>
+                        <option value="">Year</option>
+                        {DOB_YEAR_OPTIONS.map((y) => (
+                          <option key={y} value={String(y)}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
                   {/* OPTIONAL, UNCHECKED SMS consent with the verbatim disclosure */}

@@ -91,6 +91,20 @@ export async function onRequest(context) {
   const loanType = str(body.loanType).toUpperCase();
   const smsConsent = body.consent === true || body.consent === "true";
 
+  // Qualifying criteria → the CRM lead's Quote/loan-details panel + DOB.
+  const homeValue = str(body.home_value) || str(body.homeValue);
+  const mortgageBalance = str(body.mortgage_balance) || str(body.mortgageBalance);
+  const credit = str(body.credit) || str(body.creditScore);
+  const dob = str(body.dob);
+  const criteriaNotes = [
+    homeValue ? `Home Value: ${homeValue}` : "",
+    mortgageBalance ? `Mortgage Balance: ${mortgageBalance}` : "",
+    credit ? `Credit Score: ${credit}` : "",
+    dob ? `DOB: ${dob}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   if (!email && !phone) {
     return jsonResponse({ success: false, error: "Enter an email or phone number." }, 400, cors);
   }
@@ -132,6 +146,13 @@ export async function onRequest(context) {
     tags: [loanType],
     consent_text: str(body.consent_text),
     consent_version: str(body.consent_version),
+    // Structured quote fields (CRM maps these into the lead's custom Quote panel) +
+    // a readable notes summary (mirrors the HELOC funnel; the CRM also parses it).
+    home_value: homeValue,
+    mortgage_balance: mortgageBalance,
+    credit,
+    dob,
+    notes: criteriaNotes,
     page_url: str(body.page_url),
     utm_source: str(body.utm_source),
     utm_medium: str(body.utm_medium),

@@ -17,6 +17,12 @@ export interface CrmLeadPayload {
   consent: boolean;
   consent_text?: string;
   consent_version?: string;
+  /** Qualifying criteria — pre-fill the CRM lead's Quote/loan-details panel. */
+  homeValue?: string;
+  mortgageBalance?: string;
+  creditScore?: string;
+  /** MM/DD/YYYY (optional). */
+  dob?: string;
   /** Honeypot field value (must be empty for a real submission). */
   honeypot?: string;
   /** Epoch ms the funnel mounted; the proxy drops sub-8s bot submissions. */
@@ -48,6 +54,11 @@ export async function submitCrmLead(payload: CrmLeadPayload): Promise<SubmitResu
     consent: payload.consent,
     consent_text: payload.consent_text ?? "",
     consent_version: payload.consent_version ?? "",
+    // Qualifying criteria → CRM custom quote fields (home_value / mortgage_balance / credit) + DOB.
+    home_value: payload.homeValue ?? "",
+    mortgage_balance: payload.mortgageBalance ?? "",
+    credit: payload.creditScore ?? "",
+    dob: payload.dob ?? "",
     honeypot: payload.honeypot ?? "",
     pageLoadTime: payload.pageLoadTime ?? 0,
     turnstile_token: payload.turnstile_token ?? "",
