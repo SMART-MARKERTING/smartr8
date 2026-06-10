@@ -67,7 +67,7 @@ function buildApplicationUrl(): string {
 }
 
 // ---- Step content -----------------------------------------------------------
-const STEP_LABELS = ["Mortgage", "Goal", "Credit", "About you", "Options"];
+const STEP_LABELS = ["Mortgage", "Goal", "Credit", "About you"];
 
 // Single-select steps (Goal, Credit) auto-advance on tap; this brief pause lets
 // the chosen card show as selected before the funnel moves to the next step.
@@ -111,9 +111,6 @@ type Data = {
   last: string;
   email: string;
   phone: string;
-  mm: string;
-  dd: string;
-  yyyy: string;
   honeypot: string;
   pageLoadTime: number;
 };
@@ -126,9 +123,6 @@ const DEFAULT_DATA: Data = {
   last: "",
   email: "",
   phone: "",
-  mm: "",
-  dd: "",
-  yyyy: "",
   honeypot: "",
   pageLoadTime: 0,
 };
@@ -148,29 +142,10 @@ const EMPTY_CONSENT: ConsentState = {
   turnstile_token: "",
 };
 
-/** Validate the three DOB text inputs: real calendar date + 18+ at today. */
-function validateDob(mm: string, dd: string, yyyy: string): { ok: boolean; error?: string } {
-  if (!mm || !dd || yyyy.length !== 4) return { ok: false };
-  const month = parseInt(mm, 10);
-  const day = parseInt(dd, 10);
-  const year = parseInt(yyyy, 10);
-  if (!Number.isFinite(month) || !Number.isFinite(day) || !Number.isFinite(year)) {
-    return { ok: false };
-  }
-  const dt = new Date(year, month - 1, day);
-  if (dt.getFullYear() !== year || dt.getMonth() !== month - 1 || dt.getDate() !== day) {
-    return { ok: false, error: "Please enter a valid date." };
-  }
-  const now = new Date();
-  const cutoff = new Date(now.getFullYear() - 18, now.getMonth(), now.getDate());
-  if (dt > cutoff) return { ok: false, error: "You must be at least 18 years old." };
-  return { ok: true };
-}
-
 // ============================================================================
 // Shared funnel primitives (ported from the Adaxa design, lucide icons)
 // ============================================================================
-function Progress({ current, total = 5 }: { current: number; total?: number }) {
+function Progress({ current, total = 4 }: { current: number; total?: number }) {
   const pct = Math.round(((current + 1) / total) * 100);
   return (
     <div className="progress">
@@ -466,16 +441,13 @@ function StepAbout({
   consentState: ConsentState;
   setConsentState: (s: ConsentState) => void;
 }) {
-  const { first, last, email, phone, mm, dd, yyyy } = data;
+  const { first, last, email, phone } = data;
   const emailOk = /\S+@\S+\.\S+/.test(email || "");
-  const dobValidation = validateDob(mm, dd, yyyy);
-  const dobError = dobValidation.error ?? null;
   const ready =
     !!first &&
     !!last &&
     emailOk &&
     (phone || "").replace(/\D/g, "").length >= 10 &&
-    dobValidation.ok &&
     consentState.ready;
 
   return (
@@ -543,38 +515,6 @@ function StepAbout({
             autoComplete="tel"
             onChange={(e) => set({ phone: e.target.value })}
           />
-        </Field>
-        <Field
-          label="Date of birth"
-          error={dobError}
-          hint="Required by lenders to check your options accurately."
-        >
-          <div className="dob-row">
-            <input
-              className="inp"
-              maxLength={2}
-              inputMode="numeric"
-              value={mm}
-              placeholder="MM"
-              onChange={(e) => set({ mm: e.target.value.replace(/\D/g, "") })}
-            />
-            <input
-              className="inp"
-              maxLength={2}
-              inputMode="numeric"
-              value={dd}
-              placeholder="DD"
-              onChange={(e) => set({ dd: e.target.value.replace(/\D/g, "") })}
-            />
-            <input
-              className="inp"
-              maxLength={4}
-              inputMode="numeric"
-              value={yyyy}
-              placeholder="YYYY"
-              onChange={(e) => set({ yyyy: e.target.value.replace(/\D/g, "") })}
-            />
-          </div>
         </Field>
         <Reassure icon="lock" title="Your info stays private">
           We use bank-level encryption and only use your details to review your options. We never
@@ -681,10 +621,6 @@ export default function HelocV3() {
   async function handleSubmit() {
     setIsSubmitting(true);
     setSubmitError("");
-    const dob =
-      data.yyyy && data.mm && data.dd
-        ? `${data.yyyy}-${data.mm.padStart(2, "0")}-${data.dd.padStart(2, "0")}`
-        : "";
     try {
       const result = await submitLead({
         funnel: "heloc",
@@ -695,7 +631,6 @@ export default function HelocV3() {
         homeValue: data.homeValue,
         mortgageBalance: data.balance,
         creditScore: creditLabel(data.credit),
-        dob,
         honeypot: data.honeypot,
         pageLoadTime: data.pageLoadTime,
         turnstile_token: consentState.turnstile_token,
