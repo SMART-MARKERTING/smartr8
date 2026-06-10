@@ -44,7 +44,7 @@ export function PageMeta({ title, description, canonical, ogImage, noIndex }: Pa
     document.title = title;
 
     const ogUrl = `https://smartr8.com${canonical}`;
-    const image = ogImage ?? "https://smartr8.com/og-image.png";
+    const image = ogImage ?? "https://smartr8.com/og-image-heloc.jpg";
 
     const metas: MetaEntry[] = [
       setMeta("description", description),
