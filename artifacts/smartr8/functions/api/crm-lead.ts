@@ -22,7 +22,6 @@
 
 import { log } from "../_lib/log";
 import { verifyTurnstile } from "../_lib/turnstile";
-import { handleLeadEmail } from "../_lib/leadEmail";
 import type { Env } from "../_lib/types";
 
 // Built-in default mirrors functions/_lib/orchestrate.ts so the funnels work
@@ -161,16 +160,11 @@ export async function onRequest(context) {
     utm_term: str(body.utm_term),
   };
 
-  // Send the branded "thanks for reaching out" email (the same transactional email
-  // the older capture funnels send) so every funnel lead gets one welcome. No-ops if
-  // RESEND_API_KEY is not bound; KV dedup applies when CF_KV_NAMESPACE is set.
-  const funnelForSubject =
-    { CASHOUT_REFI: "cash-out", PURCHASE: "purchase", RT_REFI: "rate-reduction", HELOC: "heloc", DSCR: "dscr" }[loanType] || "";
-  if (email && firstName) {
-    const emailJob = handleLeadEmail(env, { firstName, email, funnel: funnelForSubject });
-    if (typeof waitUntil === "function") waitUntil(emailJob);
-    else await emailJob;
-  }
+  // NOTE: the branded "thanks for reaching out" welcome email is intentionally NOT sent
+  // from here anymore. The Smartr8 CRM now owns the first-touch email: on lead_created it
+  // sends a branded, product-specific day-0 welcome (matched to the funnel's drip), so
+  // sending one here too would double up. To restore the funnel-side welcome, re-add a
+  // `handleLeadEmail(env, { firstName, email, funnel })` call (import it from ../_lib/leadEmail).
 
   const url = (env as Env).CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
   const forward = (async () => {
