@@ -103,10 +103,27 @@ export async function onRequest(context) {
     return jsonResponse({ success: false, errors: { phone: "Phone must be a valid US number" } }, 400, cors);
   }
 
+  // Loan purpose / use-of-funds. The HELOC funnels send it inside additionalFields
+  // (helocPurpose / helocPurposes); a funnel may also send it as a top-level loanPurpose.
+  // Capture it (+ timeline) so the CRM gets the Goal, not just qualifying numbers.
+  const af = (v.data.additionalFields ?? {}) as Record<string, unknown>;
+  const afStr = (val: unknown): string =>
+    Array.isArray(val) ? val.map((x) => String(x)).filter(Boolean).join(", ") : val == null ? "" : String(val);
+  let loanPurpose = String(v.data.loanPurpose || "").trim();
+  let timeline = "";
+  for (const [k, val] of Object.entries(af)) {
+    const s = afStr(val).trim();
+    if (!s) continue;
+    if (!loanPurpose && /purpose|^use$|loan_?goal|^goal$/i.test(k)) loanPurpose = s;
+    else if (!timeline && /^timeline$/i.test(k)) timeline = s;
+  }
+
   const notesParts = [];
   if (v.data.homeValue) notesParts.push(`Home Value: ${v.data.homeValue}`);
   if (v.data.mortgageBalance) notesParts.push(`Mortgage Balance: ${v.data.mortgageBalance}`);
   if (v.data.creditScore) notesParts.push(`Credit Score: ${v.data.creditScore}`);
+  if (loanPurpose) notesParts.push(`Loan Purpose: ${loanPurpose}`);
+  if (timeline) notesParts.push(`Timeline: ${timeline}`);
   if (v.data.dob) notesParts.push(`DOB: ${v.data.dob}`);
   if (v.data.notes) notesParts.push(v.data.notes);
 
@@ -115,6 +132,7 @@ export async function onRequest(context) {
   if (v.data.homeValue) quoteFields.home_value = String(v.data.homeValue);
   if (v.data.mortgageBalance) quoteFields.mortgage_balance = String(v.data.mortgageBalance);
   if (v.data.creditScore) quoteFields.credit = String(v.data.creditScore);
+  if (loanPurpose) quoteFields.loan_goal = loanPurpose; // CRM "Quote / loan details" → Goal field
 
   const lead: Lead = {
     lead_id: crypto.randomUUID(),

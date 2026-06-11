@@ -95,10 +95,13 @@ export async function onRequest(context) {
   const mortgageBalance = str(body.mortgage_balance) || str(body.mortgageBalance);
   const credit = str(body.credit) || str(body.creditScore);
   const dob = str(body.dob);
+  // Loan purpose / use-of-funds → the CRM "Goal" field (custom.loan_goal).
+  const loanPurpose = str(body.loanPurpose) || str(body.loan_goal) || str(body.purpose);
   const criteriaNotes = [
     homeValue ? `Home Value: ${homeValue}` : "",
     mortgageBalance ? `Mortgage Balance: ${mortgageBalance}` : "",
     credit ? `Credit Score: ${credit}` : "",
+    loanPurpose ? `Loan Purpose: ${loanPurpose}` : "",
     dob ? `DOB: ${dob}` : "",
   ]
     .filter(Boolean)
@@ -150,6 +153,7 @@ export async function onRequest(context) {
     home_value: homeValue,
     mortgage_balance: mortgageBalance,
     credit,
+    loan_goal: loanPurpose, // CRM "Quote / loan details" → Goal (custom.loan_goal)
     dob,
     notes: criteriaNotes,
     page_url: str(body.page_url),

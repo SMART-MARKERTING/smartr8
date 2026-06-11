@@ -21,6 +21,8 @@ export interface CrmLeadPayload {
   homeValue?: string;
   mortgageBalance?: string;
   creditScore?: string;
+  /** Loan purpose / use-of-funds → the CRM "Goal" field. */
+  loanPurpose?: string;
   /** MM/DD/YYYY (optional). */
   dob?: string;
   /** Honeypot field value (must be empty for a real submission). */
@@ -58,6 +60,7 @@ export async function submitCrmLead(payload: CrmLeadPayload): Promise<SubmitResu
     home_value: payload.homeValue ?? "",
     mortgage_balance: payload.mortgageBalance ?? "",
     credit: payload.creditScore ?? "",
+    loan_goal: payload.loanPurpose ?? "",
     dob: payload.dob ?? "",
     honeypot: payload.honeypot ?? "",
     pageLoadTime: payload.pageLoadTime ?? 0,

@@ -26,7 +26,12 @@ export const LeadSubmissionSchema = z.object({
   creditScore: z.string().max(80).optional().default(""),
   dob: z.string().max(40).optional().default(""),
   loanRequest: z.string().max(200).optional().default(""),
+  loanPurpose: z.string().max(300).optional().default(""),
   notes: z.string().max(8000).optional().default(""),
+
+  // Extra captured funnel answers (e.g. helocPurpose / helocPurposes / timeline). Previously
+  // these were stripped by the schema, so the loan purpose never reached the CRM.
+  additionalFields: z.record(z.any()).optional().default({}),
 
   // Turnstile + TCPA. All forms now ship <TcpaConsent /> so turnstile_token
   // and consent_version are required. consent_text is optional (server has
