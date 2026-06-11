@@ -19,6 +19,9 @@
 /og-image.png
   Cache-Control: public, max-age=2592000
 
+/og-image-heloc.jpg
+  Cache-Control: public, max-age=2592000
+
 /mykoal-headshot.jpg
   Cache-Control: public, max-age=2592000
 
