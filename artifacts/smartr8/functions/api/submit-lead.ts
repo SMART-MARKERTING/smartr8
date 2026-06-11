@@ -15,6 +15,7 @@
 // inside the leadmailbox result and we relay it to the client so the
 // existing src/lib/submitLead.ts browser-fallback fetch can fire.
 
+import { stateFromPhone } from "../_lib/areaCodeState";
 import { log } from "../_lib/log";
 import { normalizeEmail, normalizeName, normalizePhoneE164US } from "../_lib/normalize";
 import { processLead } from "../_lib/orchestrate";
@@ -134,6 +135,11 @@ export async function onRequest(context) {
   if (v.data.creditScore) quoteFields.credit = String(v.data.creditScore);
   if (loanPurpose) quoteFields.loan_goal = loanPurpose; // CRM "Quote / loan details" → Goal field
 
+  // Property state: prefer what the form submitted; otherwise derive it from the
+  // phone's area code so TCPA timezone resolution (and the CRM) get a state even
+  // though the funnels don't ask for one. Best-effort — correctable in the CRM.
+  const propertyState = (v.data.state || "").trim() || stateFromPhone(phone);
+
   const lead: Lead = {
     lead_id: crypto.randomUUID(),
     created_at: Date.now(),
@@ -143,6 +149,7 @@ export async function onRequest(context) {
     email,
     phone_e164: phone,
     address1: v.data.address || "",
+    property_state: propertyState,
     loan_request: v.data.loanRequest || "",
     notes: notesParts.join("\n"),
     quote_fields: quoteFields,

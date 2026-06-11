@@ -6,6 +6,7 @@
 //   RESEND_API_KEY — Resend API key for sending emails
 //   (also accepts RE_worksheet as an alternative name)
 
+import { stateFromPhone } from "../../_lib/areaCodeState";
 import { submitToLeadMailbox } from "../../_lib/leadmailbox";
 import { log } from "../../_lib/log";
 import { normalizeEmail, normalizeName, normalizePhoneE164US } from "../../_lib/normalize";
@@ -339,7 +340,7 @@ export async function onRequest(context: WorksheetContext): Promise<Response> {
       last_name: lastName,
       email: body.clientEmail,
       phone_e164: normalizePhoneE164US(body.phone),
-      property_state: (body.state ?? "").trim(),
+      property_state: (body.state ?? "").trim() || stateFromPhone(normalizePhoneE164US(body.phone)),
       loan_request: "Worksheet Self-Send",
       notes: [
         body.trackingId ? `Tracking ID: ${body.trackingId}` : "",
@@ -411,7 +412,7 @@ export async function onRequest(context: WorksheetContext): Promise<Response> {
     return jsonResponse({ success: false, errors: { phone: "Phone must be a valid US number" } }, 400, cors);
   }
 
-  const propertyState = (body.state ?? "").trim();
+  const propertyState = (body.state ?? "").trim() || stateFromPhone(phoneE164);
 
   const lead: Lead = {
     lead_id: crypto.randomUUID(),
