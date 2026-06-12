@@ -27,6 +27,11 @@ const HelocNextStepV2 = lazy(() => import("@/pages/HelocNextStepV2"));
 // landers were folded into the unified funnel and now 301 to their canonical
 // product routes below.
 const Dscr = lazy(() => import("@/pages/Dscr"));
+// Indexable product landers carrying the FAQ + FAQPage schema (search / AI
+// visibility). VA is a new lane; HelocOptions is the indexable companion to
+// the noIndex /heloc-v3 application funnel.
+const Va = lazy(() => import("@/pages/Va"));
+const HelocOptions = lazy(() => import("@/pages/HelocOptions"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetNextStep = lazy(() => import("@/pages/WorksheetNextStep"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
@@ -227,6 +232,9 @@ function Router() {
         <Route path="/application-next" component={WorksheetNextStep} />
         {/* DSCR remains its own standalone lander. */}
         <Route path="/dscr" component={Dscr} />
+        {/* VA lander (new lane) + indexable HELOC lander with FAQ + schema. */}
+        <Route path="/va" component={Va} />
+        <Route path="/heloc-options" component={HelocOptions} />
         {/* Retired single-page landers → their canonical funnel routes. */}
         <Route path="/cash-out-refi">{() => <RedirectTo to="/cash-out" preserveSearch />}</Route>
         <Route path="/rate-and-term-refi">{() => <RedirectTo to="/rate-reduction" preserveSearch />}</Route>

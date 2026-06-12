@@ -26,12 +26,91 @@ import {
 } from "@/lib/worksheetCalc";
 import { submitFunnelCompletion, type FunnelEntryButton } from "@/lib/submitLead";
 import { sendAutoQuote } from "@/lib/autoQuote";
+import { FunnelFAQ, type FaqItem, type GuideLink } from "@/components/FunnelFAQ";
+import { TrustBlock } from "@/components/TrustBlock";
+import { ComplianceFooter } from "@/components/ComplianceFooter";
+import { makeFunnelTracker, mykoalUrl, MYKOAL_ARTICLES } from "@/lib/funnelEvents";
 
 const STORAGE_KEY = "smartr8_worksheet_funnel_v2";
 const STEP_KEY = "smartr8_worksheet_funnel_step_v2";
 const CONTACT_KEY = "smartr8_funnel_contact_v1";
 const ENTRY_KEY = "smartr8_funnel_entry_v1";
 const PURCHASE_KEY = "smartr8_funnel_purchase_v1";
+
+// ── Funnel FAQ content (cash-out + rate-reduction only) ──────────────────────
+// Rendered below the funnel card on the indexable per-product routes. Each set
+// emits its own FAQPage schema (exactly one per page) via <FunnelFAQ/>. Copy is
+// compliance-safe: conditional language, no rates/figures. mykoal.com deep
+// links carry the funnel-FAQ UTM set.
+interface FunnelFaqConfig {
+  /** snake_case analytics page key. */
+  page: string;
+  /** VA disclaimer is never shown here (no VA lane in the worksheet). */
+  items: FaqItem[];
+  guideLinks: GuideLink[];
+}
+const FUNNEL_FAQS: Partial<Record<FunnelEntryButton, FunnelFaqConfig>> = {
+  "cash-out": {
+    page: "cash_out",
+    items: [
+      {
+        q: "What is a cash-out refinance?",
+        a: "A cash-out refinance replaces your current mortgage with a new, larger loan and gives you the difference in cash. Homeowners often use it to access built-up equity for renovations, debt consolidation, or other goals. The amount available depends on your equity and a full application review.",
+      },
+      {
+        q: "Does a cash-out refinance replace my current mortgage?",
+        a: "Yes. Unlike a HELOC, a cash-out refinance pays off your existing mortgage and replaces it with a single new loan. That means your current rate and term change, so it is worth comparing against a second-lien option if you want to keep your current first mortgage.",
+      },
+      {
+        q: "Can I use cash-out funds for debt consolidation?",
+        a: "Many homeowners use cash-out funds to pay off higher-rate balances and consolidate them into one mortgage payment. Whether that helps depends on your balances, your rate, and your goals, all reviewed as part of a full application. There is no obligation to find out what fits.",
+      },
+      {
+        q: "How much equity do I need?",
+        a: "Requirements vary, but many programs ask you to keep some equity in the home after the new loan. The exact amount depends on the program, your credit profile, and the property, all confirmed through underwriting. We can review your scenario and tell you where you stand.",
+      },
+      {
+        q: "Is a cash-out refinance better than a HELOC?",
+        a: "It depends on whether you want to keep your current mortgage. A cash-out refinance replaces it with one new loan, while a HELOC adds a separate line behind it. Comparing both side by side is the best way to decide which fits your goals.",
+        learnMore: { href: mykoalUrl(MYKOAL_ARTICLES.helocVsCashOut), label: "HELOC vs. cash-out refinance", mykoal: true },
+      },
+    ],
+    guideLinks: [
+      { href: mykoalUrl(MYKOAL_ARTICLES.helocVsCashOut), label: "Read the full guide: HELOC vs. cash-out refinance", mykoal: true },
+    ],
+  },
+  "rate-reduction": {
+    page: "rate_reduction",
+    items: [
+      {
+        q: "When does refinancing make sense?",
+        a: "Refinancing can make sense when it helps you reach a clear goal, such as lowering your rate, reducing your monthly payment, or changing your loan term. The right answer depends on your current loan, how long you plan to stay, and the costs involved. A quick review can show whether the timing works for you.",
+        learnMore: { href: mykoalUrl(MYKOAL_ARTICLES.whenRefinance), label: "When does refinancing make sense?", mykoal: true },
+      },
+      {
+        q: "What is a refinance break-even point?",
+        a: "The break-even point is roughly when the savings from your new loan add up to more than what the refinance cost you. If you plan to stay past that point, refinancing is more likely to pay off. We can estimate it for your scenario, subject to a full application review.",
+        learnMore: { href: mykoalUrl(MYKOAL_ARTICLES.whenRefinance), label: "When does refinancing make sense?", mykoal: true },
+      },
+      {
+        q: "Can refinancing lower my monthly payment?",
+        a: "It can, depending on your new rate, loan term, and balance. Some borrowers lower their payment by reducing their rate, while others do it by adjusting the term. Whether it works for you is confirmed through a full application review, with no obligation to move forward.",
+      },
+      {
+        q: "What costs come with refinancing?",
+        a: "A refinance typically involves closing costs that can include lender, title, and appraisal-related fees, which vary by loan and location. Some borrowers pay these up front while others roll them into the loan. We will walk through the specifics for your scenario before you decide.",
+      },
+      {
+        q: "How do I know if now is a good time to refinance?",
+        a: "The best time depends on your goals, your current loan, and how the numbers work out after costs. Rather than trying to time the market perfectly, it helps to compare your current loan against your options for your specific situation. We can run that review with no obligation.",
+        learnMore: { href: mykoalUrl(MYKOAL_ARTICLES.whenRefinance), label: "When does refinancing make sense?", mykoal: true },
+      },
+    ],
+    guideLinks: [
+      { href: mykoalUrl(MYKOAL_ARTICLES.whenRefinance), label: "Read the full guide: When does refinancing make sense?", mykoal: true },
+    ],
+  },
+};
 
 // Tailored purchase-path answers (no existing mortgage / equity to calc).
 interface PurchaseInfo {
@@ -495,6 +574,18 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
   // Funnel structure flags
   const isCalc = isCalcEntry(entryButton);
   const isRateReduction = inputs.productType === "RATE_REDUCTION";
+
+  // Funnel FAQ + analytics for the indexable per-product routes (cash-out,
+  // rate-reduction). Recomputed each render; makeFunnelTracker is stateless and
+  // cheap, and the hoisted handlers below close over the current value.
+  const faqConfig = entryButton ? FUNNEL_FAQS[entryButton] : undefined;
+  const tracker = faqConfig ? makeFunnelTracker(faqConfig.page) : null;
+  const formStarted = useRef(false);
+  const handleFormStart = () => {
+    if (formStarted.current || !tracker) return;
+    formStarted.current = true;
+    tracker.formStart();
+  };
   // Visible step counts:
   //   non-calc (heloc/purchase): 2 visible steps (intro → contact)
   //   calc + RATE_REDUCTION:     4 visible steps (product, mortgage, loan, contact)
@@ -708,6 +799,8 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
       });
       return;
     }
+
+    tracker?.formSubmit();
 
     // Persist trimmed contact (so /whats-next can read the firstName for personal banner)
     setContact({ firstName: first, lastName: last, email, mobile });
@@ -1382,6 +1475,7 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
               id="cf-first"
               value={contact.firstName}
               onChange={(e) => updateContact({ firstName: e.target.value })}
+              onFocus={handleFormStart}
               placeholder="Jane"
               autoComplete="given-name"
               data-testid="contact-first-name"
@@ -1497,7 +1591,7 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
                 <Button variant="ghost" onClick={back} disabled={step === 1}>
                   <ArrowLeft className="h-4 w-4 mr-1" /> Back
                 </Button>
-                <Button onClick={next} className="bg-accent hover:bg-accent/90 text-white">
+                <Button onClick={() => { tracker?.primaryCtaClick(); next(); }} className="bg-accent hover:bg-accent/90 text-white">
                   Continue <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
@@ -1524,6 +1618,33 @@ export default function Worksheet({ entry }: { entry?: FunnelEntryButton } = {})
             {step === 5 && <TcpaSubmitNotice />}
           </div>
         </main>
+
+        {/* FAQ + trust + compliance — only on the indexable per-product routes
+            (cash-out, rate-reduction). Below the funnel card, never above the
+            fold; FunnelFAQ emits the matching FAQPage schema. */}
+        {faqConfig && (
+          <>
+            <section className="container mx-auto max-w-3xl px-4 pb-4 font-body [&_h2]:font-heading [&_h3]:font-heading">
+              <FunnelFAQ items={faqConfig.items} guideLinks={faqConfig.guideLinks} track={tracker ?? undefined} />
+              <div className="mt-10 text-center">
+                <Button
+                  onClick={() => {
+                    tracker?.secondaryCtaClick();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="bg-accent hover:bg-accent/90 text-white h-12 px-8 text-base"
+                >
+                  {entryButton === "cash-out" ? "See My Cash-Out Options" : "See My Rate Reduction Options"}
+                  <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </section>
+            <section className="container mx-auto max-w-3xl px-4 py-10">
+              <TrustBlock />
+            </section>
+            <ComplianceFooter />
+          </>
+        )}
 
         <Footer />
       </div>

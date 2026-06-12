@@ -4,7 +4,7 @@
 // https://crm.smartr8.com/webhooks/lead. The `loanType` tag rides along so the
 // CRM enrolls the lead into the matching drip campaign.
 
-export type LoanType = "HELOC" | "DSCR" | "CASHOUT_REFI" | "RT_REFI" | "PURCHASE";
+export type LoanType = "HELOC" | "DSCR" | "CASHOUT_REFI" | "RT_REFI" | "PURCHASE" | "VA";
 
 export interface CrmLeadPayload {
   loanType: LoanType;

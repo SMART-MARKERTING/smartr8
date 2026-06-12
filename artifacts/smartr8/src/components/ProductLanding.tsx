@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Check, Loader2, ShieldCheck } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { JsonLd } from "@/components/JsonLd";
 import { Header } from "@/components/Header";
@@ -10,6 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { submitCrmLead, type LoanType } from "@/lib/submitCrmLead";
 import { trackFbEvent } from "@/lib/fbq";
+import { FunnelFAQ, type FaqItem, type GuideLink } from "@/components/FunnelFAQ";
+import { TrustBlock } from "@/components/TrustBlock";
+import { ComplianceFooter } from "@/components/ComplianceFooter";
+import { makeFunnelTracker } from "@/lib/funnelEvents";
 
 // Single-page conversion funnel shared by the four product landers (DSCR, Cash
 // Out Refi, Rate and Term Refi, Purchase). It mirrors the /heloc-v2 stack,
@@ -99,6 +103,16 @@ export interface ProductConfig {
   /** Schema.org Service name + serviceType for the JSON-LD block. */
   serviceName: string;
   serviceType: string;
+  /** snake_case analytics page key, e.g. "dscr", "va", "heloc". */
+  trackingPage: string;
+  /** FAQ items rendered below the form (FunnelFAQ + FAQPage schema). */
+  faqs?: FaqItem[];
+  /** "Read the full guide" link(s) after the FAQ block. */
+  faqGuideLinks?: GuideLink[];
+  /** Secondary CTA label shown after the FAQ; defaults to ctaLabel. */
+  secondaryCtaLabel?: string;
+  /** Render {{VA_DISCLAIMER_TEXT}} in the ComplianceFooter (VA pages). */
+  vaDisclaimer?: boolean;
 }
 
 const LICENSED_STATES = [
@@ -182,6 +196,15 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
   const widgetId = useRef<string | null>(null);
 
   const consentText = buildConsentText(config.consentProduct);
+
+  // Conversion analytics for this funnel page (snake_case {page}_{element}_{action}).
+  const track = useRef(makeFunnelTracker(config.trackingPage)).current;
+  const formStarted = useRef(false);
+  const handleFormStart = () => {
+    if (formStarted.current) return;
+    formStarted.current = true;
+    track.formStart();
+  };
 
   useEffect(() => {
     trackFbEvent("ViewContent", {
@@ -269,6 +292,7 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
       });
       if (result.success) {
         trackFbEvent("Lead", { content_name: config.loanType, content_category: "Mortgage" });
+        track.formSubmit();
         setSubmitted(true);
       } else {
         setSubmitError(
@@ -326,7 +350,7 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
             <div className="mt-7">
               <Button
                 type="button"
-                onClick={scrollToForm}
+                onClick={() => { track.primaryCtaClick(); scrollToForm(); }}
                 className="h-12 px-8 text-base shadow-lg rounded-xl border-0 hover:opacity-90"
                 style={{ backgroundColor: BRAND_RED, color: "#FFFFFF" }}
               >
@@ -412,7 +436,7 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
                 <p className="text-muted-foreground leading-relaxed">
                   Your request is in. Mykoal DeShazo will reach out shortly with your options. Need to talk sooner? Call
                   or text {""}
-                  <a href="tel:4802069290" className="font-semibold underline" style={{ color: BRAND_RED }}>
+                  <a href="tel:4802069290" onClick={() => track.phoneClick()} className="font-semibold underline" style={{ color: BRAND_RED }}>
                     (480) 206 9290
                   </a>
                   .
@@ -452,6 +476,7 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
                         id="fn"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
+                        onFocus={handleFormStart}
                         placeholder="Jane"
                         className="h-12 text-base"
                         autoComplete="given-name"
@@ -637,32 +662,37 @@ export function ProductLanding({ config }: { config: ProductConfig }) {
               </>
             )}
 
-            {/* TRUST ROW */}
-            <div className="mt-8 flex flex-col items-center gap-2 text-center">
-              <div className="flex items-center gap-2 text-sm font-medium" style={{ color: BRAND_TEAL }}>
-                <ShieldCheck className="h-4 w-4" style={{ color: "#1F8A5F" }} />
-                Mykoal DeShazo NMLS 1912347 | Adaxa Home LLC NMLS 2380533
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <img
-                  src="/eho-logo-optimized.png"
-                  alt="Equal Housing Opportunity"
-                  width={14}
-                  height={15}
-                  loading="lazy"
-                  decoding="async"
-                  className="h-3.5 w-auto object-contain"
-                />
-                Equal Housing Opportunity
-              </div>
-              <p className="text-xs text-muted-foreground max-w-md">
-                Licensed in AZ, CO, CT, FL, MI, MN, OR, PA, TX, VA, WA. This is not a commitment to lend.
-              </p>
-            </div>
           </div>
         </section>
+
+        {/* TRUST BLOCK — licensed guidance, no-obligation, secure data + NMLS/EHO */}
+        <section className="px-4 pb-12 sm:pb-16">
+          <TrustBlock />
+        </section>
+
+        {/* FAQ — collapsed by default, below the conversion path. Emits FAQPage
+            schema that matches the visible text. */}
+        {config.faqs && config.faqs.length > 0 && (
+          <section className="px-4 py-12 sm:py-16" style={{ backgroundColor: CREAM }}>
+            <FunnelFAQ items={config.faqs} guideLinks={config.faqGuideLinks} track={track} />
+
+            {/* SECONDARY CTA — same destination as the primary (the lead form). */}
+            <div className="mt-10 text-center">
+              <Button
+                type="button"
+                onClick={() => { track.secondaryCtaClick(); scrollToForm(); }}
+                className="h-12 px-8 text-base shadow-lg rounded-xl border-0 hover:opacity-90"
+                style={{ backgroundColor: BRAND_RED, color: "#FFFFFF" }}
+              >
+                {config.secondaryCtaLabel ?? config.ctaLabel}
+              </Button>
+              <p className="mt-3 text-xs text-muted-foreground">No credit pull to see your options. No commitment.</p>
+            </div>
+          </section>
+        )}
       </main>
 
+      <ComplianceFooter showVaDisclaimer={config.vaDisclaimer} />
       <Footer />
     </div>
   );

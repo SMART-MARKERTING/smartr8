@@ -29,7 +29,7 @@ import type { Env } from "../_lib/types";
 const CRM_LEAD_WEBHOOK_URL =
   "https://crm.smartr8.com/webhooks/lead?key=4519413906c139e16484f518fdd8968c";
 
-const VALID_LOAN_TYPES = new Set(["HELOC", "DSCR", "CASHOUT_REFI", "RT_REFI", "PURCHASE"]);
+const VALID_LOAN_TYPES = new Set(["HELOC", "DSCR", "CASHOUT_REFI", "RT_REFI", "PURCHASE", "VA"]);
 
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
 function isAllowedOrigin(o) {
