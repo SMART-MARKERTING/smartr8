@@ -21,8 +21,9 @@ const STATES_11 = [
 ];
 
 export default function Home() {
-  // All HELOC / home-equity traffic now lands on the /heloc-v3 funnel.
-  const helocHref = "/heloc-v3";
+  // Homepage HELOC / home-equity cards point at the indexable /heloc-options
+  // lander (the /heloc-v3 application funnel itself is left unchanged).
+  const helocHref = "/heloc-options";
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/10">
@@ -267,7 +268,7 @@ export default function Home() {
                 </Card>
               </Link>
 
-              <Link href="/heloc-v3">
+              <Link href={helocHref}>
                 <Card className="hover:border-primary/50 transition-all cursor-pointer group shadow-sm hover:shadow-md h-full">
                   <CardContent className="p-4 md:p-5 flex flex-col gap-2 h-full">
                     <div className="h-9 w-9 bg-primary/5 rounded-lg flex items-center justify-center group-hover:bg-primary/10 transition-colors">
