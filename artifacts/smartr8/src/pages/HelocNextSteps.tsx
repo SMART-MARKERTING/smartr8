@@ -92,7 +92,7 @@ export default function HelocNextSteps() {
                 </div>
                 <div className="mt-auto">
                   <a
-                    href="https://cal.com/mykoal-deshazo/consult"
+                    href="https://cal.com/mykoal/15-min-loan-consult-meeting"
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Book a time with Mykoal on Cal.com (opens in new tab)"

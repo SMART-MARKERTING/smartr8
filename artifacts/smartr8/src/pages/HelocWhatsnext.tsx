@@ -9,7 +9,7 @@ import { ArrowRight, CalendarDays, FileText, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { useGA4 } from "@/hooks/useGA4";
 import { trackFbEvent } from "@/lib/fbq";
-const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
+const CAL_URL = "https://cal.com/mykoal/15-min-loan-consult-meeting";
 const LENDINGPAD_URL = "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd28-9b5f-46b8-9029-aa478433a995";
 
 export default function HelocWhatsnext() {

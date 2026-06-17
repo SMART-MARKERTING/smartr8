@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
-  Calendar,
   Check,
   DollarSign,
   GraduationCap,
@@ -44,7 +43,6 @@ import "./helocV3.css";
 
 const SESSION_KEY = "funnel_heloc_v3";
 const FUNNEL_VERSION = "v3";
-const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
 
 // Fast Digital Path application destination — same target the v2 next-step
 // page redirects to. Defined here so the result CTA can be retargeted in one
@@ -544,23 +542,6 @@ function StepAbout({
   );
 }
 
-// Floating, secondary "Book a time" CTA. Anchored bottom-right; never competes
-// with the in-funnel red primary. Links to Cal so the global PixelLinkTracker
-// fires a Schedule event automatically.
-function BookCal() {
-  return (
-    <a className="bookcal" href={CAL_URL} target="_blank" rel="noopener noreferrer">
-      <span className="cav">
-        <Calendar size={16} />
-      </span>
-      <span>
-        Book a time
-        <small>15 min with Mykoal</small>
-      </span>
-    </a>
-  );
-}
-
 // ============================================================================
 // Page
 // ============================================================================
@@ -756,7 +737,6 @@ export default function HelocV3() {
 
       <div className="heloc-v3 flex-1 flex flex-col">
         <main className="main">{screen}</main>
-        <BookCal />
       </div>
 
       <Footer />

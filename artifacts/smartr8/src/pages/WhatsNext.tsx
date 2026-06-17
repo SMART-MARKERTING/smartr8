@@ -9,7 +9,7 @@ import { ArrowRight, CalendarDays, FileText, Zap } from "lucide-react";
 import { trackFbEvent } from "@/lib/fbq";
 import { appendNextStepAction, type FunnelEntryButton } from "@/lib/submitLead";
 
-const CAL_URL = "https://cal.com/mykoal-deshazo/consult";
+const CAL_URL = "https://cal.com/mykoal/15-min-loan-consult-meeting";
 const LENDINGPAD_URL =
   "https://prod.lendingpad.com/adaxa-home/pos#/?loid=dabbfd28-9b5f-46b8-9029-aa478433a995";
 
