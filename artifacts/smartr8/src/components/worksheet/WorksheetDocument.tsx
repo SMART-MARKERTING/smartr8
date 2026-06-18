@@ -202,13 +202,9 @@ const WorksheetDocument = React.forwardRef<HTMLDivElement, WorksheetDocumentProp
                   <td style={tdStyle}>{newLoanLabel} Monthly P&I</td>
                   <td style={tdNumStyle}>{money(results.newLoanPmt)}</td>
                 </tr>
-                <tr>
-                  <td style={tdStyle}>New Total Outflow</td>
-                  <td style={tdNumStyle}>{money(results.newTotalOutflow)}</td>
-                </tr>
                 <tr style={{ background: LIGHT }}>
                   <td style={{ ...tdStyle, fontWeight: 700, color: isNegativeSavings ? RED : GREEN }}>
-                    Monthly Savings (if applied to principal)
+                    Monthly Savings
                   </td>
                   <td style={{ ...tdNumStyle, fontWeight: 700, color: isNegativeSavings ? RED : GREEN }}>
                     {money(results.monthlySavings)}
@@ -279,11 +275,8 @@ const WorksheetDocument = React.forwardRef<HTMLDivElement, WorksheetDocumentProp
             </thead>
             <tbody>
               {[
-                { label: "Monthly Payment", cur: money(current.monthlyPmt), con: money(consolidated.monthlyPmt), acc: money(accelerated.monthlyPmt) },
+                { label: "Monthly Payment", cur: money(current.monthlyPmt), con: money(consolidated.monthlyPmt), acc: money(results.extraMonthly) },
                 { label: "Time to Debt-Free", cur: yrs(current.years), con: yrs(consolidated.years), acc: yrs(accelerated.years) },
-                { label: "Total Interest", cur: "—", con: money(consolidated.totalInterest), acc: money(accelerated.totalInterest) },
-                { label: "Interest Saved", cur: "—", con: "— (baseline)", acc: money(totalSaved), highlight: true },
-                { label: "Time Saved", cur: "—", con: "— (baseline)", acc: yrs(timeSaved), highlight: true },
                 ...(isNegativeSavings ? [] : [{
                   label: "Effective Rate on New Loan",
                   cur: "—",
@@ -295,7 +288,7 @@ const WorksheetDocument = React.forwardRef<HTMLDivElement, WorksheetDocumentProp
                   <td style={{ ...tdStyle, fontWeight: 600, color: NAVY }}>{row.label}</td>
                   <td style={tdNumStyle}>{row.cur}</td>
                   <td style={tdNumStyle}>{row.con}</td>
-                  <td style={{ ...tdNumStyle, background: "rgba(201,167,77,0.12)", fontWeight: row.highlight ? 700 : undefined, color: row.highlight ? GREEN : undefined }}>
+                  <td style={{ ...tdNumStyle, background: "rgba(201,167,77,0.12)" }}>
                     {row.acc}
                   </td>
                 </tr>

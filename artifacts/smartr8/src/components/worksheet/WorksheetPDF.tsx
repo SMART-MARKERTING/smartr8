@@ -138,16 +138,12 @@ export function WorksheetPDF({ inputs, results, headshotUrl }: WorksheetPDFProps
   const snapshotExtra: RowDef[] = [
     { label: `${newLoanLabel} Amount`, val: `${money(inputs.loanAmount)} @ ${aprStr}` },
     { label: `${newLoanLabel} Monthly P&I`, val: money(results.newLoanPmt) },
-    { label: "New Total Outflow", val: money(results.newTotalOutflow) },
   ];
 
   type CmpRow = { label: string; cur: string; con: string; acc: string; highlight?: boolean; boldCon?: boolean; boldAcc?: boolean; };
   const cmpRows: CmpRow[] = [
-    { label: "Monthly Payment", cur: money(current.monthlyPmt), con: money(consolidated.monthlyPmt), acc: money(accelerated.monthlyPmt) + "*" },
+    { label: "Monthly Payment", cur: money(current.monthlyPmt), con: money(consolidated.monthlyPmt), acc: money(results.extraMonthly) },
     { label: "Time to Debt-Free", cur: yrs(current.years), con: yrs(consolidated.years), acc: yrs(accelerated.years) },
-    { label: "Total Interest", cur: "—", con: money(consolidated.totalInterest), acc: money(accelerated.totalInterest) },
-    { label: "Interest Saved", cur: "—", con: "— (baseline)", acc: money(totalSaved), highlight: true },
-    { label: "Time Saved", cur: "—", con: "— (baseline)", acc: timeSaved.toFixed(1) + " yrs", highlight: true },
   ];
   if (!isNegativeSavings) {
     cmpRows.push({
@@ -235,7 +231,7 @@ export function WorksheetPDF({ inputs, results, headshotUrl }: WorksheetPDFProps
               <View style={s.totalsRow}>
                 <View style={[s.td, { flex: 1 }]}>
                   <Text style={isNegativeSavings ? { ...s.totalsLabel, color: RED } : s.savingsLabel}>
-                    Monthly Savings (if applied to principal)
+                    Monthly Savings
                   </Text>
                 </View>
                 <View style={[s.td, { flex: 1 }]}>
@@ -315,8 +311,7 @@ export function WorksheetPDF({ inputs, results, headshotUrl }: WorksheetPDFProps
               </View>
             ))}
             <Text style={s.footnote}>
-              * Includes {money(results.extraMonthly)}/mo extra principal payment{"\n"}
-              {"\u2020"} Illustrated effective rate assumes extra principal payments; this is not the loan&apos;s APR.
+              {"\u2020"} Illustrated effective rate assumes {money(results.extraMonthly)}/mo extra principal payment; this is not the loan&apos;s APR.
             </Text>
           </View>
 
