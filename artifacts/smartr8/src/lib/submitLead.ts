@@ -1,4 +1,4 @@
-export type FunnelId = "heloc" | "cashout" | "rate-reduction" | "purchase";
+export type FunnelId = "heloc" | "cashout" | "rate-reduction" | "purchase" | "legal";
 
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
 
@@ -66,6 +66,7 @@ function loanRequest(funnelType: FunnelId): string {
   if (funnelType === "rate-reduction") return "Rate and Term Refinance";
   if (funnelType === "purchase") return "Purchase";
   if (funnelType === "heloc") return "HELOC";
+  if (funnelType === "legal") return "LegalZoom Partner Lead";
   return "Refinance";
 }
 
@@ -161,7 +162,10 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const result = (await res.json()) as SubmitResult & { lmPayload?: Record<string, string> | null };
+    const result = (await res.json()) as SubmitResult & {
+      lead_id?: string;
+      lmPayload?: Record<string, string> | null;
+    };
 
     // Browser fallback: fires if Worker's LM call was IP-blocked (lmPayload non-null).
     // keepalive:true survives page navigation like sendBeacon but is a normal fetch,
@@ -180,7 +184,7 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
     // It is fired exactly once per lead from the matching whats-next page
     // (HelocWhatsnext / CashOutWhatsnext / RateReductionWhatsnext /
     // PurchaseWhatsnext / WhatsNext) so a single funnel = a single Lead.
-    return { success: result.success, leadId: result.leadId, error: result.error };
+    return { success: result.success, leadId: result.leadId ?? result.lead_id, error: result.error };
   } catch {
     // Worker failed — fire LM from browser as last resort
     fetch(LM_ENDPOINT, {
