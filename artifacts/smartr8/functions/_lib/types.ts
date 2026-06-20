@@ -10,6 +10,7 @@ export type FunnelId =
   | "cash-out"
   | "rate-reduction"
   | "purchase"
+  | "legal"
   | "worksheet"
   | "other";
 
