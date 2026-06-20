@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 
 const LEGALZOOM_URL =
   (import.meta.env.VITE_LEGALZOOM_AFFILIATE_URL as string | undefined) ||
-  "https://www.legalzoom.com/";
+  "https://impact.legalzoom.com/c/7347784/2110096/26746";
 
 const isLegalSubdomain =
   typeof window !== "undefined" && window.location.hostname === "legal.smartr8.com";
@@ -29,21 +29,21 @@ const legalServices = [
   },
   {
     icon: FileText,
-    title: "Create common legal documents",
-    body: "Access templates and guided documents for agreements, business operations, estate planning, and other common legal needs.",
+    title: "Plan for family and estate needs",
+    body: "Explore wills, living trusts, power of attorney documents, and attorney help for personal planning questions.",
   },
   {
     icon: BadgeCheck,
-    title: "Protect names and brands",
-    body: "Review trademark tools and attorney-guided options when a business name, product, or brand is becoming valuable.",
+    title: "Protect names, brands, and ideas",
+    body: "Review trademark, copyright, patent, and attorney-guided options when a business name or creative asset is becoming valuable.",
   },
 ];
 
 const useCases = [
   "Real estate investors setting up an entity before buying property",
   "Self-employed borrowers organizing business documents before financing",
-  "Homeowners planning estate documents alongside bigger financial decisions",
-  "Business owners who need registered agent or compliance support",
+  "Homeowners planning wills, trusts, or power of attorney documents",
+  "Business owners who need registered agent, compliance, or IP support",
 ];
 
 function LegalZoomCta({ location }: { location: "hero" | "midpage" | "footer" }) {
@@ -117,8 +117,8 @@ export default function LegalZoom() {
                   Set up the legal side before the money moves.
                 </h1>
                 <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
-                  LegalZoom can help with business formation, registered agent
-                  services, legal documents, trademarks, and estate planning.
+                  LegalZoom can help with business formation, wills and trusts,
+                  intellectual property, attorney support, and legal documents.
                   Use this page when your mortgage, real estate, or business
                   plans need the legal structure cleaned up too.
                 </p>
