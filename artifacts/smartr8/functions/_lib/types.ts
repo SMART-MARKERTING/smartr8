@@ -11,6 +11,7 @@ export type FunnelId =
   | "rate-reduction"
   | "purchase"
   | "worksheet"
+  | "see-my-options"
   | "other";
 
 export interface Lead {

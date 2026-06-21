@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -22,6 +23,8 @@ import type { LucideIcon } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { submitLead } from "@/lib/submitLead";
+import { trackFbEvent } from "@/lib/fbq";
 import "./helocV3.css";
 
 const SESSION_KEY = "smartr8_program_finder_v1";
@@ -45,6 +48,8 @@ type Data = {
   last: string;
   email: string;
   phone: string;
+  honeypot: string;
+  pageLoadTime: number;
 };
 
 const DEFAULT_DATA: Data = {
@@ -59,6 +64,8 @@ const DEFAULT_DATA: Data = {
   last: "",
   email: "",
   phone: "",
+  honeypot: "",
+  pageLoadTime: 0,
 };
 
 type Opt = {
@@ -139,6 +146,18 @@ function money(n: string) {
 
 function parseMoney(n: string) {
   return Number((n || "").replace(/[^\d]/g, "")) || 0;
+}
+
+function buildApplicationUrl(data: Data) {
+  const url = new URL(HELOC_APPLICATION_URL);
+  url.searchParams.set("source", "see-my-options");
+  url.searchParams.set("name", data.first);
+  url.searchParams.set("credit", label(CREDIT, data.credit));
+  url.searchParams.set(
+    "use",
+    data.occupancy === "investment" ? "Investment property program review" : "Program finder quote",
+  );
+  return url.toString();
 }
 
 function Progress({ current }: { current: number }) {
@@ -282,14 +301,18 @@ function ProgramSummary({ data }: { data: Data }) {
 }
 
 export default function ProgramFinderPreview() {
+  const [location] = useLocation();
   const [stage, setStage] = useState<Stage>("occupancy");
   const [data, setData] = useState<Data>(() => {
     try {
-      return { ...DEFAULT_DATA, ...(JSON.parse(sessionStorage.getItem(SESSION_KEY) || "{}") as Partial<Data>) };
+      const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "{}") as Partial<Data>;
+      return { ...DEFAULT_DATA, ...saved, pageLoadTime: saved.pageLoadTime || Date.now() };
     } catch {
-      return DEFAULT_DATA;
+      return { ...DEFAULT_DATA, pageLoadTime: Date.now() };
     }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
@@ -304,6 +327,59 @@ export default function ProgramFinderPreview() {
     set(patch);
     window.setTimeout(() => go(next), AUTO_ADVANCE_MS);
   };
+  const pageUrlOverride =
+    location === "/main-see-my-options" && typeof window !== "undefined"
+      ? `${window.location.origin}/main-see-my-options`
+      : undefined;
+
+  async function submitProgramFinderLead() {
+    setIsSubmitting(true);
+    setSubmitError("");
+    const sourceLabel = location === "/main-see-my-options" ? "main-see-my-options" : "see-my-options";
+    try {
+      const result = await submitLead({
+        funnel: "see-my-options",
+        firstName: data.first.trim(),
+        lastName: data.last.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+        homeValue: data.homeValue,
+        mortgageBalance: data.balance,
+        creditScore: label(CREDIT, data.credit),
+        honeypot: data.honeypot,
+        pageLoadTime: data.pageLoadTime,
+        pageUrlOverride,
+        additionalFields: {
+          "Funnel-Source": sourceLabel,
+          Occupancy: label(OCCUPANCY, data.occupancy),
+          "Employment Status": label(EMPLOYMENT, data.employment),
+          "Mortgage Setup": label(MORTGAGE_STATUS, data.mortgageStatus),
+          "Requested Next Step": data.nextAction === "email_quote" ? "Have quote emailed/texted to me" : "Schedule a call",
+          "Best-Fit Genre":
+            data.occupancy === "investment"
+              ? "Investor financing path"
+              : ["self_employed", "entrepreneur", "unemployed"].includes(data.employment)
+                ? "Flexible documentation path"
+                : "Home equity or cash-out path",
+        },
+      });
+      if (result.success) {
+        trackFbEvent("Lead", {
+          content_name: "Program Finder",
+          content_category: "Mortgage",
+          source: sourceLabel,
+        });
+        sessionStorage.removeItem(SESSION_KEY);
+        window.location.href = buildApplicationUrl(data);
+      } else {
+        setSubmitError(result.error || "Something went wrong. Please call or text Mykoal directly at (480) 206-9290.");
+        setIsSubmitting(false);
+      }
+    } catch {
+      setSubmitError("Something went wrong. Please call or text Mykoal directly at (480) 206-9290.");
+      setIsSubmitting(false);
+    }
+  }
 
   const stageIndex = useMemo(() => {
     if (stage === "occupancy") return 0;
@@ -442,6 +518,16 @@ export default function ProgramFinderPreview() {
           <Field label="Mobile phone">
             <input className="inp" type="tel" value={data.phone} placeholder="(480) 555-0199" onChange={(e) => set({ phone: e.target.value })} />
           </Field>
+          <input
+            type="text"
+            name="website"
+            value={data.honeypot}
+            onChange={(e) => set({ honeypot: e.target.value })}
+            tabIndex={-1}
+            aria-hidden="true"
+            autoComplete="off"
+            style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, width: 0 }}
+          />
           <div className="reassure">
             <Info size={18} />
             <div>
@@ -453,20 +539,15 @@ export default function ProgramFinderPreview() {
           </div>
           <NavRow
             onBack={() => go("recommendation")}
-            onNext={() => {
-              const url = new URL(HELOC_APPLICATION_URL);
-              url.searchParams.set("source", "see-my-options");
-              url.searchParams.set("name", data.first);
-              url.searchParams.set("credit", label(CREDIT, data.credit));
-              url.searchParams.set(
-                "use",
-                data.occupancy === "investment" ? "Investment property program review" : "Program finder quote",
-              );
-              window.location.href = url.toString();
-            }}
-            disabled={!ready}
-            nextLabel="Send Quote Request"
+            onNext={submitProgramFinderLead}
+            disabled={!ready || isSubmitting}
+            nextLabel={isSubmitting ? "Submitting..." : "Send Quote Request"}
           />
+          {submitError && (
+            <p className="errmsg">
+              <AlertTriangle size={13} /> {submitError}
+            </p>
+          )}
           {!ready && (
             <p className="errmsg">
               <AlertTriangle size={13} /> Add name, valid email, and phone to continue.
