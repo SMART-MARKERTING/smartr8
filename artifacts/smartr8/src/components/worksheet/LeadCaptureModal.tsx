@@ -19,9 +19,6 @@ interface LeadCaptureModalProps {
   worksheetSummary?: string;
 }
 
-const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
-const FORMSPREE = "https://formspree.io/f/meennekb";
-
 function getOrCreateTrackingId(): string {
   try {
     const key = "smartr8_tid";
@@ -75,23 +72,6 @@ export default function LeadCaptureModal({
     setErrors({});
     setSubmitting(true);
 
-    const lmPayload = {
-      FirstName: firstName.trim(),
-      LastName: lastName.trim(),
-      Email: email.trim(),
-      MobilePhone: "",
-      Phys_State: "",
-      Loan_Request: "Worksheet Lead",
-      Notes: [
-        "Funnel: worksheet",
-        `Submitted: ${new Date().toISOString()}`,
-        "Source: smartr8.com/worksheet",
-        worksheetSummary ? `\nWorksheet summary:\n${worksheetSummary}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n"),
-    };
-
     // Fire lead submission in background — don't block unlock
     const trackingId = getOrCreateTrackingId();
 
@@ -112,43 +92,7 @@ export default function LeadCaptureModal({
       }),
     })
       .then((res) => res.json())
-      .then((result: { success: boolean; lmPayload?: Record<string, string> | null }) => {
-        if (result.lmPayload) {
-          // Server-side LM failed — try from browser
-          fetch(LM_ENDPOINT, {
-            method: "POST",
-            mode: "no-cors",
-            keepalive: true,
-            headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify(result.lmPayload),
-          }).catch(() => {});
-        }
-      })
-      .catch(() => {
-        // Server unreachable — fire LM directly from browser
-        fetch(LM_ENDPOINT, {
-          method: "POST",
-          mode: "no-cors",
-          keepalive: true,
-          headers: { "Content-Type": "text/plain" },
-          body: JSON.stringify(lmPayload),
-        }).catch(() => {});
-        // Formspree backup
-        fetch(FORMSPREE, {
-          method: "POST",
-          mode: "no-cors",
-          keepalive: true,
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            _subject: `New Worksheet Lead — ${firstName} ${lastName}`,
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            email: email.trim(),
-            source: "worksheet",
-            worksheetSummary,
-          }),
-        }).catch(() => {});
-      });
+      .catch(() => {});
 
     setSubmitting(false);
     onSuccess({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim() });

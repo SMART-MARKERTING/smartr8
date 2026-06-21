@@ -35,6 +35,14 @@ export function Footer() {
           </a>
           <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
           <a
+            href="/projects"
+            className="underline hover:text-white"
+            style={{ color: "rgba(255,255,255,0.6)" }}
+          >
+            Projects
+          </a>
+          <span style={{ color: "rgba(255,255,255,0.3)" }}>·</span>
+          <a
             href="https://adaxahome.com/privacy/"
             target="_blank"
             rel="noopener noreferrer"

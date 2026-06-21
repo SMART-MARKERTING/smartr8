@@ -35,6 +35,7 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
     try {
       const res = await fetch("/api/worksheet/auth", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
@@ -109,6 +110,7 @@ function SendToClientModal({
       const name = clientName || "Client";
       const res = await fetch("/api/worksheet/submit-lead", {
         method: "POST",
+        credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           source: "worksheet-internal",

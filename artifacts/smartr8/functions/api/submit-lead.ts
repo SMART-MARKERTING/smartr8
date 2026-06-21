@@ -6,10 +6,11 @@
 // Required bindings (set in Cloudflare Pages dashboard → Settings → Functions):
 //   CF_KV_NAMESPACE  — KV namespace for rate-limiting + duplicate detection
 //
-// LeadMailbox is called client-side (from the browser) to avoid Cloudflare egress IP blocks.
-// This Worker handles: bot detection, rate limiting, KV dedup, and Formspree notifications.
+// This Worker handles: bot detection, rate limiting, KV dedup, LeadMailbox,
+// and Formspree notifications.
 
 const ALLOWED_ORIGINS = new Set(["https://smartr8.com", "https://www.smartr8.com"]);
+const REQUIRE_TURNSTILE_ERROR = "Security check required. Please refresh and try again.";
 
 function isAllowedOrigin(origin) {
   if (ALLOWED_ORIGINS.has(origin)) return true;
@@ -109,6 +110,20 @@ function jsonResponse(data, status, cors) {
   });
 }
 
+async function verifyTurnstile(secret, token, ip) {
+  if (!secret) return { ok: false, error: "Turnstile is not configured" };
+  const form = new FormData();
+  form.set("secret", secret);
+  form.set("response", token);
+  if (ip && ip !== "unknown") form.set("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: data.success === true, error: Array.isArray(data["error-codes"]) ? data["error-codes"].join(", ") : "verification failed" };
+}
+
 export async function onRequest(context) {
   const { request, env, waitUntil } = context;
   const origin = request.headers.get("Origin") ?? "";
@@ -161,6 +176,18 @@ export async function onRequest(context) {
   }
 
   const ip = request.headers.get("CF-Connecting-IP") ?? request.headers.get("X-Forwarded-For") ?? "unknown";
+
+  if (env.REQUIRE_TURNSTILE === "true") {
+    const token = body.turnstile_token || body.turnstileToken || "";
+    if (!token) {
+      return jsonResponse({ success: false, error: REQUIRE_TURNSTILE_ERROR }, 403, cors);
+    }
+    const turnstile = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, token, ip);
+    if (!turnstile.ok) {
+      console.warn("[smartr8] Turnstile verification failed:", turnstile.error);
+      return jsonResponse({ success: false, error: REQUIRE_TURNSTILE_ERROR }, 403, cors);
+    }
+  }
 
   // Rate limiting (5 per IP per minute) — requires KV binding
   if (env.CF_KV_NAMESPACE) {
@@ -254,6 +281,5 @@ export async function onRequest(context) {
   );
 
   console.log(`[smartr8] validated lead — ${body.funnelType} — ${body.firstName} ${body.lastName} — lmSuccess=${lmSuccess}`);
-  // Return lmPayload so browser can retry LM directly if Worker's call was blocked
-  return jsonResponse({ success: true, lmPayload: lmSuccess ? null : lmPayload }, 200, cors);
+  return jsonResponse({ success: true, leadDeliveryOk: lmSuccess }, 200, cors);
 }

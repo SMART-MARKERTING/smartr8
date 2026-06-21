@@ -176,7 +176,7 @@ export function HelocForm() {
   };
 
   const pageLoadTimeRef = useRef(Date.now());
-  const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (949) 418-5486 and he will get back to you within minutes.";
+  const SUBMIT_ERR = "Something went wrong with your submission. Please text or call Myke directly at (480) 206-9290 and he will get back to you within minutes.";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

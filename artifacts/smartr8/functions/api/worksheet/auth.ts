@@ -29,6 +29,41 @@ function jsonResponse(data, status, cors) {
   });
 }
 
+function base64Url(bytes) {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function signSession(value, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
+  return base64Url(new Uint8Array(signature));
+}
+
+async function buildSessionCookie(env) {
+  const ttlSeconds = 60 * 60 * 8;
+  const expires = Math.floor(Date.now() / 1000) + ttlSeconds;
+  const nonce = crypto.randomUUID();
+  const value = `${expires}.${nonce}`;
+  const secret = env.WORKSHEET_SESSION_SECRET || env.WORKSHEET_ADMIN_PASS;
+  const sig = await signSession(value, secret);
+  return [
+    `ws_internal_session=${value}.${sig}`,
+    "Path=/api/worksheet",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    `Max-Age=${ttlSeconds}`,
+  ].join("; ");
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
   const origin = request.headers.get("Origin") ?? "";
@@ -65,7 +100,9 @@ export async function onRequest(context) {
 
   if (username === validUser && password === validPass) {
     console.log("[worksheet/auth] successful login");
-    return jsonResponse({ success: true }, 200, cors);
+    const response = jsonResponse({ success: true }, 200, cors);
+    response.headers.set("Set-Cookie", await buildSessionCookie(env));
+    return response;
   }
 
   // Timing-safe: delay on failure to prevent brute-force timing attacks

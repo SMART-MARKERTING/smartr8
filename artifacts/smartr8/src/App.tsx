@@ -14,6 +14,7 @@ import HelocQuick from "@/pages/HelocQuick";
 import Worksheet from "@/pages/Worksheet";
 import WorksheetInternal from "@/pages/WorksheetInternal";
 import WhatsNext from "@/pages/WhatsNext";
+import Projects from "@/pages/Projects";
 import NotFound from "@/pages/not-found";
 
 const queryClient = new QueryClient();
@@ -145,6 +146,7 @@ function Router() {
       <Route path="/worksheet/internal" component={WorksheetInternal} />
       <Route path="/worksheet" component={Worksheet} />
       <Route path="/whats-next" component={WhatsNext} />
+      <Route path="/projects" component={Projects} />
       <Route component={NotFound} />
     </Switch>
   );

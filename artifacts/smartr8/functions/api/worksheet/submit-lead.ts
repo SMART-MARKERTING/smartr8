@@ -30,6 +30,46 @@ function jsonResponse(data, status, cors) {
   });
 }
 
+function base64Url(bytes) {
+  let binary = "";
+  for (const b of bytes) binary += String.fromCharCode(b);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function signSession(value, secret) {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
+  return base64Url(new Uint8Array(signature));
+}
+
+async function isInternalSessionValid(request, env) {
+  const cookie = request.headers.get("Cookie") ?? "";
+  const token = cookie
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith("ws_internal_session="))
+    ?.slice("ws_internal_session=".length);
+  if (!token) return false;
+
+  const parts = token.split(".");
+  if (parts.length !== 3) return false;
+  const [expiresRaw, nonce, signature] = parts;
+  const expires = Number(expiresRaw);
+  if (!Number.isFinite(expires) || expires < Math.floor(Date.now() / 1000)) return false;
+
+  const secret = env.WORKSHEET_SESSION_SECRET || env.WORKSHEET_ADMIN_PASS;
+  if (!secret) return false;
+  const value = `${expiresRaw}.${nonce}`;
+  const expected = await signSession(value, secret);
+  return signature === expected;
+}
+
 // Returns { ok: boolean, error?: string }
 async function sendResendEmail({ apiKey, to, subject, html, pdfBase64, fileName }) {
   const body = {
@@ -92,7 +132,7 @@ function buildClientEmailHtml(clientName, advisorName) {
       monthly payment, reduce your total interest cost, and get you debt-free years sooner.
     </p>
     <p>
-      Have questions? Reply to this email or call me directly at <strong>(949) 418-5486</strong>.
+      Have questions? Reply to this email or call me directly at <strong>(480) 206-9290</strong>.
       I'm happy to walk through the numbers together.
     </p>
     <p style="margin-top: 24px;">
@@ -100,7 +140,7 @@ function buildClientEmailHtml(clientName, advisorName) {
       <strong>${advisorName || "Mykoal DeShazo"}</strong><br>
       Vice President | Senior Loan Officer<br>
       Adaxa Home LLC<br>
-      (949) 418-5486 · mykoal@adaxahome.com<br>
+      (480) 206-9290 · mykoal@adaxahome.com<br>
       NMLS #1912347 · Company NMLS #2380533
     </p>
     <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e5e5;">
@@ -142,6 +182,33 @@ function buildAdvisorNotificationHtml(data) {
 
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
 const FORMSPREE = "https://formspree.io/f/meennekb";
+const REQUIRE_TURNSTILE_ERROR = "Security check required. Please refresh and try again.";
+
+async function verifyTurnstile(secret, token, ip) {
+  if (!secret) return { ok: false, error: "Turnstile is not configured" };
+  const form = new FormData();
+  form.set("secret", secret);
+  form.set("response", token);
+  if (ip && ip !== "unknown") form.set("remoteip", ip);
+  const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body: form,
+  });
+  const data = await res.json().catch(() => ({}));
+  return { ok: data.success === true, error: Array.isArray(data["error-codes"]) ? data["error-codes"].join(", ") : "verification failed" };
+}
+
+async function requireTurnstileIfEnabled(body, ip, env, cors) {
+  if (env.REQUIRE_TURNSTILE !== "true") return null;
+  const token = body.turnstile_token || body.turnstileToken || "";
+  if (!token) return jsonResponse({ success: false, error: REQUIRE_TURNSTILE_ERROR }, 403, cors);
+  const turnstile = await verifyTurnstile(env.TURNSTILE_SECRET_KEY, token, ip);
+  if (!turnstile.ok) {
+    console.warn("[worksheet] Turnstile verification failed:", turnstile.error);
+    return jsonResponse({ success: false, error: REQUIRE_TURNSTILE_ERROR }, 403, cors);
+  }
+  return null;
+}
 
 async function submitToLeadMailbox(payload, ip) {
   try {
@@ -198,6 +265,11 @@ export async function onRequest(context) {
 
   // ─── Internal path: advisor sending worksheet PDF to a client ───────────────
   if (body.source === "worksheet-internal") {
+    if (!(await isInternalSessionValid(request, env))) {
+      console.warn("[worksheet] blocked unauthenticated internal send");
+      return jsonResponse({ success: false, error: "Unauthorized" }, 401, cors);
+    }
+
     if (!body.clientEmail || !body.pdfBase64) {
       return jsonResponse({ success: false, error: "Missing clientEmail or pdfBase64" }, 400, cors);
     }
@@ -244,6 +316,9 @@ export async function onRequest(context) {
 
   // ─── Self-serve path: public user emailing worksheet to themselves ───────────
   if (body.source === "worksheet-self") {
+    const turnstileResponse = await requireTurnstileIfEnabled(body, ip, env, cors);
+    if (turnstileResponse) return turnstileResponse;
+
     if (!body.clientEmail || !body.pdfBase64) {
       return jsonResponse({ success: false, error: "Missing clientEmail or pdfBase64" }, 400, cors);
     }
@@ -318,6 +393,9 @@ export async function onRequest(context) {
   }
 
   // ─── Public path: lead capture (no PDF email — used by Download PDF action) ──
+  const turnstileResponse = await requireTurnstileIfEnabled(body, ip, env, cors);
+  if (turnstileResponse) return turnstileResponse;
+
   const missing = ["firstName", "lastName", "email"].filter((f) => !body[f]?.trim());
   if (missing.length > 0) {
     return jsonResponse({ success: false, error: `Missing: ${missing.join(", ")}` }, 400, cors);
@@ -369,5 +447,5 @@ export async function onRequest(context) {
     }).catch((e) => console.error("[worksheet] Formspree error:", e))
   );
 
-  return jsonResponse({ success: true, lmPayload: lmSuccess ? null : lmPayload }, 200, cors);
+  return jsonResponse({ success: true, leadDeliveryOk: lmSuccess }, 200, cors);
 }

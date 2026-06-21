@@ -9,12 +9,12 @@ export function Header() {
           <img src="/adaxa-logo.jpg" alt="Adaxa Home" className="h-8 w-auto object-contain shrink-0" />
         </Link>
         <a
-          href="tel:9494185486"
+          href="tel:4802069290"
           className="flex items-center gap-2 font-medium transition-colors shrink-0 text-sm text-white hover:text-white/80"
           data-testid="header-phone"
         >
           <Phone className="h-4 w-4" />
-          <span>(949) 418-5486</span>
+          <span>(480) 206-9290</span>
         </a>
       </div>
     </header>

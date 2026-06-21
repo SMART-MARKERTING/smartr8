@@ -23,6 +23,10 @@ if (isDevServer) {
 }
 
 const basePath = process.env.BASE_PATH ?? "/";
+const allowedHosts =
+  process.env.VITE_ALLOWED_HOSTS?.split(",")
+    .map((host) => host.trim())
+    .filter(Boolean) ?? (process.env.REPL_ID !== undefined ? true : undefined);
 
 // ─── Fix: @react-pdf/pdfkit imports pako deep subpaths (e.g. pako/lib/zlib/zstream.js)
 // Pako v2 restricts subpath access via its exports map, breaking production builds.
@@ -102,7 +106,7 @@ export default defineConfig({
     port: port ?? 5173,
     strictPort: true,
     host: "0.0.0.0",
-    allowedHosts: true,
+    ...(allowedHosts === undefined ? {} : { allowedHosts }),
     fs: {
       strict: true,
     },
@@ -110,6 +114,6 @@ export default defineConfig({
   preview: {
     port: port ?? 5173,
     host: "0.0.0.0",
-    allowedHosts: true,
+    ...(allowedHosts === undefined ? {} : { allowedHosts }),
   },
 });
