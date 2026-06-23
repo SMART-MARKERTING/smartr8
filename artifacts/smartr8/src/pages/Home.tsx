@@ -24,6 +24,7 @@ export default function Home() {
   // Homepage HELOC / home-equity clicks go through /heloc-main so completed
   // /heloc-v3 leads can retain main-page attribution in the CRM.
   const helocHref = "/heloc-main";
+  const seeMyOptionsHref = "/main-see-my-options";
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background selection:bg-primary/10">
@@ -82,7 +83,7 @@ export default function Home() {
                   asChild
                   data-testid="hero-primary-cta"
                 >
-                  <Link href="/see-my-options">
+                  <Link href={seeMyOptionsHref}>
                     See My Options
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Link>
@@ -175,7 +176,7 @@ export default function Home() {
               </Card>
             </Link>
 
-            <Link href="/see-my-options" className="block h-full" data-testid="path-card-unsure">
+            <Link href={seeMyOptionsHref} className="block h-full" data-testid="path-card-unsure">
               <Card className="hover:border-primary/50 transition-colors cursor-pointer group shadow-sm hover:shadow-md h-full">
                 <CardContent className="p-8 flex flex-col items-center text-center gap-4">
                   <div className="h-16 w-16 bg-primary/5 rounded-full flex items-center justify-center group-hover:bg-primary/10 transition-colors">
@@ -352,7 +353,7 @@ export default function Home() {
 
         {/* WORKSHEET LINK */}
         <div className="text-center py-4 pb-8 -mt-8">
-          <Link href="/see-my-options" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
+          <Link href={seeMyOptionsHref} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors">
             <BarChart2 className="h-3.5 w-3.5" />
             Run the free Loan Benefits Worksheet
           </Link>
@@ -399,7 +400,7 @@ export default function Home() {
               asChild
               data-testid="footer-cta"
             >
-              <Link href="/see-my-options">
+              <Link href={seeMyOptionsHref}>
                 See My Options
                 <ArrowRight className="ml-2 h-6 w-6" />
               </Link>

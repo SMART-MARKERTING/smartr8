@@ -12,6 +12,7 @@ export type FunnelId =
   | "purchase"
   | "legal"
   | "worksheet"
+  | "see-my-options"
   | "other";
 
 export interface Lead {

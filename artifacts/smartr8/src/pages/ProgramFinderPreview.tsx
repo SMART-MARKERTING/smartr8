@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -22,6 +23,8 @@ import type { LucideIcon } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { submitLead } from "@/lib/submitLead";
+import { trackFbEvent } from "@/lib/fbq";
 import "./helocV3.css";
 
 const SESSION_KEY = "smartr8_program_finder_v1";
@@ -45,6 +48,8 @@ type Data = {
   last: string;
   email: string;
   phone: string;
+  honeypot: string;
+  pageLoadTime: number;
 };
 
 const DEFAULT_DATA: Data = {
@@ -59,6 +64,8 @@ const DEFAULT_DATA: Data = {
   last: "",
   email: "",
   phone: "",
+  honeypot: "",
+  pageLoadTime: 0,
 };
 
 type Opt = {
@@ -139,6 +146,47 @@ function money(n: string) {
 
 function parseMoney(n: string) {
   return Number((n || "").replace(/[^\d]/g, "")) || 0;
+}
+
+function dollars(n: number) {
+  if (!Number.isFinite(n) || n <= 0) return "Review needed";
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
+function monthlyInterestOnly(amount: number, apr: number) {
+  return amount > 0 ? (amount * (apr / 100)) / 12 : 0;
+}
+
+function monthlyAmortized(amount: number, apr: number, years: number) {
+  if (amount <= 0) return 0;
+  const months = years * 12;
+  const rate = apr / 100 / 12;
+  return (amount * rate) / (1 - Math.pow(1 + rate, -months));
+}
+
+function creditRateAdjuster(credit: string) {
+  if (credit === "excellent") return -0.45;
+  if (credit === "good") return 0;
+  if (credit === "fair") return 0.75;
+  if (credit === "building") return 1.55;
+  return 0.35;
+}
+
+function aprRange(low: number, high: number, credit: string) {
+  const adjuster = creditRateAdjuster(credit);
+  return `${(low + adjuster).toFixed(2)}% - ${(high + adjuster).toFixed(2)}%`;
+}
+
+function buildApplicationUrl(data: Data) {
+  const url = new URL(HELOC_APPLICATION_URL);
+  url.searchParams.set("source", "see-my-options");
+  url.searchParams.set("name", data.first);
+  url.searchParams.set("credit", label(CREDIT, data.credit));
+  url.searchParams.set(
+    "use",
+    data.occupancy === "investment" ? "Investment property program review" : "Program finder quote",
+  );
+  return url.toString();
 }
 
 function Progress({ current }: { current: number }) {
@@ -247,6 +295,10 @@ function ProgramSummary({ data }: { data: Data }) {
   const equity = Math.max(0, value - balance);
   const isInvestment = data.occupancy === "investment";
   const selfLike = ["self_employed", "entrepreneur", "unemployed"].includes(data.employment);
+  const maxEquityAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.75 : 0.85) - balance));
+  const cashOutAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.7 : 0.8) - balance));
+  const reviewAmount = maxEquityAccess || cashOutAccess || equity;
+  const creditLabel = label(CREDIT, data.credit) || "Credit review";
 
   const primary = isInvestment
     ? "Investor financing path"
@@ -261,35 +313,125 @@ function ProgramSummary({ data }: { data: Data }) {
         "Cash-out refinance",
         selfLike ? "Bank statement or non-QM review" : "Rate and term review if payment reduction matters",
       ];
+  const estimatedOptions = isInvestment
+    ? [
+        {
+          name: "DSCR rental loan",
+          tag: "Rental cash flow",
+          apr: aprRange(7.25, 9.75, data.credit),
+          payment: dollars(monthlyAmortized(Math.max(balance, reviewAmount), 8.25 + creditRateAdjuster(data.credit), 30)),
+          note: "For rental properties where rent can support the payment.",
+        },
+        {
+          name: "Bridge / hard money",
+          tag: "Fast capital",
+          apr: aprRange(10.5, 13.5, data.credit),
+          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), 11.75 + creditRateAdjuster(data.credit))),
+          note: "Shorter-term fit for purchase, rehab, or time-sensitive scenarios.",
+        },
+        {
+          name: "Fix, flip, construction",
+          tag: "Project funding",
+          apr: aprRange(10.99, 14.5, data.credit),
+          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), 12.25 + creditRateAdjuster(data.credit))),
+          note: "Can consider purchase, rehab budget, draws, and exit plan.",
+        },
+      ]
+    : [
+        {
+          name: "HELOC",
+          tag: "Flexible line",
+          apr: aprRange(8.25, 11.5, data.credit),
+          payment: dollars(monthlyInterestOnly(maxEquityAccess, 9.5 + creditRateAdjuster(data.credit))),
+          note: "Interest-only style estimate during the draw period.",
+        },
+        {
+          name: "Home equity loan",
+          tag: "Fixed payment",
+          apr: aprRange(8.75, 12.25, data.credit),
+          payment: dollars(monthlyAmortized(maxEquityAccess, 9.75 + creditRateAdjuster(data.credit), 20)),
+          note: "Installment style estimate using available equity.",
+        },
+        {
+          name: "Cash-out refinance",
+          tag: "Replace first lien",
+          apr: aprRange(6.75, 8.75, data.credit),
+          payment: dollars(monthlyAmortized(Math.max(balance + cashOutAccess, balance), 7.25 + creditRateAdjuster(data.credit), 30)),
+          note: "Estimated new first mortgage payment before taxes and insurance.",
+        },
+      ];
 
   return (
-    <div className="reassure" style={{ alignItems: "flex-start" }}>
-      <Sparkles size={20} />
-      <div>
-        <b>We have some promising paths to review.</b>
-        <p>
-          Best-fit genre: <strong>{primary}</strong>. Based on your answers, we would compare {options.join(", ")}.
-        </p>
-        {value > 0 && (
+    <div className="program-options-panel">
+      <div className="pop-head">
+        <div className="pop-icon">
+          <Sparkles size={22} />
+        </div>
+        <div>
+          <span>Loan options preview</span>
+          <h3>We have some promising paths to review.</h3>
           <p>
-            Estimated equity: <strong>{money(String(equity)) || "$0"}</strong>. Final options depend on credit, property, liens,
-            income documentation, and underwriting.
+            Best-fit genre: <strong>{primary}</strong>. We would compare {options.join(", ")}.
           </p>
-        )}
+        </div>
       </div>
+      <div className="pop-stats">
+        <div>
+          <span>Estimated equity</span>
+          <strong>{money(String(equity)) || "$0"}</strong>
+        </div>
+        <div>
+          <span>Possible access</span>
+          <strong>{dollars(maxEquityAccess || cashOutAccess)}</strong>
+        </div>
+        <div>
+          <span>Credit band</span>
+          <strong>{creditLabel}</strong>
+        </div>
+      </div>
+      <div className="loan-option-grid">
+        {estimatedOptions.map((option) => (
+          <div className="loan-option" key={option.name}>
+            <div className="loan-option-top">
+              <span>{option.tag}</span>
+              <Landmark size={17} />
+            </div>
+            <h4>{option.name}</h4>
+            <div className="loan-metrics">
+              <div>
+                <span>Estimated APR</span>
+                <strong>{option.apr}</strong>
+              </div>
+              <div>
+                <span>Est. monthly</span>
+                <strong>{option.payment}</strong>
+              </div>
+            </div>
+            <p>{option.note}</p>
+          </div>
+        ))}
+      </div>
+      <p className="pop-disclaimer">
+        Estimates are illustrative only and not a loan offer. Final pricing, APR, payment, points, and approval depend on
+        credit, property, liens, income documentation, rent or DSCR review, title, appraisal, and underwriting.
+      </p>
     </div>
   );
 }
 
 export default function ProgramFinderPreview() {
+  const [location] = useLocation();
   const [stage, setStage] = useState<Stage>("occupancy");
   const [data, setData] = useState<Data>(() => {
     try {
-      return { ...DEFAULT_DATA, ...(JSON.parse(sessionStorage.getItem(SESSION_KEY) || "{}") as Partial<Data>) };
+      const saved = JSON.parse(sessionStorage.getItem(SESSION_KEY) || "{}") as Partial<Data>;
+      return { ...DEFAULT_DATA, ...saved, pageLoadTime: saved.pageLoadTime || Date.now() };
     } catch {
-      return DEFAULT_DATA;
+      return { ...DEFAULT_DATA, pageLoadTime: Date.now() };
     }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
@@ -304,6 +446,59 @@ export default function ProgramFinderPreview() {
     set(patch);
     window.setTimeout(() => go(next), AUTO_ADVANCE_MS);
   };
+  const pageUrlOverride =
+    location === "/main-see-my-options" && typeof window !== "undefined"
+      ? `${window.location.origin}/main-see-my-options`
+      : undefined;
+
+  async function submitProgramFinderLead() {
+    setIsSubmitting(true);
+    setSubmitError("");
+    const sourceLabel = location === "/main-see-my-options" ? "main-see-my-options" : "see-my-options";
+    try {
+      const result = await submitLead({
+        funnel: "see-my-options",
+        firstName: data.first.trim(),
+        lastName: data.last.trim(),
+        email: data.email.trim(),
+        phone: data.phone.trim(),
+        homeValue: data.homeValue,
+        mortgageBalance: data.balance,
+        creditScore: label(CREDIT, data.credit),
+        honeypot: data.honeypot,
+        pageLoadTime: data.pageLoadTime,
+        pageUrlOverride,
+        additionalFields: {
+          "Funnel-Source": sourceLabel,
+          Occupancy: label(OCCUPANCY, data.occupancy),
+          "Employment Status": label(EMPLOYMENT, data.employment),
+          "Mortgage Setup": label(MORTGAGE_STATUS, data.mortgageStatus),
+          "Requested Next Step": data.nextAction === "email_quote" ? "Have quote emailed/texted to me" : "Schedule a call",
+          "Best-Fit Genre":
+            data.occupancy === "investment"
+              ? "Investor financing path"
+              : ["self_employed", "entrepreneur", "unemployed"].includes(data.employment)
+                ? "Flexible documentation path"
+                : "Home equity or cash-out path",
+        },
+      });
+      if (result.success) {
+        trackFbEvent("Lead", {
+          content_name: "Program Finder",
+          content_category: "Mortgage",
+          source: sourceLabel,
+        });
+        sessionStorage.removeItem(SESSION_KEY);
+        window.location.href = buildApplicationUrl(data);
+      } else {
+        setSubmitError(result.error || "Something went wrong. Please call or text Mykoal directly at (480) 206-9290.");
+        setIsSubmitting(false);
+      }
+    } catch {
+      setSubmitError("Something went wrong. Please call or text Mykoal directly at (480) 206-9290.");
+      setIsSubmitting(false);
+    }
+  }
 
   const stageIndex = useMemo(() => {
     if (stage === "occupancy") return 0;
@@ -442,6 +637,16 @@ export default function ProgramFinderPreview() {
           <Field label="Mobile phone">
             <input className="inp" type="tel" value={data.phone} placeholder="(480) 555-0199" onChange={(e) => set({ phone: e.target.value })} />
           </Field>
+          <input
+            type="text"
+            name="website"
+            value={data.honeypot}
+            onChange={(e) => set({ honeypot: e.target.value })}
+            tabIndex={-1}
+            aria-hidden="true"
+            autoComplete="off"
+            style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, width: 0 }}
+          />
           <div className="reassure">
             <Info size={18} />
             <div>
@@ -453,20 +658,15 @@ export default function ProgramFinderPreview() {
           </div>
           <NavRow
             onBack={() => go("recommendation")}
-            onNext={() => {
-              const url = new URL(HELOC_APPLICATION_URL);
-              url.searchParams.set("source", "see-my-options");
-              url.searchParams.set("name", data.first);
-              url.searchParams.set("credit", label(CREDIT, data.credit));
-              url.searchParams.set(
-                "use",
-                data.occupancy === "investment" ? "Investment property program review" : "Program finder quote",
-              );
-              window.location.href = url.toString();
-            }}
-            disabled={!ready}
-            nextLabel="Send Quote Request"
+            onNext={submitProgramFinderLead}
+            disabled={!ready || isSubmitting}
+            nextLabel={isSubmitting ? "Submitting..." : "Send Quote Request"}
           />
+          {submitError && (
+            <p className="errmsg">
+              <AlertTriangle size={13} /> {submitError}
+            </p>
+          )}
           {!ready && (
             <p className="errmsg">
               <AlertTriangle size={13} /> Add name, valid email, and phone to continue.

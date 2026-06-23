@@ -247,6 +247,7 @@ function Router() {
             all hand off to the LendingPad guest application via
             /application-next. /see-my-options is the generic strategy picker. */}
         <Route path="/see-my-options" component={ProgramFinderPreview} />
+        <Route path="/main-see-my-options" component={ProgramFinderPreview} />
         <Route path="/cash-out">{() => <Worksheet entry="cash-out" />}</Route>
         <Route path="/rate-reduction">{() => <Worksheet entry="rate-reduction" />}</Route>
         <Route path="/purchase">{() => <Worksheet entry="purchase" />}</Route>

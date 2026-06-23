@@ -66,6 +66,7 @@ const FUNNEL_LOAN_TYPE: Record<string, string> = {
   "rate-reduction": "mortgage",
   purchase: "mortgage",
   worksheet: "mortgage",
+  "see-my-options": "mortgage",
 };
 
 // Legacy fallback: loan-type tag by ad-campaign landing-page path. Retained so
