@@ -163,6 +163,8 @@ describe("api/submit-lead", () => {
     expect(lead.property_state).toBe("AZ");
     expect(lead.notes).toContain("Loan Purpose: Debt consolidation");
     expect(lead.notes).toContain("Timeline: 30 days");
+    expect(lead.notes).toContain("helocPurpose: Debt consolidation");
+    expect(lead.notes).toContain("timeline: 30 days");
     expect(lead.quote_fields).toMatchObject({
       home_value: "700000",
       mortgage_balance: "350000",
@@ -180,6 +182,37 @@ describe("api/submit-lead", () => {
     expect(env.CF_KV_NAMESPACE).toBe(kv);
     expect(typeof context.waitUntil).toBe("function");
     expect(clientIp).toBe("203.0.113.10");
+  });
+
+  it("accepts the program finder email/text quote path and preserves routing notes", async () => {
+    const res = await onRequest(makeContext(payload({
+      funnel: "see-my-options",
+      page_url: "https://smartr8.com/main-see-my-options",
+      pageLoadTime: 0,
+      additionalFields: {
+        "Funnel-Source": "main-see-my-options",
+        Occupancy: "Primary residence",
+        "Employment Status": "Employed",
+        "Mortgage Setup": "Only a first mortgage",
+        "Requested Next Step": "Have quote emailed/texted to me",
+        "Best-Fit Genre": "Home equity or cash-out path",
+      },
+    })));
+
+    expect(res.status).toBe(200);
+    expect(vi.mocked(processLead)).toHaveBeenCalledTimes(1);
+
+    const [lead, consent] = vi.mocked(processLead).mock.calls[0];
+    expect(lead.funnel).toBe("see-my-options");
+    expect(lead.landing_page).toBe("https://smartr8.com/main-see-my-options");
+    expect(lead.loan_request).toBe("Program Finder");
+    expect(lead.notes).toContain("Funnel-Source: main-see-my-options");
+    expect(lead.notes).toContain("Occupancy: Primary residence");
+    expect(lead.notes).toContain("Requested Next Step: Have quote emailed/texted to me");
+    expect(consent).toMatchObject({
+      lead_id: lead.lead_id,
+      consent_version: "2026-06-01.v4",
+    });
   });
 
   it("does not create a TCPA consent row when the optional SMS box is unchecked", async () => {

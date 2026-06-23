@@ -23,6 +23,7 @@ import type { LucideIcon } from "lucide-react";
 import { PageMeta } from "@/components/PageMeta";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { TcpaConsent, TcpaSubmitNotice } from "@/components/TcpaConsent";
 import { submitLead } from "@/lib/submitLead";
 import { trackFbEvent } from "@/lib/fbq";
 import "./helocV3.css";
@@ -52,6 +53,14 @@ type Data = {
   pageLoadTime: number;
 };
 
+type ConsentState = {
+  ready: boolean;
+  consent: boolean;
+  consent_version: string;
+  consent_text: string;
+  turnstile_token: string;
+};
+
 const DEFAULT_DATA: Data = {
   occupancy: "",
   employment: "",
@@ -66,6 +75,14 @@ const DEFAULT_DATA: Data = {
   phone: "",
   honeypot: "",
   pageLoadTime: 0,
+};
+
+const EMPTY_CONSENT: ConsentState = {
+  ready: false,
+  consent: false,
+  consent_version: "",
+  consent_text: "",
+  turnstile_token: "",
 };
 
 type Opt = {
@@ -432,6 +449,7 @@ export default function ProgramFinderPreview() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [consentState, setConsentState] = useState<ConsentState>(EMPTY_CONSENT);
 
   useEffect(() => {
     sessionStorage.setItem(SESSION_KEY, JSON.stringify(data));
@@ -466,8 +484,11 @@ export default function ProgramFinderPreview() {
         mortgageBalance: data.balance,
         creditScore: label(CREDIT, data.credit),
         honeypot: data.honeypot,
-        pageLoadTime: data.pageLoadTime,
         pageUrlOverride,
+        turnstile_token: consentState.turnstile_token,
+        consent: consentState.consent,
+        consent_version: consentState.consent_version,
+        consent_text: consentState.consent_text,
         additionalFields: {
           "Funnel-Source": sourceLabel,
           Occupancy: label(OCCUPANCY, data.occupancy),
@@ -617,7 +638,7 @@ export default function ProgramFinderPreview() {
     );
   } else {
     const emailOk = /\S+@\S+\.\S+/.test(data.email);
-    const ready = data.first && data.last && emailOk && data.phone.replace(/\D/g, "").length >= 10;
+    const ready = data.first && data.last && emailOk && data.phone.replace(/\D/g, "").length >= 10 && consentState.ready;
     screen = (
       <div className="step">
         <Progress current={stageIndex} />
@@ -637,6 +658,7 @@ export default function ProgramFinderPreview() {
           <Field label="Mobile phone">
             <input className="inp" type="tel" value={data.phone} placeholder="(480) 555-0199" onChange={(e) => set({ phone: e.target.value })} />
           </Field>
+          <TcpaConsent onChange={setConsentState} />
           <input
             type="text"
             name="website"
@@ -662,6 +684,7 @@ export default function ProgramFinderPreview() {
             disabled={!ready || isSubmitting}
             nextLabel={isSubmitting ? "Submitting..." : "Send Quote Request"}
           />
+          <TcpaSubmitNotice />
           {submitError && (
             <p className="errmsg">
               <AlertTriangle size={13} /> {submitError}
@@ -669,7 +692,7 @@ export default function ProgramFinderPreview() {
           )}
           {!ready && (
             <p className="errmsg">
-              <AlertTriangle size={13} /> Add name, valid email, and phone to continue.
+              <AlertTriangle size={13} /> Add name, valid email, phone, and complete the bot check to continue.
             </p>
           )}
         </div>

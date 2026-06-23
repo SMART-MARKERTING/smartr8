@@ -36,6 +36,17 @@ function jsonResponse(data, status, cors) {
   return new Response(JSON.stringify(data), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
+function loanRequestFromFunnel(funnel: string): string {
+  const f = String(funnel || "").toLowerCase();
+  if (f === "see-my-options") return "Program Finder";
+  if (f === "legal") return "LegalZoom Partner Lead";
+  if (f.startsWith("heloc")) return "HELOC";
+  if (f === "cashout" || f === "cash-out") return "Cash-Out Refinance";
+  if (f === "rate-reduction") return "Rate and Term Refinance";
+  if (f === "purchase") return "Purchase";
+  return "";
+}
+
 export async function onRequest(context) {
   const { request, env, waitUntil } = context;
   const origin = request.headers.get("Origin") ?? "";
@@ -125,6 +136,11 @@ export async function onRequest(context) {
   if (v.data.creditScore) notesParts.push(`Credit Score: ${v.data.creditScore}`);
   if (loanPurpose) notesParts.push(`Loan Purpose: ${loanPurpose}`);
   if (timeline) notesParts.push(`Timeline: ${timeline}`);
+  for (const [k, val] of Object.entries(af)) {
+    const s = afStr(val).trim();
+    if (!s) continue;
+    notesParts.push(`${k}: ${s}`);
+  }
   if (v.data.dob) notesParts.push(`DOB: ${v.data.dob}`);
   if (v.data.notes) notesParts.push(v.data.notes);
 
@@ -139,6 +155,7 @@ export async function onRequest(context) {
   // phone's area code so TCPA timezone resolution (and the CRM) get a state even
   // though the funnels don't ask for one. Best-effort — correctable in the CRM.
   const propertyState = (v.data.state || "").trim() || stateFromPhone(phone);
+  const loanRequest = v.data.loanRequest || loanRequestFromFunnel(v.data.funnel);
 
   const lead: Lead = {
     lead_id: crypto.randomUUID(),
@@ -150,7 +167,7 @@ export async function onRequest(context) {
     phone_e164: phone,
     address1: v.data.address || "",
     property_state: propertyState,
-    loan_request: v.data.loanRequest || "",
+    loan_request: loanRequest,
     notes: notesParts.join("\n"),
     quote_fields: quoteFields,
     source: "smartr8.com",
