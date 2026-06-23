@@ -15,6 +15,7 @@ export interface LeadPayload {
   homeValue?: string;
   mortgageBalance?: string;
   creditScore?: string;
+  loanRequest?: string;
   dob?: string;
   additionalFields?: Record<string, string | string[]>;
   honeypot?: string;
@@ -127,6 +128,7 @@ export async function submitLead(payload: LeadPayload): Promise<SubmitResult> {
     homeValue: payload.homeValue ?? "",
     mortgageBalance: payload.mortgageBalance ?? "",
     creditScore: payload.creditScore ?? "",
+    loanRequest: payload.loanRequest ?? "",
     dob: formatDob(payload.dob ?? ""),
     additionalFields: payload.additionalFields ?? {},
     honeypot: payload.honeypot ?? "",

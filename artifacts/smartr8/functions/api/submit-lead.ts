@@ -47,6 +47,16 @@ function loanRequestFromFunnel(funnel: string): string {
   return "";
 }
 
+function loanTypeFromLeadContext(loanRequest: string, additionalFields: Record<string, unknown>): string {
+  const explicitLoanType = String(additionalFields["Loan Type"] || additionalFields.loanType || "").trim().toUpperCase();
+  if (explicitLoanType === "DSCR") return "DSCR";
+  const request = String(loanRequest || "").trim().toUpperCase();
+  if (request === "DSCR" || request.includes("DSCR")) return "DSCR";
+  const occupancy = String(additionalFields.Occupancy || additionalFields.occupancy || "").trim().toLowerCase();
+  if (occupancy.includes("investment")) return "DSCR";
+  return "";
+}
+
 export async function onRequest(context) {
   const { request, env, waitUntil } = context;
   const origin = request.headers.get("Origin") ?? "";
@@ -149,6 +159,7 @@ export async function onRequest(context) {
   if (v.data.homeValue) quoteFields.home_value = String(v.data.homeValue);
   if (v.data.mortgageBalance) quoteFields.mortgage_balance = String(v.data.mortgageBalance);
   if (v.data.creditScore) quoteFields.credit = String(v.data.creditScore);
+  if (af["Estimated Options"]) quoteFields.quote_options = afStr(af["Estimated Options"]);
   if (loanPurpose) quoteFields.loan_goal = loanPurpose; // CRM "Quote / loan details" → Goal field
 
   // Property state: prefer what the form submitted; otherwise derive it from the
@@ -156,6 +167,8 @@ export async function onRequest(context) {
   // though the funnels don't ask for one. Best-effort — correctable in the CRM.
   const propertyState = (v.data.state || "").trim() || stateFromPhone(phone);
   const loanRequest = v.data.loanRequest || loanRequestFromFunnel(v.data.funnel);
+  const loanType = loanTypeFromLeadContext(loanRequest, af);
+  if (loanType) quoteFields.loanType = loanType;
 
   const lead: Lead = {
     lead_id: crypto.randomUUID(),

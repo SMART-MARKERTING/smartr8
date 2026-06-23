@@ -245,6 +245,38 @@ describe("processLead — CRM webhook", () => {
     }
   });
 
+  it("sends DSCR loanType and tags to the CRM when the canonical lead is DSCR", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv({ CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test" });
+      const ctx = makeCtxMock();
+      await processLead(
+        makeLead({
+          funnel: "see-my-options",
+          loan_request: "DSCR",
+          quote_fields: {
+            loanType: "DSCR",
+            quote_options: "DSCR rental loan: estimated APR 5.25% - 7.75%; estimated monthly $2,100.",
+          },
+        }),
+        makeConsent(),
+        env,
+        ctx,
+      );
+      await drainWaitUntil(ctx);
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      const body = JSON.parse(crmCall?.[1]?.body as string);
+      expect(body.loanType).toBe("DSCR");
+      expect(body.tags).toEqual(["DSCR"]);
+      expect(body.loan_request).toBe("DSCR");
+      expect(body.quote_options).toContain("DSCR rental loan");
+      expect(body.smsOptIn).toBe("yes");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("falls back to the built-in CRM URL when CRM_LEAD_WEBHOOK is unset", async () => {
     const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
     vi.stubGlobal("fetch", fetchMock);

@@ -215,6 +215,35 @@ describe("api/submit-lead", () => {
     });
   });
 
+  it("routes investment-property program finder leads as DSCR with quote options for the CRM", async () => {
+    const res = await onRequest(makeContext(payload({
+      funnel: "see-my-options",
+      loanRequest: "DSCR",
+      page_url: "https://smartr8.com/main-see-my-options",
+      pageLoadTime: 0,
+      additionalFields: {
+        "Funnel-Source": "main-see-my-options",
+        Occupancy: "Investment property",
+        "Requested Next Step": "Have quote emailed/texted to me",
+        "Loan Type": "DSCR",
+        "Estimated Options": "DSCR rental loan: estimated APR 5.25% - 7.75%; estimated monthly $2,100.",
+      },
+    })));
+
+    expect(res.status).toBe(200);
+    expect(vi.mocked(processLead)).toHaveBeenCalledTimes(1);
+
+    const [lead] = vi.mocked(processLead).mock.calls[0];
+    expect(lead.funnel).toBe("see-my-options");
+    expect(lead.loan_request).toBe("DSCR");
+    expect(lead.notes).toContain("Occupancy: Investment property");
+    expect(lead.notes).toContain("Estimated Options: DSCR rental loan");
+    expect(lead.quote_fields).toMatchObject({
+      loanType: "DSCR",
+      quote_options: "DSCR rental loan: estimated APR 5.25% - 7.75%; estimated monthly $2,100.",
+    });
+  });
+
   it("does not create a TCPA consent row when the optional SMS box is unchecked", async () => {
     const res = await onRequest(makeContext(payload({ consent: false })));
 

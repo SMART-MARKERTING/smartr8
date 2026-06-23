@@ -181,6 +181,10 @@ function monthlyAmortized(amount: number, apr: number, years: number) {
   return (amount * rate) / (1 - Math.pow(1 + rate, -months));
 }
 
+function quotedApr(apr: number) {
+  return Math.max(0, apr - 2);
+}
+
 function creditRateAdjuster(credit: string) {
   if (credit === "excellent") return -0.45;
   if (credit === "good") return 0;
@@ -191,7 +195,80 @@ function creditRateAdjuster(credit: string) {
 
 function aprRange(low: number, high: number, credit: string) {
   const adjuster = creditRateAdjuster(credit);
-  return `${(low + adjuster).toFixed(2)}% - ${(high + adjuster).toFixed(2)}%`;
+  return `${quotedApr(low + adjuster).toFixed(2)}% - ${quotedApr(high + adjuster).toFixed(2)}%`;
+}
+
+type EstimateOption = {
+  name: string;
+  tag: string;
+  apr: string;
+  payment: string;
+  note: string;
+};
+
+function getEstimatedOptions(data: Data): EstimateOption[] {
+  const value = parseMoney(data.homeValue);
+  const balance = parseMoney(data.balance);
+  const equity = Math.max(0, value - balance);
+  const isInvestment = data.occupancy === "investment";
+  const maxEquityAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.75 : 0.85) - balance));
+  const cashOutAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.7 : 0.8) - balance));
+  const reviewAmount = maxEquityAccess || cashOutAccess || equity;
+  const adjuster = creditRateAdjuster(data.credit);
+
+  return isInvestment
+    ? [
+        {
+          name: "DSCR rental loan",
+          tag: "Rental cash flow",
+          apr: aprRange(7.25, 9.75, data.credit),
+          payment: dollars(monthlyAmortized(Math.max(balance, reviewAmount), quotedApr(8.25 + adjuster), 30)),
+          note: "For rental properties where rent can support the payment.",
+        },
+        {
+          name: "Bridge / hard money",
+          tag: "Fast capital",
+          apr: aprRange(10.5, 13.5, data.credit),
+          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), quotedApr(11.75 + adjuster))),
+          note: "Shorter-term fit for purchase, rehab, or time-sensitive scenarios.",
+        },
+        {
+          name: "Fix, flip, construction",
+          tag: "Project funding",
+          apr: aprRange(10.99, 14.5, data.credit),
+          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), quotedApr(12.25 + adjuster))),
+          note: "Can consider purchase, rehab budget, draws, and exit plan.",
+        },
+      ]
+    : [
+        {
+          name: "HELOC",
+          tag: "Flexible line",
+          apr: aprRange(8.25, 11.5, data.credit),
+          payment: dollars(monthlyInterestOnly(maxEquityAccess, quotedApr(9.5 + adjuster))),
+          note: "Interest-only style estimate during the draw period.",
+        },
+        {
+          name: "Home equity loan",
+          tag: "Fixed payment",
+          apr: aprRange(8.75, 12.25, data.credit),
+          payment: dollars(monthlyAmortized(maxEquityAccess, quotedApr(9.75 + adjuster), 20)),
+          note: "Installment style estimate using available equity.",
+        },
+        {
+          name: "Cash-out refinance",
+          tag: "Replace first lien",
+          apr: aprRange(6.75, 8.75, data.credit),
+          payment: dollars(monthlyAmortized(Math.max(balance + cashOutAccess, balance), quotedApr(7.25 + adjuster), 30)),
+          note: "Estimated new first mortgage payment before taxes and insurance.",
+        },
+      ];
+}
+
+function estimateOptionsText(data: Data) {
+  return getEstimatedOptions(data)
+    .map((option) => `${option.name}: estimated APR ${option.apr}; estimated monthly ${option.payment}; ${option.note}`)
+    .join("\n");
 }
 
 function buildApplicationUrl(data: Data) {
@@ -314,7 +391,6 @@ function ProgramSummary({ data }: { data: Data }) {
   const selfLike = ["self_employed", "entrepreneur", "unemployed"].includes(data.employment);
   const maxEquityAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.75 : 0.85) - balance));
   const cashOutAccess = Math.max(0, Math.floor(value * (isInvestment ? 0.7 : 0.8) - balance));
-  const reviewAmount = maxEquityAccess || cashOutAccess || equity;
   const creditLabel = label(CREDIT, data.credit) || "Credit review";
 
   const primary = isInvestment
@@ -330,53 +406,7 @@ function ProgramSummary({ data }: { data: Data }) {
         "Cash-out refinance",
         selfLike ? "Bank statement or non-QM review" : "Rate and term review if payment reduction matters",
       ];
-  const estimatedOptions = isInvestment
-    ? [
-        {
-          name: "DSCR rental loan",
-          tag: "Rental cash flow",
-          apr: aprRange(7.25, 9.75, data.credit),
-          payment: dollars(monthlyAmortized(Math.max(balance, reviewAmount), 8.25 + creditRateAdjuster(data.credit), 30)),
-          note: "For rental properties where rent can support the payment.",
-        },
-        {
-          name: "Bridge / hard money",
-          tag: "Fast capital",
-          apr: aprRange(10.5, 13.5, data.credit),
-          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), 11.75 + creditRateAdjuster(data.credit))),
-          note: "Shorter-term fit for purchase, rehab, or time-sensitive scenarios.",
-        },
-        {
-          name: "Fix, flip, construction",
-          tag: "Project funding",
-          apr: aprRange(10.99, 14.5, data.credit),
-          payment: dollars(monthlyInterestOnly(Math.max(reviewAmount, 150000), 12.25 + creditRateAdjuster(data.credit))),
-          note: "Can consider purchase, rehab budget, draws, and exit plan.",
-        },
-      ]
-    : [
-        {
-          name: "HELOC",
-          tag: "Flexible line",
-          apr: aprRange(8.25, 11.5, data.credit),
-          payment: dollars(monthlyInterestOnly(maxEquityAccess, 9.5 + creditRateAdjuster(data.credit))),
-          note: "Interest-only style estimate during the draw period.",
-        },
-        {
-          name: "Home equity loan",
-          tag: "Fixed payment",
-          apr: aprRange(8.75, 12.25, data.credit),
-          payment: dollars(monthlyAmortized(maxEquityAccess, 9.75 + creditRateAdjuster(data.credit), 20)),
-          note: "Installment style estimate using available equity.",
-        },
-        {
-          name: "Cash-out refinance",
-          tag: "Replace first lien",
-          apr: aprRange(6.75, 8.75, data.credit),
-          payment: dollars(monthlyAmortized(Math.max(balance + cashOutAccess, balance), 7.25 + creditRateAdjuster(data.credit), 30)),
-          note: "Estimated new first mortgage payment before taxes and insurance.",
-        },
-      ];
+  const estimatedOptions = getEstimatedOptions(data);
 
   return (
     <div className="program-options-panel">
@@ -480,6 +510,7 @@ export default function ProgramFinderPreview() {
         lastName: data.last.trim(),
         email: data.email.trim(),
         phone: data.phone.trim(),
+        loanRequest: data.occupancy === "investment" ? "DSCR" : "Program Finder",
         homeValue: data.homeValue,
         mortgageBalance: data.balance,
         creditScore: label(CREDIT, data.credit),
@@ -495,6 +526,8 @@ export default function ProgramFinderPreview() {
           "Employment Status": label(EMPLOYMENT, data.employment),
           "Mortgage Setup": label(MORTGAGE_STATUS, data.mortgageStatus),
           "Requested Next Step": data.nextAction === "email_quote" ? "Have quote emailed/texted to me" : "Schedule a call",
+          "Loan Type": data.occupancy === "investment" ? "DSCR" : "Program Finder",
+          "Estimated Options": estimateOptionsText(data),
           "Best-Fit Genre":
             data.occupancy === "investment"
               ? "Investor financing path"
@@ -614,14 +647,14 @@ export default function ProgramFinderPreview() {
           <ProgramSummary data={data} />
           <div className="opts">
             <OptionCard
-              option={{ id: "schedule", icon: Phone, title: "Schedule a call", sub: "Open Mykoal's calendar and pick a time" }}
-              selected={data.nextAction === "schedule"}
-              onClick={() => set({ nextAction: "schedule" })}
-            />
-            <OptionCard
               option={{ id: "email_quote", icon: Mail, title: "Have quote emailed/texted to me", sub: "Share where Mykoal should send your options" }}
               selected={data.nextAction === "email_quote"}
               onClick={() => set({ nextAction: "email_quote" })}
+            />
+            <OptionCard
+              option={{ id: "schedule", icon: Phone, title: "Schedule a call", sub: "Open Mykoal's calendar and pick a time" }}
+              selected={data.nextAction === "schedule"}
+              onClick={() => set({ nextAction: "schedule" })}
             />
           </div>
           <NavRow

@@ -314,6 +314,7 @@ async function runResend(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<voi
 async function runCrmWebhook(env: Env, lead: Lead, smsOptIn = false): Promise<void> {
   const url = env.CRM_LEAD_WEBHOOK || CRM_LEAD_WEBHOOK_URL;
   if (!url) return;
+  const loanType = lead.quote_fields?.loanType || (String(lead.loan_request || "").toUpperCase().includes("DSCR") ? "DSCR" : "");
   const payload = {
     lead_id: lead.lead_id,
     created_at: lead.created_at,
@@ -327,6 +328,7 @@ async function runCrmWebhook(env: Env, lead: Lead, smsOptIn = false): Promise<vo
     smsOptIn: smsOptIn ? "yes" : "no",
     property_state: lead.property_state ?? "",
     loan_request: lead.loan_request ?? "",
+    ...(loanType ? { loanType, tags: [loanType] } : {}),
     notes: lead.notes ?? "",
     source: lead.source ?? "smartr8.com",
     landing_page: lead.landing_page ?? "",
