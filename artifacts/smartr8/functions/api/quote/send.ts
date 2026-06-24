@@ -90,31 +90,31 @@ function optionCard({ accent, accentLight, tag, title, subtitle, rows, rate, apr
     .map(
       ([label, value]) =>
         `<tr>` +
-        `<td style="padding:6px 0;color:#666;font-size:13px;">${esc(label)}</td>` +
-        `<td style="padding:6px 0;text-align:right;font-weight:600;color:#111;font-size:13px;">${esc(value)}</td>` +
+        `<td style="padding:6px 0;color:#666666;font-size:14px;">${esc(label)}</td>` +
+        `<td style="padding:6px 0;text-align:right;font-weight:700;color:#111111;font-size:14px;">${esc(value)}</td>` +
         `</tr>`,
     )
     .join("");
 
   return (
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${accent};border-radius:8px;overflow:hidden;">` +
-    `<tr><td style="background:${accent};padding:12px 16px;">` +
-    `<div style="color:#ffffff;font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.85;">${esc(tag)}</div>` +
-    `<div style="color:#ffffff;font-size:16px;font-weight:700;">${esc(title)}</div>` +
-    (subtitle ? `<div style="color:${accentLight};font-size:12px;margin-top:2px;">${esc(subtitle)}</div>` : "") +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${accent};border-radius:8px;overflow:hidden;border-collapse:separate;">` +
+    `<tr><td style="background:${accent};padding:14px 18px;">` +
+    `<div style="color:#ffffff;font-size:12px;font-weight:800;letter-spacing:.7px;line-height:1;text-transform:uppercase;">${esc(tag)}</div>` +
+    `<div style="color:#ffffff;font-size:18px;font-weight:800;line-height:1.12;">${esc(title)}</div>` +
+    (subtitle ? `<div style="color:${accentLight};font-size:13px;margin-top:4px;">${esc(subtitle)}</div>` : "") +
     `</td></tr>` +
-    `<tr><td style="padding:14px 16px;background:#ffffff;">` +
+    `<tr><td style="padding:18px;background:#ffffff;">` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rowsHtml}</table>` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;background:${accent};border-radius:6px;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;background:${accent};border-radius:6px;border-collapse:separate;">` +
     `<tr>` +
-    `<td style="padding:12px 14px;vertical-align:top;">` +
-    `<div style="color:${accentLight};font-size:10px;font-weight:600;letter-spacing:.5px;">INTEREST RATE</div>` +
-    `<div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.1;">${esc(rate || "--")}</div>` +
+    `<td style="padding:13px 16px;vertical-align:top;">` +
+    `<div style="color:${accentLight};font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;">INTEREST RATE</div>` +
+    `<div style="color:#ffffff;font-size:26px;font-weight:800;line-height:1.05;">${esc(rate || "--")}</div>` +
     (apr ? `<div style="color:${accentLight};font-size:11px;">APR ${esc(apr)}</div>` : "") +
     `</td>` +
-    `<td style="padding:12px 14px;text-align:right;vertical-align:top;">` +
-    `<div style="color:${accentLight};font-size:10px;font-weight:600;letter-spacing:.5px;">${esc(paymentLabel)}</div>` +
-    `<div style="color:#ffffff;font-size:22px;font-weight:700;line-height:1.1;">${esc(payment || "--")}</div>` +
+    `<td style="padding:13px 16px;text-align:right;vertical-align:top;">` +
+    `<div style="color:${accentLight};font-size:11px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;">${esc(paymentLabel)}</div>` +
+    `<div style="color:#ffffff;font-size:26px;font-weight:800;line-height:1.05;">${esc(payment || "--")}</div>` +
     `</td>` +
     `</tr></table>` +
     `</td></tr></table>`
@@ -125,10 +125,10 @@ function buildQuoteEmailHtml(d) {
   const a = d.options.a || {};
   const b = d.options.b || {};
   const adv = d.advisor || {};
-  const GREEN = "#2e7d4f", GREEN_L = "#bfe6cf", BLUE = "#1a56a0", BLUE_L = "#bcd2f5";
+  const GREEN = "#2f8250", GREEN_L = "#c8e8d4", BLUE = "#225da6", BLUE_L = "#c9daf7";
 
   const advName = esc(adv.name || "Your Loan Officer");
-  const advLine = [adv.title || "Loan Officer", adv.company || "Adaxa LLC", adv.nmls ? `NMLS #${adv.nmls}` : ""]
+  const advLine = [adv.title || "Loan Officer", adv.company || "Adaxa Home", adv.nmls ? `NMLS #${adv.nmls}` : ""]
     .filter(Boolean)
     .map(esc)
     .join(" &middot; ");
@@ -136,7 +136,7 @@ function buildQuoteEmailHtml(d) {
   const cardA = optionCard({
     accent: GREEN, accentLight: GREEN_L,
     tag: "OPTION A", title: "Cash-Out Refinance · 1st Lien",
-    subtitle: [d.options.loanType, a.termLabel].filter(Boolean).join(" · "),
+    subtitle: [d.options.loanType || "Estimate", a.termLabel].filter(Boolean).join(" · "),
     rows: [["New Loan Amount", a.loanAmount], ["Existing Loan Payoff", a.payoff], ["Cash-Out Amount", a.cashOut]],
     rate: a.rate, apr: a.apr, payment: a.payment, paymentLabel: "EST. MONTHLY PAYMENT",
   });
@@ -151,19 +151,19 @@ function buildQuoteEmailHtml(d) {
 
   return (
     `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>` +
-    `<body style="margin:0;background:#f4f4f5;font-family:Arial,Helvetica,sans-serif;color:#222;">` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:24px 0;"><tr><td align="center">` +
-    `<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">` +
-    `<tr><td style="background:#111111;border-radius:8px 8px 0 0;padding:16px 20px;">` +
+    `<body style="margin:0;background:#f2f2f4;font-family:Arial,Helvetica,sans-serif;color:#222222;">` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f2f4;padding:30px 0;"><tr><td align="center">` +
+    `<table role="presentation" width="680" cellpadding="0" cellspacing="0" style="max-width:680px;width:100%;background:#ffffff;">` +
+    `<tr><td style="background:#111111;border-radius:8px 8px 0 0;padding:18px 24px;">` +
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>` +
-    `<td style="color:#ffffff;font-size:18px;font-weight:700;">${esc(adv.company || "Adaxa")}</td>` +
-    `<td style="text-align:right;color:#c9a74d;font-size:13px;font-weight:600;">Quick Quote</td>` +
+    `<td style="color:#ffffff;font-size:22px;font-weight:800;line-height:1;">Adaxa Home</td>` +
+    `<td style="text-align:right;color:#e3be3f;font-size:14px;font-weight:800;">Quick Quote</td>` +
     `</tr></table></td></tr>` +
-    `<tr><td style="background:#ffffff;padding:24px 20px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px;">` +
-    `<p style="margin:0 0 4px;font-size:15px;">Hi ${esc(d.clientName || "there")},</p>` +
-    `<p style="margin:0 0 18px;font-size:14px;color:#444;line-height:1.5;">Here is your personalized quick quote${d.options.date ? ` &middot; ${esc(d.options.date)}` : ""}. Two options are shown below, and a detailed PDF is attached.</p>` +
+    `<tr><td style="background:#ffffff;padding:28px 24px 26px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px;">` +
+    `<p style="margin:0 0 4px;font-size:17px;line-height:1.45;">Hi ${esc(d.clientName || "there")},</p>` +
+    `<p style="margin:0 0 24px;font-size:16px;color:#444444;line-height:1.5;">Here is your personalized quick quote${d.options.date ? ` &middot; ${esc(d.options.date)}` : ""}. Two options are shown below, and a detailed PDF is attached.</p>` +
     cardA +
-    `<div style="text-align:center;color:#888;font-size:12px;font-weight:700;margin:12px 0;">— OR —</div>` +
+    `<div style="text-align:center;color:#888888;font-size:14px;font-weight:800;margin:16px 0;">&mdash; OR &mdash;</div>` +
     cardB +
     (Array.isArray(d.benefits) && d.benefits.length
       ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;background:#f7f9fc;border:1px solid #e5e5e5;border-radius:8px;"><tr><td style="padding:14px 16px;">` +
@@ -171,15 +171,15 @@ function buildQuoteEmailHtml(d) {
         d.benefits.map((x) => `<div style="font-size:13px;color:#444;line-height:1.6;">&bull; ${esc(x)}</div>`).join("") +
         `</td></tr></table>`
       : "") +
-    `<p style="margin:18px 0 0;font-size:12px;color:#666;">A full PDF breakdown of both options is attached to this email.</p>` +
-    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-top:1px solid #eeeeee;"><tr><td style="padding-top:14px;">` +
-    `<div style="font-size:15px;font-weight:700;color:#111;">${advName}</div>` +
-    `<div style="font-size:12px;color:#777;margin:2px 0 6px;">${advLine}</div>` +
-    (adv.phone ? `<div style="font-size:13px;color:#444;">P: ${esc(adv.phone)}</div>` : "") +
-    (adv.email ? `<div style="font-size:13px;color:#444;">E: <a href="mailto:${esc(adv.email)}" style="color:#1a56a0;text-decoration:none;">${esc(adv.email)}</a></div>` : "") +
-    (adv.web ? `<div style="font-size:13px;color:#777;">${esc(adv.web)}</div>` : "") +
+    `<p style="margin:20px 0 0;font-size:14px;color:#666666;">A full PDF breakdown of both options is attached to this email.</p>` +
+    `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid #eeeeee;"><tr><td style="padding-top:16px;">` +
+    `<div style="font-size:17px;font-weight:800;color:#111111;">${advName}</div>` +
+    `<div style="font-size:14px;color:#777777;margin:2px 0 7px;">${advLine}</div>` +
+    (adv.phone ? `<div style="font-size:14px;color:#444444;">P: ${esc(adv.phone)}</div>` : "") +
+    (adv.email ? `<div style="font-size:14px;color:#444444;">E: <a href="mailto:${esc(adv.email)}" style="color:#1a56a0;text-decoration:none;">${esc(adv.email)}</a></div>` : "") +
+    (adv.web ? `<div style="font-size:14px;color:#777777;">${esc(adv.web)}</div>` : "") +
     `</td></tr></table>` +
-    `<p style="margin:18px 0 0;font-size:9px;color:#aaa;line-height:1.45;">${esc(d.disclaimer || "")}</p>` +
+    `<p style="margin:26px 0 0;font-size:11px;color:#999999;line-height:1.45;">${esc(d.disclaimer || "")}</p>` +
     `</td></tr></table></td></tr></table></body></html>`
   );
 }
