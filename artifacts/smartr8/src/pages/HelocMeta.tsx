@@ -691,13 +691,29 @@ function LenderLogoCarousel() {
   );
 }
 
-function HelocIntroVideo() {
+const introVideos: Partial<Record<MetaFunnelId, { label: string; title: string; src: string }>> = {
+  helocmeta: {
+    label: "HELOC overview video",
+    title: "HELOC overview",
+    src: "https://www.loom.com/embed/135bedc05e294697bea6d1be078b59c0?autoplay=1",
+  },
+  dscrcometa: {
+    label: "DSCR overview video",
+    title: "DSCR overview",
+    src: "https://www.loom.com/embed/47bf270e75204eae80385330a0d7cbd0?autoplay=1",
+  },
+};
+
+function IntroVideo({ funnelId }: { funnelId: MetaFunnelId }) {
+  const video = introVideos[funnelId];
+  if (!video) return null;
+
   return (
-    <section className="hm-video-wrap" aria-label="HELOC overview video">
+    <section className="hm-video-wrap" aria-label={video.label}>
       <div className="hm-video-frame">
         <iframe
-          src="https://www.loom.com/embed/135bedc05e294697bea6d1be078b59c0?autoplay=1"
-          title="HELOC overview"
+          src={video.src}
+          title={video.title}
           frameBorder="0"
           allow="autoplay; fullscreen; picture-in-picture"
           allowFullScreen
@@ -1231,7 +1247,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
       <HeaderProgress progress={currentProgress} />
       <AlertBar />
       <main className="hm-main">
-        {config.funnelId === "helocmeta" && currentStep.id === "loan-purpose" && <HelocIntroVideo />}
+        {currentStep.id === "loan-purpose" && <IntroVideo funnelId={config.funnelId} />}
         {renderStep()}
         <LenderLogoCarousel />
       </main>
