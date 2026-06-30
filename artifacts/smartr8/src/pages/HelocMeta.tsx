@@ -17,6 +17,10 @@ const CONTACT_PHONE = "(480) 206-9290";
 const CONTACT_PHONE_HREF = "tel:4802069290";
 const HELOCMETA_WEBHOOK_URL = import.meta.env.VITE_HELOCMETA_WEBHOOK_URL as string | undefined;
 const DSCRCOMETA_WEBHOOK_URL = import.meta.env.VITE_DSCRCOMETA_WEBHOOK_URL as string | undefined;
+const HELOC_FIGURE_REDIRECT_URL =
+  "https://heloc.adaxahome.com/account/heloc/register?referrer=07b7dc41-da1d-4044-8cfc-694ebbc1d3b7";
+const DSCR_LENDINGPAD_REDIRECT_URL =
+  "https://prod.lendingpad.com/adaxa-home/dabbfd28-9b5f-46b8-9029-aa478433a995/pos#/account/guest-application";
 const TURNSTILE_SITE_KEY =
   (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || "0x4AAAAAADX6q2I_R4J9sxTC";
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
@@ -99,10 +103,9 @@ type MetaFunnelConfig = {
   contactTitle: string;
   contactSubheading: string;
   submitLabel: string;
+  completionRedirectUrl: string;
   fbContentName: string;
   defaultLoanRequest: string;
-  thankYouHeadline: string;
-  thankYouSubheading: string;
   complianceDisclosure: string;
   additionalFields?: Record<string, string>;
 };
@@ -258,10 +261,9 @@ const helocMetaConfig: MetaFunnelConfig = {
   contactTitle: "Where should we send your quote?",
   contactSubheading: "A licensed loan officer will call and text you with your personalized rate.",
   submitLabel: "Request Quote",
+  completionRedirectUrl: HELOC_FIGURE_REDIRECT_URL,
   fbContentName: "HELOC Meta Quote Funnel",
   defaultLoanRequest: "Mortgage Rate Quote",
-  thankYouHeadline: "Your quote request is in.",
-  thankYouSubheading: "A licensed loan officer will review your details and reach out shortly.",
   complianceDisclosure:
     "HELOCs and home equity loans are secured by the home, subject to approval, and not a commitment to lend.",
 };
@@ -294,10 +296,9 @@ export const dscrCoMetaConfig: MetaFunnelConfig = {
   contactTitle: "Where should we send your DSCR quote?",
   contactSubheading: "A licensed loan officer will review the rental scenario and follow up with DSCR options.",
   submitLabel: "Request DSCR Quote",
+  completionRedirectUrl: DSCR_LENDINGPAD_REDIRECT_URL,
   fbContentName: "DSCR CO Meta Quote Funnel",
   defaultLoanRequest: "DSCR Investor Loan Quote",
-  thankYouHeadline: "Your DSCR quote request is in.",
-  thankYouSubheading: "A licensed loan officer will review your rental scenario and reach out shortly.",
   complianceDisclosure:
     "DSCR investor loans are subject to rental income, property, credit, title, appraisal, and underwriting review. Not a commitment to lend.",
   additionalFields: {
@@ -370,6 +371,36 @@ function labelFor<T extends string>(options: Array<{ value: T; title: string; su
   return match.sub ? `${match.title} (${match.sub})` : match.title;
 }
 
+function buildCompletionRedirectUrl(destination: string, payload: QuotePayload, config: MetaFunnelConfig, loanPurposeLabel: string): string {
+  try {
+    const url = new URL(destination);
+    const forwardedParams: Record<string, string> = {
+      utm_source: payload.utm_source,
+      utm_medium: payload.utm_medium,
+      utm_campaign: payload.utm_campaign,
+      utm_content: payload.utm_content,
+      utm_term: payload.utm_term,
+      utm_id: payload.utm_id,
+      meta_site_source: payload.meta_site_source,
+      meta_placement: payload.meta_placement,
+      meta_campaign_id: payload.meta_campaign_id,
+      meta_adset_id: payload.meta_adset_id,
+      meta_ad_id: payload.meta_ad_id,
+      source: "smartr8",
+      funnel: config.funnelId,
+      loan_purpose: loanPurposeLabel || config.defaultLoanRequest,
+    };
+
+    Object.entries(forwardedParams).forEach(([key, value]) => {
+      if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
+    });
+
+    return url.toString();
+  } catch {
+    return destination;
+  }
+}
+
 function buildSteps(data: FunnelData, config: MetaFunnelConfig): StepDef[] {
   const steps: StepDef[] = [
     { id: "loan-purpose", progress: 14 },
@@ -421,7 +452,7 @@ function HeaderProgress({ progress }: { progress: number }) {
           <span>Home</span>
         </Link>
         <div className="hm-brand">
-          <img src="/adaxa-triangle.svg" alt="Adaxa Home" />
+          <img src="/adaxa-meta-logo.png" alt="Adaxa Home" />
           <div>
             <strong>ADAXA HOME LLC</strong>
             <small>NMLS #{COMPANY_NMLS}</small>
@@ -732,8 +763,8 @@ function ThankYouPage({ data, config }: { data: FunnelData; config: MetaFunnelCo
     <main className="hm-main">
       <section className="hm-card hm-thank-you">
         <p className="hm-eyebrow">QUOTE REQUEST</p>
-        <h1>{config.thankYouHeadline}</h1>
-        <p className="hm-subheading">{config.thankYouSubheading}</p>
+        <h1>Your request is moving to the next step.</h1>
+        <p className="hm-subheading">Redirecting you to the secure application path.</p>
         <div className="hm-summary">
           <div>
             <span>Loan purpose</span>
@@ -777,16 +808,38 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
   const [stepIndex, setStepIndex] = useState(0);
   const [consent, setConsent] = useState<ConsentState>({ ready: false, token: "" });
   const [submitting, setSubmitting] = useState(false);
-  const [thankYou, setThankYou] = useState(false);
   const [error, setError] = useState("");
+  const dataRef = useRef(data);
+  const autoAdvanceTimer = useRef<number | null>(null);
 
   const steps = useMemo(() => buildSteps(data, config), [data, config]);
   const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
   const currentProgress = currentStep?.progress ?? 14;
 
   const updateData = useCallback((patch: Partial<FunnelData>) => {
-    setData((current) => ({ ...current, ...patch }));
+    setData((current) => {
+      const next = { ...current, ...patch };
+      dataRef.current = next;
+      return next;
+    });
   }, []);
+
+  const updateDataAndAdvance = useCallback(
+    (patch: Partial<FunnelData>) => {
+      setError("");
+      setData((current) => {
+        const next = { ...current, ...patch };
+        dataRef.current = next;
+        return next;
+      });
+      if (autoAdvanceTimer.current !== null) window.clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = window.setTimeout(() => {
+        setStepIndex((current) => Math.min(current + 1, buildSteps(dataRef.current, config).length - 1));
+        autoAdvanceTimer.current = null;
+      }, 140);
+    },
+    [config],
+  );
 
   const setTurnstileToken = useCallback((token: string) => {
     setConsent({ ready: token.length > 0, token });
@@ -804,17 +857,31 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [stepIndex, thankYou]);
+  }, [stepIndex]);
+
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimer.current !== null) window.clearTimeout(autoAdvanceTimer.current);
+    };
+  }, []);
 
   const stepPath = useMemo(() => steps.map((step) => step.id).join(" > "), [steps]);
   const canContinue = validateStep(currentStep.id, data, consent);
 
   const goNext = () => {
     if (!canContinue || submitting) return;
+    if (autoAdvanceTimer.current !== null) {
+      window.clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
     if (stepIndex < steps.length - 1) setStepIndex((current) => current + 1);
   };
 
   const goBack = () => {
+    if (autoAdvanceTimer.current !== null) {
+      window.clearTimeout(autoAdvanceTimer.current);
+      autoAdvanceTimer.current = null;
+    }
     setError("");
     setStepIndex((current) => Math.max(0, current - 1));
   };
@@ -848,6 +915,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
     setError("");
     const payload = buildPayload();
     const loanPurposeLabel = labelFor(config.loanPurposeOptions, data.loan_purpose);
+    let redirectStarted = false;
     try {
       const additionalFields = Object.entries(payload).reduce<Record<string, string>>((acc, [key, value]) => {
         if (value === undefined || value === null || value === "") return acc;
@@ -899,12 +967,17 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
         content_category: "Mortgage",
         loan_purpose: data.loan_purpose,
       });
+      trackFbEvent(config.funnelId === "dscrcometa" ? "SubmitApplication" : "ViewContent", {
+        content_name: config.funnelId === "dscrcometa" ? "DSCR LendingPad Application" : "HELOC Figure Application",
+        content_category: "Mortgage",
+      });
       localStorage.removeItem(config.storageKey);
-      setThankYou(true);
+      redirectStarted = true;
+      window.location.assign(buildCompletionRedirectUrl(config.completionRedirectUrl, payload, config, loanPurposeLabel));
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "We couldn't submit your quote request.");
     } finally {
-      setSubmitting(false);
+      if (!redirectStarted) setSubmitting(false);
     }
   };
 
@@ -926,7 +999,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
                 icon={option.icon}
                 title={option.title}
                 selected={data.loan_purpose === option.value}
-                onClick={() => updateData({ loan_purpose: option.value, cash_use: "" })}
+                onClick={() => updateDataAndAdvance({ loan_purpose: option.value, cash_use: "" })}
               />
             ))}
           </div>
@@ -942,6 +1015,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
           subheading="Start typing the address, and we'll auto-fill the rest."
           onBack={goBack}
           onNext={goNext}
+          nextLabel="Submit"
           nextDisabled={!canContinue}
         >
           <AddressAutocomplete data={data} onChange={updateData} />
@@ -987,7 +1061,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
                 icon={option.icon}
                 title={option.title}
                 selected={data.cash_use === option.value}
-                onClick={() => updateData({ cash_use: option.value })}
+                onClick={() => updateDataAndAdvance({ cash_use: option.value })}
               />
             ))}
           </div>
@@ -1035,7 +1109,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
                 icon={option.icon}
                 title={option.title}
                 selected={data.property_use === option.value}
-                onClick={() => updateData({ property_use: option.value })}
+                onClick={() => updateDataAndAdvance({ property_use: option.value })}
               />
             ))}
           </div>
@@ -1061,7 +1135,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
                 title={option.title}
                 sub={option.sub}
                 selected={data.credit_score_range === option.value}
-                onClick={() => updateData({ credit_score_range: option.value })}
+                onClick={() => updateDataAndAdvance({ credit_score_range: option.value })}
               />
             ))}
           </div>
@@ -1076,7 +1150,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
         subheading={config.contactSubheading}
         onBack={goBack}
         onNext={submitQuote}
-        nextLabel={submitting ? "Building your quote..." : config.submitLabel}
+        nextLabel={submitting ? "Submitting..." : config.submitLabel}
         nextDisabled={!canContinue}
         loading={submitting}
       >
@@ -1141,16 +1215,12 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
           serviceType: config.schemaServiceType,
         }}
       />
-      <HeaderProgress progress={thankYou ? 100 : currentProgress} />
+      <HeaderProgress progress={currentProgress} />
       <AlertBar />
-      {thankYou ? (
-        <ThankYouPage data={data} config={config} />
-      ) : (
-        <main className="hm-main">
-          {renderStep()}
-          <LenderLogoCarousel />
-        </main>
-      )}
+      <main className="hm-main">
+        {renderStep()}
+        <LenderLogoCarousel />
+      </main>
       <footer className="hm-compliance">
         <p>
           {COMPANY_NAME} NMLS #{COMPANY_NMLS} | Equal Housing Lender | Subject to credit approval. Terms, conditions, and
