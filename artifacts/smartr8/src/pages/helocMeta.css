@@ -62,13 +62,14 @@
 }
 
 .hm-brand img {
-  width: 38px;
+  width: 42px;
   height: 38px;
-  flex: 0 0 38px;
+  flex: 0 0 42px;
   object-fit: contain;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 12px;
-  background: white;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.2));
 }
 
 .hm-brand strong,
@@ -653,9 +654,9 @@
   }
 
   .hm-brand img {
-    width: 34px;
+    width: 38px;
     height: 34px;
-    flex-basis: 34px;
+    flex-basis: 38px;
   }
 
   .hm-brand strong,
