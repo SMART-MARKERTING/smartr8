@@ -391,17 +391,6 @@
   font-weight: 800;
 }
 
-.hm-zillow {
-  display: inline-flex;
-  gap: 5px;
-  align-items: center;
-  justify-self: center;
-  color: var(--hm-navy-2);
-  font-size: 13px;
-  font-weight: 900;
-  text-decoration: none;
-}
-
 .hm-actions {
   display: flex;
   justify-content: space-between;

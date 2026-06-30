@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Loader2, Phone } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Loader2, Phone } from "lucide-react";
 import { AddressAutocomplete as GoogleAddressAutocomplete, type AddressResult } from "@/components/AddressAutocomplete";
 import { JsonLd } from "@/components/JsonLd";
 import { PageMeta } from "@/components/PageMeta";
@@ -1086,9 +1086,6 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
             value={data.estimated_home_value}
             onChange={(value) => updateData({ estimated_home_value: value })}
           />
-          <a className="hm-zillow" href="https://www.zillow.com/how-much-is-my-home-worth/" target="_blank" rel="noopener noreferrer">
-            Check Zillow <ExternalLink size={14} />
-          </a>
         </QuestionCard>
       );
     }
