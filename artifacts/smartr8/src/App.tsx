@@ -36,6 +36,7 @@ const HelocOptions = lazy(() => import("@/pages/HelocOptions"));
 const HardMoneyLoans = lazy(() => import("@/pages/HardMoneyLoans"));
 const ProgramFinderPreview = lazy(() => import("@/pages/ProgramFinderPreview"));
 const LegalZoom = lazy(() => import("@/pages/LegalZoom"));
+const HelocMeta = lazy(() => import("@/pages/HelocMeta"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetNextStep = lazy(() => import("@/pages/WorksheetNextStep"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
@@ -248,6 +249,10 @@ function Router() {
             /application-next. /see-my-options is the generic strategy picker. */}
         <Route path="/see-my-options" component={ProgramFinderPreview} />
         <Route path="/main-see-my-options" component={ProgramFinderPreview} />
+        <Route path="/HELOCmeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/helocMeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/heloc-meta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/helocmeta" component={HelocMeta} />
         <Route path="/cash-out">{() => <Worksheet entry="cash-out" />}</Route>
         <Route path="/rate-reduction">{() => <Worksheet entry="rate-reduction" />}</Route>
         <Route path="/purchase">{() => <Worksheet entry="purchase" />}</Route>

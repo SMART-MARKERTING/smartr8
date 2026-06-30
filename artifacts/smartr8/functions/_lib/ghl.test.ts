@@ -87,6 +87,20 @@ describe("ghlUpsert request shape", () => {
     expect(tcpa.value).toBe("yes");
   });
 
+  it("sets the loan type custom field from the helocmeta selected purpose", async () => {
+    fetchMock.mockResolvedValueOnce(upsertOk());
+    await ghlUpsert(makeEnv(), makeLead({ funnel: "helocmeta", loan_request: "Purchase" }));
+    let body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    let loanType = body.customFields.find((cf: { id: string }) => cf.id === "cf-loan-type");
+    expect(loanType.value).toBe("Mortgage");
+
+    fetchMock.mockResolvedValueOnce(upsertOk());
+    await ghlUpsert(makeEnv(), makeLead({ funnel: "helocmeta", loan_request: "HELOC" }));
+    body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    loanType = body.customFields.find((cf: { id: string }) => cf.id === "cf-loan-type");
+    expect(loanType.value).toBe("HELOC");
+  });
+
   it("filters out customFields whose value is empty (no placeholder leaks)", async () => {
     fetchMock.mockResolvedValueOnce(upsertOk());
     // Lead with no notes and no property data — Conversation Summary and
@@ -176,6 +190,22 @@ describe("ghlUpsert tag derivation from funnel", () => {
       expect(await tagsFor(funnel)).toEqual(["web lead", "mortgage"]);
     },
   );
+
+  it("tags helocmeta as mortgage or heloc based on the selected loan purpose", async () => {
+    fetchMock.mockResolvedValueOnce(upsertOk());
+    await ghlUpsert(
+      makeEnv(),
+      makeLead({ funnel: "helocmeta", landing_page: "https://smartr8.com/helocmeta", loan_request: "Cash-Out Refinance" }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body).tags).toEqual(["web lead", "mortgage"]);
+
+    fetchMock.mockResolvedValueOnce(upsertOk());
+    await ghlUpsert(
+      makeEnv(),
+      makeLead({ funnel: "helocmeta", landing_page: "https://smartr8.com/helocmeta", loan_request: "Home Equity Loan" }),
+    );
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body).tags).toEqual(["web lead", "heloc"]);
+  });
 
   it('tags the "other" funnel as ["web lead"] only', async () => {
     expect(await tagsFor("other")).toEqual(["web lead"]);

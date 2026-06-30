@@ -1,4 +1,4 @@
-export type FunnelId = "heloc" | "cashout" | "rate-reduction" | "purchase" | "legal" | "see-my-options";
+export type FunnelId = "heloc" | "helocmeta" | "cashout" | "rate-reduction" | "purchase" | "legal" | "see-my-options";
 
 const LM_ENDPOINT = "https://api.leadmailbox.com/v2/leads/add/adax01/DeshazosWebsite";
 
@@ -69,6 +69,7 @@ function loanRequest(funnelType: FunnelId): string {
   if (funnelType === "rate-reduction") return "Rate and Term Refinance";
   if (funnelType === "purchase") return "Purchase";
   if (funnelType === "heloc") return "HELOC";
+  if (funnelType === "helocmeta") return "Mortgage Rate Quote";
   if (funnelType === "legal") return "LegalZoom Partner Lead";
   if (funnelType === "see-my-options") return "Program Finder";
   return "Refinance";
