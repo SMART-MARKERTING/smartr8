@@ -81,7 +81,7 @@ beforeEach(() => {
 });
 
 describe("processLead — happy path", () => {
-  it("performs the LeadMailbox sync write before returning, and queues only the CRM webhook via waitUntil (GHL + welcome email retired)", async () => {
+  it("performs the LeadMailbox sync write before returning, and keeps non-helocmeta leads on the CRM-only async path", async () => {
     const env = makeEnv();
     const ctx = makeCtxMock();
     const lead = makeLead();
@@ -92,12 +92,48 @@ describe("processLead — happy path", () => {
     expect(result.duplicate).toBeFalsy();
     expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
     expect(submitToLeadMailboxMock).toHaveBeenCalledWith(lead, expect.any(String));
-    // GHL and the Resend welcome email are both retired, so only the CRM webhook is queued.
     expect(ctx._promises.length).toBe(1);
 
     await drainWaitUntil(ctx);
     expect(ghlUpsertMock).not.toHaveBeenCalled();
     expect(sendResendConfirmationMock).not.toHaveBeenCalled();
+  });
+
+  it("queues both the regular CRM webhook and GHL for opted-in helocmeta leads", async () => {
+    const fetchMock = vi.fn(async () => ({ ok: true, status: 200, text: async () => "" }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const env = makeEnv({ CRM_LEAD_WEBHOOK: "https://crm.example.com/webhooks/lead?key=test" });
+      const ctx = makeCtxMock();
+      const lead = makeLead({
+        funnel: "helocmeta",
+        landing_page: "https://smartr8.com/helocmeta",
+        loan_request: "HELOC",
+      });
+
+      const result = await processLead(lead, makeConsent(), env, ctx);
+
+      expect(result.ok).toBe(true);
+      expect(submitToLeadMailboxMock).toHaveBeenCalledTimes(1);
+      expect(ctx._promises.length).toBe(2);
+      await drainWaitUntil(ctx);
+
+      const crmCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("crm.example.com"));
+      expect(crmCall).toBeDefined();
+      expect(ghlUpsertMock).toHaveBeenCalledWith(env, lead);
+      expect(ghlCreateOpportunityMock).toHaveBeenCalledWith(env, lead, "ghl-c-1");
+      expect(sendResendConfirmationMock).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not queue GHL for helocmeta when TCPA consent is missing", async () => {
+    const env = makeEnv();
+    const ctx = makeCtxMock();
+    await processLead(makeLead({ funnel: "helocmeta" }), null, env, ctx);
+    await drainWaitUntil(ctx);
+    expect(ghlUpsertMock).not.toHaveBeenCalled();
   });
 
   it("writes the D1 audit row before any destination side effect fires", async () => {

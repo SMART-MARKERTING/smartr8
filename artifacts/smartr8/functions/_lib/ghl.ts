@@ -76,13 +76,32 @@ const FUNNEL_TAG_MAP: Record<string, string> = {
   "/heloc/quick-v2": "heloc",
 };
 
+function loanTypeTagFor(lead: Lead): string {
+  const funnel = String(lead.funnel || "").toLowerCase();
+  if (funnel === "helocmeta") {
+    const request = String(lead.loan_request || lead.notes || "").toLowerCase();
+    if (request.includes("heloc") || request.includes("home equity") || request.includes("home improvement")) {
+      return "heloc";
+    }
+    return "mortgage";
+  }
+  return FUNNEL_LOAN_TYPE[funnel] || "";
+}
+
+function customLoanTypeFor(lead: Lead): string {
+  const tag = loanTypeTagFor(lead);
+  if (tag === "heloc") return "HELOC";
+  if (tag === "mortgage") return "Mortgage";
+  return lead.loan_request?.trim() || "";
+}
+
 /** Build the GHL contact tag set from a Lead. Always includes "web lead",
  *  then appends a loan-type tag derived from the funnel id (preferred) and,
  *  as a fallback, the landing-page path. Deduped so a lead matching both
  *  sources carries the loan-type tag only once. */
 function tagsFor(lead: Lead): string[] {
   const tags = ["web lead"];
-  const byFunnel = FUNNEL_LOAN_TYPE[String(lead.funnel || "").toLowerCase()];
+  const byFunnel = loanTypeTagFor(lead);
   if (byFunnel) tags.push(byFunnel);
   try {
     const url = new URL(lead.landing_page ?? "");
@@ -128,8 +147,10 @@ export async function ghlUpsert(env: Env, lead: Lead): Promise<GhlResult> {
 
   const tags = tagsFor(lead);
 
+  const loanType = customLoanTypeFor(lead);
+
   const customFields = [
-    { id: env.GHL_CF_LOAN_TYPE, value: "HELOC" },
+    { id: env.GHL_CF_LOAN_TYPE, value: loanType },
     { id: env.GHL_CF_PROPERTY_STATE, value: propertyState || "" },
     { id: env.GHL_CF_TCPA_CONSENT, value: "yes" },
     { id: env.GHL_CF_CONVERSATION_SUMMARY, value: lead.notes || "" },

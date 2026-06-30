@@ -5,13 +5,9 @@
 //   - CRM webhook: forwards the lead to the Smartr8 CRM (crm.smartr8.com), which
 //     owns texting (iMessage-first → SMS), the nurture drip, and pipeline. The
 //     SMS opt-in rides along as smsOptIn so the CRM only texts box-checkers.
-//   - Resend confirmation (independent).
-//
-// GHL is RETIRED: the lead now lives solely in the CRM. runGhlChain (contact
-// upsert + opportunity create) is kept below but is NO LONGER CALLED — re-add the
-// `ctx.waitUntil(runGhlChain(env, db, lead))` line to restore it. Removing that
-// call is what stopped GHL's "Contact Created" workflow from texting every lead
-// (regardless of consent) via the send_blue connector.
+//   - GHL for explicitly opted-in helocmeta leads only, preserving the legacy
+//     GHL connection without re-enabling it for every older website funnel.
+//   - Resend confirmation (independent, currently dormant).
 //
 // The Worker does NOT send SMS itself.
 //
@@ -42,6 +38,10 @@ async function sha256Hex(input: string): Promise<string> {
 export async function dedupKeyFor(lead: Lead): Promise<string> {
   const norm = `${lead.email.toLowerCase()}|${(lead.phone_e164 || "").trim()}|${lead.funnel}`;
   return `lead_dedup:${await sha256Hex(norm)}`;
+}
+
+function shouldSendToGhl(lead: Lead, consent: TcpaConsent | null): boolean {
+  return String(lead.funnel || "").toLowerCase() === "helocmeta" && consent != null;
 }
 
 interface OrchestrateContext {
@@ -127,12 +127,14 @@ export async function processLead(
   await updateLeadmailboxStatus(db, lead.lead_id, lmResult);
 
   // ── Async: CRM webhook ─────────────────────────────────────────────
-  // Two destinations are intentionally retired (both kept dormant below):
-  //   • runGhlChain — GHL no longer receives the lead (stopped its un-gated texting).
-  //   • runResend  — the website welcome/confirmation email is dropped; the funnel's
-  //     Quick Quote (/api/quote/send) is the only lead email now.
-  // So the worker just forwards to the CRM, which owns texting + the nurture drip.
+  // Resend remains dormant; the funnel's Quick Quote (/api/quote/send) is
+  // the only lead email now.
+  // The CRM always receives the accepted lead. GHL is re-enabled only for
+  // opted-in helocmeta leads so older website funnels keep their GHL behavior off.
   ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
+  if (shouldSendToGhl(lead, consent)) {
+    ctx.waitUntil(runGhlChain(env, db, lead));
+  }
 
   return { ok: true, lead_id: lead.lead_id, leadmailbox: lmResult };
 }
@@ -265,11 +267,7 @@ async function updateGhlOpportunityStatus(
 // Async destination runners
 // ───────────────────────────────────────────────────────────────────────
 
-/**
- * DORMANT — GHL retired. No longer called by processLead; kept intact so re-enabling
- * GHL is a one-line restore (re-add the `ctx.waitUntil(runGhlChain(env, db, lead))`
- * call). Upsert -> sequentially opportunity create; each step writes its own status.
- */
+/** Upsert -> sequentially opportunity create; each step writes its own status. */
 async function runGhlChain(env: Env, db: Env["LEADS_DB"], lead: Lead): Promise<void> {
   const upsert = await ghlUpsert(env, lead);
   await updateGhlUpsertStatus(db, lead.lead_id, upsert);
