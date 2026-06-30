@@ -249,6 +249,9 @@ function Router() {
             /application-next. /see-my-options is the generic strategy picker. */}
         <Route path="/see-my-options" component={ProgramFinderPreview} />
         <Route path="/main-see-my-options" component={ProgramFinderPreview} />
+        <Route path="/HELOCmeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/helocMeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/heloc-meta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
         <Route path="/helocmeta" component={HelocMeta} />
         <Route path="/cash-out">{() => <Worksheet entry="cash-out" />}</Route>
         <Route path="/rate-reduction">{() => <Worksheet entry="rate-reduction" />}</Route>
