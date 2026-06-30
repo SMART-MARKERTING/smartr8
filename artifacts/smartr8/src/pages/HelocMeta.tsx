@@ -696,7 +696,7 @@ function HelocIntroVideo() {
     <section className="hm-video-wrap" aria-label="HELOC overview video">
       <div className="hm-video-frame">
         <iframe
-          src="https://www.loom.com/embed/135bedc05e294697bea6d1be078b59c0?autoplay=1&muted=1"
+          src="https://www.loom.com/embed/135bedc05e294697bea6d1be078b59c0?autoplay=1"
           title="HELOC overview"
           frameBorder="0"
           allow="autoplay; fullscreen; picture-in-picture"
