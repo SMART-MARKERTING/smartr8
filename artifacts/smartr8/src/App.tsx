@@ -37,6 +37,7 @@ const HardMoneyLoans = lazy(() => import("@/pages/HardMoneyLoans"));
 const ProgramFinderPreview = lazy(() => import("@/pages/ProgramFinderPreview"));
 const LegalZoom = lazy(() => import("@/pages/LegalZoom"));
 const HelocMeta = lazy(() => import("@/pages/HelocMeta"));
+const DscrCoMeta = lazy(() => import("@/pages/DscrCoMeta"));
 const Worksheet = lazy(() => import("@/pages/Worksheet"));
 const WorksheetNextStep = lazy(() => import("@/pages/WorksheetNextStep"));
 const WorksheetInternal = lazy(() => import("@/pages/WorksheetInternal"));
@@ -253,6 +254,10 @@ function Router() {
         <Route path="/HELOCmeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
         <Route path="/helocMeta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
         <Route path="/heloc-meta">{() => <RedirectTo to="/helocmeta" preserveSearch />}</Route>
+        <Route path="/dscrcometa" component={DscrCoMeta} />
+        <Route path="/DSCRCOMETA">{() => <RedirectTo to="/dscrcometa" preserveSearch />}</Route>
+        <Route path="/dscrCoMeta">{() => <RedirectTo to="/dscrcometa" preserveSearch />}</Route>
+        <Route path="/dscr-co-meta">{() => <RedirectTo to="/dscrcometa" preserveSearch />}</Route>
         <Route path="/cash-out">{() => <Worksheet entry="cash-out" />}</Route>
         <Route path="/rate-reduction">{() => <Worksheet entry="rate-reduction" />}</Route>
         <Route path="/purchase">{() => <Worksheet entry="purchase" />}</Route>

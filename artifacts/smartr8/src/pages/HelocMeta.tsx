@@ -15,12 +15,11 @@ const LOAN_OFFICER_NMLS = "1912347";
 const HEADER_LOAN_OFFICER_NAME = "MYKOALDESHAZO";
 const CONTACT_PHONE = "(480) 206-9290";
 const CONTACT_PHONE_HREF = "tel:4802069290";
-const STORAGE_KEY = "smartr8_helocmeta_quote_v1";
-const WEBHOOK_URL = import.meta.env.VITE_HELOCMETA_WEBHOOK_URL as string | undefined;
+const HELOCMETA_WEBHOOK_URL = import.meta.env.VITE_HELOCMETA_WEBHOOK_URL as string | undefined;
+const DSCRCOMETA_WEBHOOK_URL = import.meta.env.VITE_DSCRCOMETA_WEBHOOK_URL as string | undefined;
 const TURNSTILE_SITE_KEY =
   (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || "0x4AAAAAADX6q2I_R4J9sxTC";
 const TURNSTILE_SCRIPT_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js";
-const CONSENT_VERSION = "2026-06-29.helocmeta.v1";
 const CONSENT_TEXT =
   `I agree to be contacted by ${COMPANY_NAME} and its licensed loan officers via phone, text, ` +
   "and email, including automated technology. Message and data rates may apply. Consent is not a condition of service.";
@@ -69,6 +68,43 @@ type ConsentState = {
 type StepDef = {
   id: StepId;
   progress: number;
+};
+
+export type MetaFunnelId = "helocmeta" | "dscrcometa";
+
+type MetaFunnelConfig = {
+  funnelId: MetaFunnelId;
+  storageKey: string;
+  consentVersion: string;
+  webhookUrl?: string;
+  canonical: string;
+  pageTitle: string;
+  pageDescription: string;
+  schemaServiceType: string;
+  firstStepEyebrow: string;
+  firstStepTitle: string;
+  firstStepSubheading: string;
+  loanPurposeOptions: Array<{ value: LoanPurpose; icon: string; title: string }>;
+  cashUsePurposes: Set<LoanPurpose>;
+  cashUseTitle: string;
+  cashUseSubheading?: string;
+  mortgageTitle: string;
+  mortgageSubheading: string;
+  mortgageLabel: string;
+  homeValueTitle: string;
+  homeValueSubheading?: string;
+  propertyUseTitle: string;
+  propertyUseOptions: Array<{ value: PropertyUse; icon: string; title: string }>;
+  contactEyebrow: string;
+  contactTitle: string;
+  contactSubheading: string;
+  submitLabel: string;
+  fbContentName: string;
+  defaultLoanRequest: string;
+  thankYouHeadline: string;
+  thankYouSubheading: string;
+  complianceDisclosure: string;
+  additionalFields?: Record<string, string>;
 };
 
 type QuotePayload = FunnelData & {
@@ -131,6 +167,15 @@ const loanPurposeOptions: Array<{ value: LoanPurpose; icon: string; title: strin
   { value: "home_improvement", icon: "🛠️", title: "Home Improvement" },
 ];
 
+const dscrCoMetaLoanPurposeOptions: Array<{ value: LoanPurpose; icon: string; title: string }> = [
+  { value: "purchase", icon: "DS", title: "Purchase Rental" },
+  { value: "refinance", icon: "RF", title: "Refinance Rental" },
+  { value: "cash_out_refinance", icon: "CO", title: "Cash-Out DSCR" },
+  { value: "heloc", icon: "ST", title: "Short-Term Rental" },
+  { value: "home_equity_loan", icon: "2-4", title: "2-4 Unit Property" },
+  { value: "home_improvement", icon: "PF", title: "Portfolio Review" },
+];
+
 const cashUseOptions: Array<{ value: CashUse; icon: string; title: string }> = [
   { value: "debt_consolidation", icon: "💳", title: "Debt Consolidation" },
   { value: "renovation", icon: "🔨", title: "Renovation" },
@@ -142,6 +187,12 @@ const propertyUseOptions: Array<{ value: PropertyUse; icon: string; title: strin
   { value: "primary_residence", icon: "🏡", title: "Primary Residence" },
   { value: "second_home", icon: "🏖️", title: "Second Home" },
   { value: "investment_property", icon: "📈", title: "Investment Property" },
+];
+
+const dscrCoMetaPropertyUseOptions: Array<{ value: PropertyUse; icon: string; title: string }> = [
+  { value: "primary_residence", icon: "LT", title: "Long-Term Rental" },
+  { value: "second_home", icon: "ST", title: "Short-Term Rental" },
+  { value: "investment_property", icon: "IP", title: "Investment Property" },
 ];
 
 const creditOptions: Array<{ value: CreditScore; icon: string; title: string; sub: string }> = [
@@ -178,6 +229,83 @@ const cashUsePurposes = new Set<LoanPurpose>([
   "home_equity_loan",
   "home_improvement",
 ]);
+
+const dscrCashUsePurposes = new Set<LoanPurpose>(["cash_out_refinance"]);
+
+const helocMetaConfig: MetaFunnelConfig = {
+  funnelId: "helocmeta",
+  storageKey: "smartr8_helocmeta_quote_v1",
+  consentVersion: "2026-06-29.helocmeta.v1",
+  webhookUrl: HELOCMETA_WEBHOOK_URL,
+  canonical: "/helocmeta",
+  pageTitle: "Mortgage Rate Quote | Adaxa Home",
+  pageDescription:
+    "Request a personalized mortgage, HELOC, cash-out refinance, refinance, purchase, or home improvement financing quote from Adaxa Home.",
+  schemaServiceType: "Mortgage quote request",
+  firstStepEyebrow: "RATE QUOTE",
+  firstStepTitle: "What's your loan purpose?",
+  firstStepSubheading: "Choose the option that best matches what you're looking for.",
+  loanPurposeOptions,
+  cashUsePurposes,
+  cashUseTitle: "What will you use the cash for?",
+  mortgageTitle: "Current mortgage balance",
+  mortgageSubheading: "How much do you currently owe on your mortgage?",
+  mortgageLabel: "Current mortgage balance",
+  homeValueTitle: "Estimated home value",
+  propertyUseTitle: "How will the property be used?",
+  propertyUseOptions,
+  contactEyebrow: "SEND MY OPTIONS",
+  contactTitle: "Where should we send your quote?",
+  contactSubheading: "A licensed loan officer will call and text you with your personalized rate.",
+  submitLabel: "Request Quote",
+  fbContentName: "HELOC Meta Quote Funnel",
+  defaultLoanRequest: "Mortgage Rate Quote",
+  thankYouHeadline: "Your quote request is in.",
+  thankYouSubheading: "A licensed loan officer will review your details and reach out shortly.",
+  complianceDisclosure:
+    "HELOCs and home equity loans are secured by the home, subject to approval, and not a commitment to lend.",
+};
+
+export const dscrCoMetaConfig: MetaFunnelConfig = {
+  funnelId: "dscrcometa",
+  storageKey: "smartr8_dscrcometa_quote_v1",
+  consentVersion: "2026-06-29.dscrcometa.v1",
+  webhookUrl: DSCRCOMETA_WEBHOOK_URL,
+  canonical: "/dscrcometa",
+  pageTitle: "DSCR Investor Loan Quote | Adaxa Home",
+  pageDescription:
+    "Request a DSCR investor loan quote for rental property purchase, refinance, cash-out, short-term rental, or 2-4 unit financing.",
+  schemaServiceType: "DSCR investor loan quote request",
+  firstStepEyebrow: "DSCR QUOTE",
+  firstStepTitle: "What's the DSCR scenario?",
+  firstStepSubheading: "Choose the investor loan path that best matches the rental property.",
+  loanPurposeOptions: dscrCoMetaLoanPurposeOptions,
+  cashUsePurposes: dscrCashUsePurposes,
+  cashUseTitle: "What will you use the cash for?",
+  cashUseSubheading: "For cash-out DSCR loans, this helps match the cleanest investor path.",
+  mortgageTitle: "Requested loan amount",
+  mortgageSubheading: "For a purchase, use the loan amount you want. For a refinance, use the current balance.",
+  mortgageLabel: "Requested loan amount or current balance",
+  homeValueTitle: "Estimated property value",
+  homeValueSubheading: "Use the purchase price, current value, or your best estimate.",
+  propertyUseTitle: "How is the rental used?",
+  propertyUseOptions: dscrCoMetaPropertyUseOptions,
+  contactEyebrow: "SEND MY DSCR OPTIONS",
+  contactTitle: "Where should we send your DSCR quote?",
+  contactSubheading: "A licensed loan officer will review the rental scenario and follow up with DSCR options.",
+  submitLabel: "Request DSCR Quote",
+  fbContentName: "DSCR CO Meta Quote Funnel",
+  defaultLoanRequest: "DSCR Investor Loan Quote",
+  thankYouHeadline: "Your DSCR quote request is in.",
+  thankYouSubheading: "A licensed loan officer will review your rental scenario and reach out shortly.",
+  complianceDisclosure:
+    "DSCR investor loans are subject to rental income, property, credit, title, appraisal, and underwriting review. Not a commitment to lend.",
+  additionalFields: {
+    "Loan Type": "DSCR",
+    loanType: "DSCR",
+    "Funnel-Source": "dscrcometa",
+  },
+};
 
 let turnstileScriptLoaded: Promise<void> | null = null;
 
@@ -242,13 +370,13 @@ function labelFor<T extends string>(options: Array<{ value: T; title: string; su
   return match.sub ? `${match.title} (${match.sub})` : match.title;
 }
 
-function buildSteps(data: FunnelData): StepDef[] {
+function buildSteps(data: FunnelData, config: MetaFunnelConfig): StepDef[] {
   const steps: StepDef[] = [
     { id: "loan-purpose", progress: 14 },
     { id: "property-address", progress: 29 },
     { id: "mortgage-balance", progress: 44 },
   ];
-  if (data.loan_purpose && cashUsePurposes.has(data.loan_purpose)) {
+  if (data.loan_purpose && config.cashUsePurposes.has(data.loan_purpose)) {
     steps.push({ id: "cash-use", progress: 56 });
   }
   return [
@@ -599,28 +727,28 @@ function ConsentCheckbox({
   );
 }
 
-function ThankYouPage({ data }: { data: FunnelData }) {
+function ThankYouPage({ data, config }: { data: FunnelData; config: MetaFunnelConfig }) {
   return (
     <main className="hm-main">
       <section className="hm-card hm-thank-you">
         <p className="hm-eyebrow">QUOTE REQUEST</p>
-        <h1>Your quote request is in.</h1>
-        <p className="hm-subheading">A licensed loan officer will review your details and reach out shortly.</p>
+        <h1>{config.thankYouHeadline}</h1>
+        <p className="hm-subheading">{config.thankYouSubheading}</p>
         <div className="hm-summary">
           <div>
             <span>Loan purpose</span>
-            <strong>{labelFor(loanPurposeOptions, data.loan_purpose) || "Review requested"}</strong>
+            <strong>{labelFor(config.loanPurposeOptions, data.loan_purpose) || "Review requested"}</strong>
           </div>
           <div>
             <span>Property state</span>
             <strong>{data.state || "Not provided"}</strong>
           </div>
           <div>
-            <span>Estimated home value</span>
+            <span>{config.homeValueTitle}</span>
             <strong>{currency(data.estimated_home_value)}</strong>
           </div>
           <div>
-            <span>Estimated mortgage balance</span>
+            <span>{config.mortgageLabel}</span>
             <strong>{currency(data.current_mortgage_balance)}</strong>
           </div>
           <div>
@@ -637,10 +765,10 @@ function ThankYouPage({ data }: { data: FunnelData }) {
   );
 }
 
-export default function HelocMeta() {
+export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFunnelConfig }) {
   const [data, setData] = useState<FunnelData>(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(config.storageKey);
       return saved ? { ...initialData, ...JSON.parse(saved) } : initialData;
     } catch {
       return initialData;
@@ -652,7 +780,7 @@ export default function HelocMeta() {
   const [thankYou, setThankYou] = useState(false);
   const [error, setError] = useState("");
 
-  const steps = useMemo(() => buildSteps(data), [data]);
+  const steps = useMemo(() => buildSteps(data, config), [data, config]);
   const currentStep = steps[Math.min(stepIndex, steps.length - 1)];
   const currentProgress = currentStep?.progress ?? 14;
 
@@ -666,9 +794,9 @@ export default function HelocMeta() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(config.storageKey, JSON.stringify(data));
     } catch {}
-  }, [data]);
+  }, [config.storageKey, data]);
 
   useEffect(() => {
     if (stepIndex > steps.length - 1) setStepIndex(steps.length - 1);
@@ -719,19 +847,20 @@ export default function HelocMeta() {
     setSubmitting(true);
     setError("");
     const payload = buildPayload();
-    const loanPurposeLabel = labelFor(loanPurposeOptions, data.loan_purpose);
+    const loanPurposeLabel = labelFor(config.loanPurposeOptions, data.loan_purpose);
     try {
       const additionalFields = Object.entries(payload).reduce<Record<string, string>>((acc, [key, value]) => {
         if (value === undefined || value === null || value === "") return acc;
         acc[key] = typeof value === "boolean" ? (value ? "Yes" : "No") : String(value);
         return acc;
       }, {});
+      Object.assign(additionalFields, config.additionalFields);
       additionalFields["Loan Purpose Label"] = loanPurposeLabel;
       additionalFields["Cash Use Label"] = labelFor(cashUseOptions, data.cash_use);
-      additionalFields["Property Use Label"] = labelFor(propertyUseOptions, data.property_use);
+      additionalFields["Property Use Label"] = labelFor(config.propertyUseOptions, data.property_use);
 
       const result = await submitLead({
-        funnel: "helocmeta",
+        funnel: config.funnelId,
         firstName: data.first_name.trim(),
         lastName: data.last_name.trim(),
         email: data.email.trim(),
@@ -743,21 +872,21 @@ export default function HelocMeta() {
         homeValue: currency(data.estimated_home_value),
         mortgageBalance: currency(data.current_mortgage_balance),
         creditScore: labelFor(creditOptions, data.credit_score_range),
-        loanRequest: loanPurposeLabel || "Mortgage Rate Quote",
+        loanRequest: config.funnelId === "dscrcometa" ? config.defaultLoanRequest : loanPurposeLabel || config.defaultLoanRequest,
         additionalFields,
         honeypot: data.honeypot,
         pageLoadTime: 0,
         pageUrlOverride: payload.landing_page_url,
         turnstile_token: consent.token,
         consent: data.tcpa_consent,
-        consent_version: CONSENT_VERSION,
+        consent_version: config.consentVersion,
         consent_text: CONSENT_TEXT,
       });
 
       if (!result.success) throw new Error(result.error || "Lead submission failed");
 
-      if (WEBHOOK_URL) {
-        fetch(WEBHOOK_URL, {
+      if (config.webhookUrl) {
+        fetch(config.webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -766,11 +895,11 @@ export default function HelocMeta() {
       }
 
       trackFbEvent("Lead", {
-        content_name: "HELOC Meta Quote Funnel",
+        content_name: config.fbContentName,
         content_category: "Mortgage",
         loan_purpose: data.loan_purpose,
       });
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(config.storageKey);
       setThankYou(true);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "We couldn't submit your quote request.");
@@ -783,15 +912,15 @@ export default function HelocMeta() {
     if (currentStep.id === "loan-purpose") {
       return (
         <QuestionCard
-          eyebrow="RATE QUOTE"
-          title="What's your loan purpose?"
-          subheading="Choose the option that best matches what you're looking for."
+          eyebrow={config.firstStepEyebrow}
+          title={config.firstStepTitle}
+          subheading={config.firstStepSubheading}
           onNext={goNext}
           nextDisabled={!canContinue}
           showBack={false}
         >
           <div className="hm-options">
-            {loanPurposeOptions.map((option) => (
+            {config.loanPurposeOptions.map((option) => (
               <OptionButton
                 key={option.value}
                 icon={option.icon}
@@ -824,14 +953,14 @@ export default function HelocMeta() {
       return (
         <QuestionCard
           eyebrow="MORTGAGE"
-          title="Current mortgage balance"
-          subheading="How much do you currently owe on your mortgage?"
+          title={config.mortgageTitle}
+          subheading={config.mortgageSubheading}
           onBack={goBack}
           onNext={goNext}
           nextDisabled={!canContinue}
         >
           <SliderInput
-            label="Current mortgage balance"
+            label={config.mortgageLabel}
             min={0}
             max={3000000}
             value={data.current_mortgage_balance}
@@ -845,7 +974,8 @@ export default function HelocMeta() {
       return (
         <QuestionCard
           eyebrow="CASH USE"
-          title="What will you use the cash for?"
+          title={config.cashUseTitle}
+          subheading={config.cashUseSubheading}
           onBack={goBack}
           onNext={goNext}
           nextDisabled={!canContinue}
@@ -869,13 +999,14 @@ export default function HelocMeta() {
       return (
         <QuestionCard
           eyebrow="EQUITY"
-          title="Estimated home value"
+          title={config.homeValueTitle}
+          subheading={config.homeValueSubheading}
           onBack={goBack}
           onNext={goNext}
           nextDisabled={!canContinue}
         >
           <SliderInput
-            label="Estimated home value"
+            label={config.homeValueTitle}
             min={50000}
             max={3000000}
             value={data.estimated_home_value}
@@ -892,13 +1023,13 @@ export default function HelocMeta() {
       return (
         <QuestionCard
           eyebrow="PROPERTY USE"
-          title="How will the property be used?"
+          title={config.propertyUseTitle}
           onBack={goBack}
           onNext={goNext}
           nextDisabled={!canContinue}
         >
           <div className="hm-options">
-            {propertyUseOptions.map((option) => (
+            {config.propertyUseOptions.map((option) => (
               <OptionButton
                 key={option.value}
                 icon={option.icon}
@@ -940,12 +1071,12 @@ export default function HelocMeta() {
 
     return (
       <QuestionCard
-        eyebrow="SEND MY OPTIONS"
-        title="Where should we send your quote?"
-        subheading="A licensed loan officer will call and text you with your personalized rate."
+        eyebrow={config.contactEyebrow}
+        title={config.contactTitle}
+        subheading={config.contactSubheading}
         onBack={goBack}
         onNext={submitQuote}
-        nextLabel={submitting ? "Building your quote..." : "Request Quote"}
+        nextLabel={submitting ? "Building your quote..." : config.submitLabel}
         nextDisabled={!canContinue}
         loading={submitting}
       >
@@ -996,24 +1127,24 @@ export default function HelocMeta() {
   return (
     <div className="helocmeta-page">
       <PageMeta
-        title="Mortgage Rate Quote | Adaxa Home"
-        description="Request a personalized mortgage, HELOC, cash-out refinance, refinance, purchase, or home improvement financing quote from Adaxa Home."
-        canonical="/helocmeta"
+        title={config.pageTitle}
+        description={config.pageDescription}
+        canonical={config.canonical}
       />
       <JsonLd
         data={{
           "@context": "https://schema.org",
           "@type": "FinancialService",
           name: COMPANY_NAME,
-          url: "https://smartr8.com/helocmeta",
+          url: `https://smartr8.com${config.canonical}`,
           areaServed: "US",
-          serviceType: "Mortgage quote request",
+          serviceType: config.schemaServiceType,
         }}
       />
       <HeaderProgress progress={thankYou ? 100 : currentProgress} />
       <AlertBar />
       {thankYou ? (
-        <ThankYouPage data={data} />
+        <ThankYouPage data={data} config={config} />
       ) : (
         <main className="hm-main">
           {renderStep()}
@@ -1026,10 +1157,13 @@ export default function HelocMeta() {
           availability may vary. Not a commitment to lend.
         </p>
         <p>
-          {LOAN_OFFICER_NAME} NMLS #{LOAN_OFFICER_NMLS}. HELOCs and home equity loans are secured by the home, subject to
-          approval, and not a commitment to lend.
+          {LOAN_OFFICER_NAME} NMLS #{LOAN_OFFICER_NMLS}. {config.complianceDisclosure}
         </p>
       </footer>
     </div>
   );
+}
+
+export default function HelocMeta() {
+  return <MetaQuoteFunnel config={helocMetaConfig} />;
 }

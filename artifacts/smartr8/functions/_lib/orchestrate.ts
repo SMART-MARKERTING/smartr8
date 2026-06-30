@@ -5,7 +5,7 @@
 //   - CRM webhook: forwards the lead to the Smartr8 CRM (crm.smartr8.com), which
 //     owns texting (iMessage-first → SMS), the nurture drip, and pipeline. The
 //     SMS opt-in rides along as smsOptIn so the CRM only texts box-checkers.
-//   - GHL for explicitly opted-in helocmeta leads only, preserving the legacy
+//   - GHL for explicitly opted-in Meta funnel leads only, preserving the legacy
 //     GHL connection without re-enabling it for every older website funnel.
 //   - Resend confirmation (independent, currently dormant).
 //
@@ -41,7 +41,8 @@ export async function dedupKeyFor(lead: Lead): Promise<string> {
 }
 
 function shouldSendToGhl(lead: Lead, consent: TcpaConsent | null): boolean {
-  return String(lead.funnel || "").toLowerCase() === "helocmeta" && consent != null;
+  const funnel = String(lead.funnel || "").toLowerCase();
+  return (funnel === "helocmeta" || funnel === "dscrcometa") && consent != null;
 }
 
 interface OrchestrateContext {
@@ -130,7 +131,7 @@ export async function processLead(
   // Resend remains dormant; the funnel's Quick Quote (/api/quote/send) is
   // the only lead email now.
   // The CRM always receives the accepted lead. GHL is re-enabled only for
-  // opted-in helocmeta leads so older website funnels keep their GHL behavior off.
+  // opted-in Meta funnel leads so older website funnels keep their GHL behavior off.
   ctx.waitUntil(runCrmWebhook(env, lead, smsOptIn));
   if (shouldSendToGhl(lead, consent)) {
     ctx.waitUntil(runGhlChain(env, db, lead));
