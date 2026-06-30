@@ -1231,8 +1231,8 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
       <HeaderProgress progress={currentProgress} />
       <AlertBar />
       <main className="hm-main">
-        {renderStep()}
         {config.funnelId === "helocmeta" && currentStep.id === "loan-purpose" && <HelocIntroVideo />}
+        {renderStep()}
         <LenderLogoCarousel />
       </main>
       <footer className="hm-compliance">
