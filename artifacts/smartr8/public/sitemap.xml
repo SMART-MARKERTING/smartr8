@@ -36,6 +36,11 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://smartr8.com/dscrcometa</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://smartr8.com/hard-money-loans</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

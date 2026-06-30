@@ -40,6 +40,7 @@ function loanRequestFromFunnel(funnel: string): string {
   const f = String(funnel || "").toLowerCase();
   if (f === "see-my-options") return "Program Finder";
   if (f === "legal") return "LegalZoom Partner Lead";
+  if (f === "dscrcometa") return "DSCR Investor Loan Quote";
   if (f.startsWith("heloc")) return "HELOC";
   if (f === "cashout" || f === "cash-out") return "Cash-Out Refinance";
   if (f === "rate-reduction") return "Rate and Term Refinance";

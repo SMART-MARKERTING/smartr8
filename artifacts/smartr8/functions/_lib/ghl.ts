@@ -32,6 +32,7 @@ interface UpsertResponse {
 function funnelLabel(funnel: string): string {
   const f = String(funnel || "").toLowerCase();
   if (f.startsWith("heloc")) return "HELOC";
+  if (f === "dscrcometa") return "DSCR";
   if (f === "worksheet") return "refinance worksheet";
   if (f === "cash-out" || f === "cashout" || f === "rate-reduction" || f === "purchase") return "mortgage";
   return "mortgage";
@@ -61,6 +62,7 @@ const FUNNEL_LOAN_TYPE: Record<string, string> = {
   "heloc-v2": "heloc",
   "heloc-quick": "heloc",
   "heloc-quick-v2": "heloc",
+  dscrcometa: "dscr",
   cashout: "mortgage",
   "cash-out": "mortgage",
   "rate-reduction": "mortgage",
@@ -91,6 +93,7 @@ function loanTypeTagFor(lead: Lead): string {
 function customLoanTypeFor(lead: Lead): string {
   const tag = loanTypeTagFor(lead);
   if (tag === "heloc") return "HELOC";
+  if (tag === "dscr") return "DSCR";
   if (tag === "mortgage") return "Mortgage";
   return lead.loan_request?.trim() || "";
 }

@@ -101,6 +101,14 @@ describe("ghlUpsert request shape", () => {
     expect(loanType.value).toBe("HELOC");
   });
 
+  it("sets DSCR custom field for dscrcometa leads", async () => {
+    fetchMock.mockResolvedValueOnce(upsertOk());
+    await ghlUpsert(makeEnv(), makeLead({ funnel: "dscrcometa", loan_request: "DSCR Investor Loan Quote" }));
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    const loanType = body.customFields.find((cf: { id: string }) => cf.id === "cf-loan-type");
+    expect(loanType.value).toBe("DSCR");
+  });
+
   it("filters out customFields whose value is empty (no placeholder leaks)", async () => {
     fetchMock.mockResolvedValueOnce(upsertOk());
     // Lead with no notes and no property data — Conversation Summary and
@@ -190,6 +198,10 @@ describe("ghlUpsert tag derivation from funnel", () => {
       expect(await tagsFor(funnel)).toEqual(["web lead", "mortgage"]);
     },
   );
+
+  it('tags dscrcometa as ["web lead", "dscr"]', async () => {
+    expect(await tagsFor("dscrcometa")).toEqual(["web lead", "dscr"]);
+  });
 
   it("tags helocmeta as mortgage or heloc based on the selected loan purpose", async () => {
     fetchMock.mockResolvedValueOnce(upsertOk());
