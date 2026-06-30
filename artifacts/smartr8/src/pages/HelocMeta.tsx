@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, ArrowRight, Check, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ExternalLink, Loader2, Phone } from "lucide-react";
+import { AddressAutocomplete as GoogleAddressAutocomplete, type AddressResult } from "@/components/AddressAutocomplete";
 import { JsonLd } from "@/components/JsonLd";
 import { PageMeta } from "@/components/PageMeta";
 import { submitLead } from "@/lib/submitLead";
@@ -11,6 +12,9 @@ const COMPANY_NAME = "Adaxa Home, LLC";
 const COMPANY_NMLS = "2380533";
 const LOAN_OFFICER_NAME = "Mykoal DeShazo";
 const LOAN_OFFICER_NMLS = "1912347";
+const HEADER_LOAN_OFFICER_NAME = "MYKOALDESHAZO";
+const CONTACT_PHONE = "(480) 206-9290";
+const CONTACT_PHONE_HREF = "tel:4802069290";
 const STORAGE_KEY = "smartr8_helocmeta_quote_v1";
 const WEBHOOK_URL = import.meta.env.VITE_HELOCMETA_WEBHOOK_URL as string | undefined;
 const TURNSTILE_SITE_KEY =
@@ -30,10 +34,8 @@ type StepId =
   | "property-address"
   | "mortgage-balance"
   | "cash-use"
-  | "confirm-address"
   | "home-value"
   | "property-use"
-  | "balance-confirm"
   | "credit-score"
   | "contact";
 
@@ -244,17 +246,15 @@ function buildSteps(data: FunnelData): StepDef[] {
   const steps: StepDef[] = [
     { id: "loan-purpose", progress: 14 },
     { id: "property-address", progress: 29 },
-    { id: "mortgage-balance", progress: 33 },
+    { id: "mortgage-balance", progress: 44 },
   ];
   if (data.loan_purpose && cashUsePurposes.has(data.loan_purpose)) {
-    steps.push({ id: "cash-use", progress: 44 });
+    steps.push({ id: "cash-use", progress: 56 });
   }
   return [
     ...steps,
-    { id: "confirm-address", progress: 50 },
-    { id: "home-value", progress: 56 },
-    { id: "property-use", progress: 67 },
-    { id: "balance-confirm", progress: 78 },
+    { id: "home-value", progress: 67 },
+    { id: "property-use", progress: 78 },
     { id: "credit-score", progress: 89 },
     { id: "contact", progress: 100 },
   ];
@@ -262,11 +262,11 @@ function buildSteps(data: FunnelData): StepDef[] {
 
 function validateStep(id: StepId, data: FunnelData, consent: ConsentState): boolean {
   if (id === "loan-purpose") return Boolean(data.loan_purpose);
-  if (id === "property-address" || id === "confirm-address") {
+  if (id === "property-address") {
     const hasLocation = data.city.trim().length > 1 && data.state.trim().length === 2 && data.zip.trim().length >= 5;
     return data.no_address_yet ? hasLocation : data.property_address.trim().length > 4 && hasLocation;
   }
-  if (id === "mortgage-balance" || id === "balance-confirm") return data.current_mortgage_balance >= 0;
+  if (id === "mortgage-balance") return data.current_mortgage_balance >= 0;
   if (id === "cash-use") return Boolean(data.cash_use);
   if (id === "home-value") return data.estimated_home_value >= 50000;
   if (id === "property-use") return Boolean(data.property_use);
@@ -293,13 +293,17 @@ function HeaderProgress({ progress }: { progress: number }) {
           <span>Home</span>
         </Link>
         <div className="hm-brand">
-          <img src="/adaxa-logo-optimized.jpg" alt="Adaxa Home" />
+          <img src="/adaxa-triangle.svg" alt="Adaxa Home" />
           <div>
-            <strong>{COMPANY_NAME}</strong>
+            <strong>ADAXA HOME LLC</strong>
             <small>NMLS #{COMPANY_NMLS}</small>
+            <small>{HEADER_LOAN_OFFICER_NAME} · NMLS #{LOAN_OFFICER_NMLS}</small>
           </div>
         </div>
-        <div className="hm-quote-name">QuoteAssist</div>
+        <a className="hm-header-phone" href={CONTACT_PHONE_HREF} aria-label={`Call ${LOAN_OFFICER_NAME}`}>
+          <Phone size={13} />
+          <span>{CONTACT_PHONE}</span>
+        </a>
         <div className="hm-percent">{progress}% Complete</div>
       </div>
       <div className="hm-progress-track" aria-hidden="true">
@@ -440,54 +444,18 @@ function AddressAutocomplete({
   data: FunnelData;
   onChange: (patch: Partial<FunnelData>) => void;
 }) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
-
-  const handlePlace = useCallback(
-    (place: {
-      formatted_address?: string;
-      address_components?: Array<{ long_name: string; short_name: string; types: string[] }>;
-    }) => {
-      const components = place.address_components ?? [];
-      const get = (type: string) => components.find((part) => part.types.includes(type))?.long_name ?? "";
-      const getShort = (type: string) => components.find((part) => part.types.includes(type))?.short_name ?? "";
-      const street = [get("street_number"), get("route")].filter(Boolean).join(" ");
+  const handleAddressChange = useCallback(
+    (result: AddressResult) => {
       onChange({
-        property_address: place.formatted_address || street,
-        city: get("locality") || get("sublocality_level_1") || get("neighborhood"),
-        state: getShort("administrative_area_level_1"),
-        zip: get("postal_code"),
-        county: get("administrative_area_level_2").replace(/\sCounty$/i, ""),
+        property_address: result.formatted || result.street,
+        city: result.city,
+        state: result.state,
+        zip: result.zip,
+        county: result.county ?? data.county,
       });
     },
-    [onChange],
+    [data.county, onChange],
   );
-
-  useEffect(() => {
-    const googleApi = (window as Window & {
-      google?: {
-        maps?: {
-          places?: {
-            Autocomplete: new (
-              input: HTMLInputElement,
-              opts?: object,
-            ) => {
-              getPlace: () => {
-                formatted_address?: string;
-                address_components?: Array<{ long_name: string; short_name: string; types: string[] }>;
-              };
-              addListener: (event: string, cb: () => void) => void;
-            };
-          };
-        };
-      };
-    }).google;
-    if (!inputRef.current || !googleApi?.maps?.places) return;
-    const autocomplete = new googleApi.maps.places.Autocomplete(inputRef.current, {
-      types: ["address"],
-      componentRestrictions: { country: "us" },
-    });
-    autocomplete.addListener("place_changed", () => handlePlace(autocomplete.getPlace()));
-  }, [handlePlace]);
 
   return (
     <div className="hm-address">
@@ -501,16 +469,14 @@ function AddressAutocomplete({
       </label>
 
       {!data.no_address_yet && (
-        <label className="hm-field">
+        <div className="hm-field">
           <span>Search Address</span>
-          <input
-            ref={inputRef}
+          <GoogleAddressAutocomplete
             value={data.property_address}
             placeholder="123 Main St, Springfield, IL"
-            autoComplete="street-address"
-            onChange={(event) => onChange({ property_address: event.target.value })}
+            onChange={handleAddressChange}
           />
-        </label>
+        </div>
       )}
 
       <div className="hm-grid two">
@@ -546,25 +512,20 @@ function AddressAutocomplete({
 }
 
 function LenderLogoCarousel() {
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setIndex((current) => (current + 2) % lenders.length), 3000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const visible = [lenders[index], lenders[(index + 1) % lenders.length]];
+  const marqueeLenders = [...lenders, ...lenders];
 
   return (
     <section className="hm-trust" aria-label="Lender trust section">
       <p className="hm-trust-kicker">PARTNERED WITH OVER 150 BANKS</p>
       <p className="hm-trust-sub">Trusted by the nation's top lenders</p>
-      <div className="hm-logo-row" key={index}>
-        {visible.map((lender) => (
-          <div className="hm-logo-pill" key={lender}>
-            {lender}
-          </div>
-        ))}
+      <div className="hm-logo-marquee" aria-label={lenders.join(", ")}>
+        <div className="hm-logo-track">
+          {marqueeLenders.map((lender, index) => (
+            <div className="hm-logo-pill" key={`${lender}-${index}`}>
+              {lender}
+            </div>
+          ))}
+        </div>
       </div>
       <SecurityFooter />
     </section>
@@ -844,10 +805,10 @@ export default function HelocMeta() {
       );
     }
 
-    if (currentStep.id === "property-address" || currentStep.id === "confirm-address") {
+    if (currentStep.id === "property-address") {
       return (
         <QuestionCard
-          eyebrow={currentStep.id === "confirm-address" ? "CONFIRM PROPERTY" : "PROPERTY"}
+          eyebrow="PROPERTY"
           title="Property address"
           subheading="Start typing the address, and we'll auto-fill the rest."
           onBack={goBack}
@@ -859,10 +820,10 @@ export default function HelocMeta() {
       );
     }
 
-    if (currentStep.id === "mortgage-balance" || currentStep.id === "balance-confirm") {
+    if (currentStep.id === "mortgage-balance") {
       return (
         <QuestionCard
-          eyebrow={currentStep.id === "balance-confirm" ? "CONFIRM BALANCE" : "MORTGAGE"}
+          eyebrow="MORTGAGE"
           title="Current mortgage balance"
           subheading="How much do you currently owe on your mortgage?"
           onBack={goBack}

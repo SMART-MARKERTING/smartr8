@@ -7,6 +7,7 @@ export interface AddressResult {
   city: string;
   state: string;
   zip: string;
+  county?: string;
 }
 
 interface AddressAutocompleteProps {
@@ -92,6 +93,7 @@ export function AddressAutocomplete({
           city: "",
           state: "",
           zip: "",
+          county: "",
         });
         return;
       }
@@ -107,6 +109,7 @@ export function AddressAutocomplete({
         city: get("locality") || get("sublocality_level_1") || get("neighborhood"),
         state: getShort("administrative_area_level_1"),
         zip: get("postal_code"),
+        county: get("administrative_area_level_2").replace(/\sCounty$/i, ""),
       });
     });
   }, [scriptLoaded, forPurchase, onChange]);
@@ -130,6 +133,7 @@ export function AddressAutocomplete({
                   city: "",
                   state: "",
                   zip: "",
+                  county: "",
                 })
             : undefined
         }
