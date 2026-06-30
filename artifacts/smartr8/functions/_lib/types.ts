@@ -3,6 +3,7 @@
 
 export type FunnelId =
   | "heloc"
+  | "helocmeta"
   | "heloc-v2"
   | "heloc-quick"
   | "heloc-quick-v2"
