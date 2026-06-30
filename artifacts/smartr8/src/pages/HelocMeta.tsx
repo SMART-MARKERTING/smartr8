@@ -691,6 +691,21 @@ function LenderLogoCarousel() {
   );
 }
 
+function HelocIntroVideo() {
+  return (
+    <section className="hm-video-wrap" aria-label="HELOC overview video">
+      <div className="hm-video-frame">
+        <iframe
+          src="https://www.loom.com/embed/135bedc05e294697bea6d1be078b59c0"
+          title="HELOC overview"
+          frameBorder="0"
+          allowFullScreen
+        />
+      </div>
+    </section>
+  );
+}
+
 function SecurityFooter() {
   return <p className="hm-secure">🔒 256-bit encrypted · No credit impact · 100% free</p>;
 }
@@ -1216,6 +1231,7 @@ export function MetaQuoteFunnel({ config = helocMetaConfig }: { config?: MetaFun
       <AlertBar />
       <main className="hm-main">
         {renderStep()}
+        {config.funnelId === "helocmeta" && currentStep.id === "loan-purpose" && <HelocIntroVideo />}
         <LenderLogoCarousel />
       </main>
       <footer className="hm-compliance">
