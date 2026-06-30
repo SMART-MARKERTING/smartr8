@@ -29,7 +29,6 @@ import { trackFbEvent } from "@/lib/fbq";
 import "./helocV3.css";
 
 const SESSION_KEY = "smartr8_program_finder_v1";
-const CAL_URL = "https://cal.com/mykoal/15-min-loan-consult-meeting";
 const HELOC_APPLICATION_URL =
   "https://heloc.adaxahome.com/account/heloc/register?referrer=07b7dc41-da1d-4044-8cfc-694ebbc1d3b7";
 
@@ -274,6 +273,7 @@ function estimateOptionsText(data: Data) {
 function buildApplicationUrl(data: Data) {
   const url = new URL(HELOC_APPLICATION_URL);
   url.searchParams.set("source", "see-my-options");
+  url.searchParams.set("next_step", data.nextAction || "lead_capture");
   url.searchParams.set("name", data.first);
   url.searchParams.set("credit", label(CREDIT, data.credit));
   url.searchParams.set(
@@ -281,6 +281,11 @@ function buildApplicationUrl(data: Data) {
     data.occupancy === "investment" ? "Investment property program review" : "Program finder quote",
   );
   return url.toString();
+}
+
+function nextActionLabel(action: string) {
+  if (action === "call_mykoal" || action === "schedule") return "Call Mykoal after lead capture";
+  return "Have quote emailed/texted to me";
 }
 
 function Progress({ current }: { current: number }) {
@@ -525,7 +530,8 @@ export default function ProgramFinderPreview() {
           Occupancy: label(OCCUPANCY, data.occupancy),
           "Employment Status": label(EMPLOYMENT, data.employment),
           "Mortgage Setup": label(MORTGAGE_STATUS, data.mortgageStatus),
-          "Requested Next Step": data.nextAction === "email_quote" ? "Have quote emailed/texted to me" : "Schedule a call",
+          "Requested Next Step": nextActionLabel(data.nextAction),
+          "Post-Lead Redirect": "Figure HELOC application",
           "Loan Type": data.occupancy === "investment" ? "DSCR" : "Program Finder",
           "Estimated Options": estimateOptionsText(data),
           "Best-Fit Genre":
@@ -652,19 +658,16 @@ export default function ProgramFinderPreview() {
               onClick={() => set({ nextAction: "email_quote" })}
             />
             <OptionCard
-              option={{ id: "schedule", icon: Phone, title: "Schedule a call", sub: "Open Mykoal's calendar and pick a time" }}
-              selected={data.nextAction === "schedule"}
-              onClick={() => set({ nextAction: "schedule" })}
+              option={{ id: "call_mykoal", icon: Phone, title: "Call Mykoal", sub: "Send your info first, then continue to the secure HELOC path" }}
+              selected={data.nextAction === "call_mykoal" || data.nextAction === "schedule"}
+              onClick={() => set({ nextAction: "call_mykoal" })}
             />
           </div>
           <NavRow
             onBack={() => go("mortgage")}
-            onNext={() => {
-              if (data.nextAction === "schedule") window.open(CAL_URL, "_blank", "noopener,noreferrer");
-              else go("contact");
-            }}
+            onNext={() => go("contact")}
             disabled={!data.nextAction}
-            nextLabel={data.nextAction === "schedule" ? "Open Calendar" : "Continue"}
+            nextLabel="Continue"
           />
         </div>
       </div>
